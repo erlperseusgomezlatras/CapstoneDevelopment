@@ -1,0 +1,301 @@
+/* ===============================
+   GLOBAL COLORS & TRANSITIONS
+================================ */
+:root {
+    --emerald: #059669;
+    --emerald-dark: #047857;
+    --emerald-soft: #ecfdf5;
+    --emerald-grey: #4b6359;
+    --transition-fast: 0.25s ease;
+    --transition-smooth: 0.4s ease;
+}
+
+* {
+    transition: color var(--transition-fast),
+                background var(--transition-fast),
+                transform var(--transition-fast),
+                box-shadow var(--transition-fast);
+}
+
+/* ===============================
+   TEXT UTILITIES
+================================ */
+.text-emerald {
+    color: var(--emerald);
+}
+
+.text-emerald-light {
+    color: #d1fae5;
+}
+
+/* ===============================
+   BUTTONS
+================================ */
+.btn-emerald {
+    background: var(--emerald);
+    color: #fff;
+    border-radius: 8px;
+}
+
+.btn-emerald:hover {
+    background: var(--emerald-dark);
+    transform: translateY(-2px);
+    box-shadow: 0 8px 20px rgba(5,150,105,.35);
+}
+
+.btn-outline-emerald {
+    border: 2px solid var(--emerald);
+    color: var(--emerald);
+    border-radius: 8px;
+}
+
+.btn-outline-emerald:hover {
+    background: var(--emerald-soft);
+    transform: translateY(-2px);
+}
+
+/* ===============================
+   HERO SECTION
+================================ */
+.hero-section {
+    background: linear-gradient(135deg, #ecfdf5, #ffffff);
+    position: relative;
+}
+
+.hero-shape {
+    position: absolute;
+    border-radius: 50%;
+    opacity: 0.2;
+    animation: float 12s ease-in-out infinite;
+}
+
+.shape-1 {
+    width: 260px;
+    height: 260px;
+    background: #34d399;
+    top: -100px;
+    left: -100px;
+}
+
+.shape-2 {
+    width: 380px;
+    height: 380px;
+    background: #6ee7b7;
+    top: 60px;
+    right: -180px;
+    animation-delay: 3s;
+}
+
+.shape-3 {
+    width: 300px;
+    height: 300px;
+    background: #10b981;
+    bottom: -200px;
+    left: 35%;
+    animation-delay: 6s;
+}
+
+@keyframes float {
+    0% { transform: translateY(0); }
+    50% { transform: translateY(-20px); }
+    100% { transform: translateY(0); }
+}
+
+/* HERO LOGO */
+.logo-glow {
+    background: radial-gradient(circle, rgba(52,211,153,0.35), transparent 70%);
+    padding: 40px;
+    border-radius: 50%;
+}
+
+.hero-logo {
+    max-width: 360px;
+    animation: fadeUp 0.8s ease forwards;
+}
+
+/* ===============================
+   FEATURES
+================================ */
+.feature-card {
+    background: linear-gradient(135deg, #ecfdf5, #ffffff);
+    border: 1px solid #d1fae5;
+    border-radius: 18px;
+    padding: 30px;
+    height: 100%;
+}
+
+.feature-card:hover {
+    transform: translateY(-8px);
+    box-shadow: 0 18px 35px rgba(0,0,0,0.12);
+}
+
+.icon-box {
+    width: 56px;
+    height: 56px;
+    background: var(--emerald);
+    color: #ffffff;
+    border-radius: 14px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 26px;
+}
+
+.feature-card:hover .icon-box {
+    transform: scale(1.08);
+}
+
+/* ===============================
+   SHAPE CONTINUATION
+================================ */
+.shape-continuation::after {
+    content: "";
+    position: absolute;
+    bottom: -140px;
+    left: 50%;
+    width: 520px;
+    height: 520px;
+    background: #10b981;
+    opacity: 0.08;
+    border-radius: 50%;
+    transform: translateX(-50%);
+}
+
+/* ===============================
+   ABOUT SECTION
+================================ */
+.bg-emerald {
+    background: linear-gradient(135deg, #059669, #047857);
+}
+
+/* CHECKLIST CARD */
+.checklist-card {
+    background: #ffffff;
+    color: #1f2937;
+    border-radius: 22px;
+    padding: 36px;
+    box-shadow: 0 20px 45px rgba(0,0,0,0.15);
+}
+
+/* CHECKLIST ITEMS */
+.checklist {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+}
+
+.checklist li {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    background: #f3f4f6;
+    padding: 14px 18px;
+    border-radius: 12px;
+    margin-bottom: 14px;
+    font-size: 15px;
+    cursor: default;
+}
+
+.checklist li:hover {
+    background: #ecfdf5;
+    transform: translateX(6px);
+}
+
+.checklist i {
+    color: var(--emerald);
+    font-size: 18px;
+    flex-shrink: 0;
+}
+
+/* ===============================
+   FOOTER
+================================ */
+.footer-emerald {
+    background: #14532d;
+    color: #ffffff;
+}
+
+.footer-title {
+    font-size: 0.85rem;
+    letter-spacing: 0.08em;
+    opacity: 0.85;
+}
+
+.footer-emerald p:hover {
+    transform: translateX(4px);
+    opacity: 0.95;
+}
+
+.footer-branding {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 20px;
+}
+
+.footer-logo {
+    width: 100%;
+    max-width: 220px;
+    height: auto;
+}
+
+.phinma-logo {
+    max-width: 160px;
+}
+
+/* ===============================
+   BACK TO TOP
+================================ */
+.back-to-top {
+    position: fixed;
+    bottom: 30px;
+    right: 30px;
+    width: 46px;
+    height: 46px;
+    background: #14532d;
+    color: #ffffff;
+    border: none;
+    border-radius: 8px;
+    display: none;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+}
+
+.back-to-top:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 8px 20px rgba(0,0,0,0.35);
+}
+
+.back-to-top.footer-mode {
+    background: var(--emerald-grey);
+}
+
+/* ===============================
+   FADE ANIMATION
+================================ */
+@keyframes fadeUp {
+    from {
+        opacity: 0;
+        transform: translateY(14px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+/* ===============================
+   RESPONSIVE
+================================ */
+@media (max-width: 768px) {
+    .footer-branding {
+        align-items: flex-start;
+        margin-top: 20px;
+    }
+
+    .footer-logo {
+        max-width: 180px;
+    }
+}
