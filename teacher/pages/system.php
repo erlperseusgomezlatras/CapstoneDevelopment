@@ -150,6 +150,43 @@ $current_page = 'system';
                 opacity: 1;
             }
         }
+        
+        /* Dropdown styles */
+        .dropdown {
+            position: relative;
+            display: inline-block;
+        }
+        .dropdown-content {
+            display: none;
+            position: absolute;
+            right: 0;
+            background-color: white;
+            min-width: 160px;
+            box-shadow: 0px 8px 16px 0px rgba(0,0,0,0.2);
+            z-index: 1001;
+            border-radius: 6px;
+            border: 1px solid #e5e7eb;
+        }
+        .dropdown-content.show {
+            display: block;
+        }
+        .dropdown-item {
+            padding: 8px 12px;
+            text-decoration: none;
+            display: block;
+            font-size: 14px;
+            cursor: pointer;
+            transition: background-color 0.2s;
+        }
+        .dropdown-item:hover {
+            background-color: #f3f4f6;
+        }
+        .dropdown-item:first-child {
+            border-radius: 6px 6px 0 0;
+        }
+        .dropdown-item:last-child {
+            border-radius: 0 0 6px 6px;
+        }
     </style>
 </head>
 <body class="bg-gray-100">
@@ -218,10 +255,6 @@ $current_page = 'system';
                                 </div>
                             </div>
                             <div class="flex items-center space-x-2">
-                                <button onclick="loadPartneredSchools()" class="w-full px-4 py-2 bg-gray-600 text-white rounded-md hover:bg-gray-700">
-                                    <i class="fas fa-search mr-2"></i>
-                                    Search
-                                </button>
                                 <button onclick="openAddModal()" class="px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700">
                                     <i class="fas fa-plus mr-2"></i>
                                     Add Partnered School
@@ -232,7 +265,7 @@ $current_page = 'system';
                     
                     <!-- Partnered Schools Table -->
                     <div class="bg-white rounded-lg shadow overflow-hidden">
-                        <div class="overflow-x-auto">
+                        <div class="overflow-x-auto min-h-[600px] max-h-[800px] overflow-y-auto">
                             <table class="min-w-full divide-y divide-gray-200">
                                 <thead class="bg-gray-50">
                                     <tr>
@@ -293,8 +326,8 @@ $current_page = 'system';
     <!-- Add/Edit Partnered School Modal -->
     <div id="partneredSchoolModal" class="modal">
         <div class="flex items-center justify-center min-h-screen p-4">
-            <div class="bg-white rounded-lg shadow-xl max-w-4xl w-full max-h-[90vh] overflow-y-auto relative">
-                <div class="px-6 py-4 border-b border-gray-200">
+            <div class="bg-white rounded-lg shadow-xl w-[800px] max-w-[90vw] max-h-[90vh] overflow-y-auto relative">
+                <div class="px-6 py-4 border-b border-gray-200 sticky top-0 bg-white z-10">
                     <h3 class="text-lg font-semibold text-gray-900" id="modalTitle">Add Partnered School</h3>
                 </div>
                 
@@ -396,10 +429,8 @@ $current_page = 'system';
             loadPartneredSchools();
             initializeMap();
             
-            // Search functionality
-            document.getElementById('searchInput').addEventListener('input', function() {
-                loadPartneredSchools();
-            });
+            // Auto-search functionality
+            document.getElementById('searchInput').addEventListener('input', filterPartneredSchools);
             
             // Address input geocoding
             let addressTimeout;
@@ -436,6 +467,36 @@ $current_page = 'system';
             
             closeMobileSidebar.addEventListener('click', closeMobileSidebarFunc);
             mobileSidebarOverlay.addEventListener('click', closeMobileSidebarFunc);
+        });
+        
+        // Dropdown functions
+        function toggleDropdown(schoolId) {
+            // Close all other dropdowns
+            document.querySelectorAll('.dropdown-content').forEach(dropdown => {
+                if (dropdown.id !== `dropdown-content-${schoolId}`) {
+                    dropdown.classList.remove('show');
+                }
+            });
+            
+            // Toggle current dropdown
+            const currentDropdown = document.getElementById(`dropdown-content-${schoolId}`);
+            currentDropdown.classList.toggle('show');
+        }
+
+        function closeDropdown(schoolId) {
+            const dropdown = document.getElementById(`dropdown-content-${schoolId}`);
+            if (dropdown) {
+                dropdown.classList.remove('show');
+            }
+        }
+
+        // Close dropdowns when clicking outside
+        document.addEventListener('click', function(event) {
+            if (!event.target.matches('.dropdown button') && !event.target.closest('.dropdown-content')) {
+                document.querySelectorAll('.dropdown-content').forEach(dropdown => {
+                    dropdown.classList.remove('show');
+                });
+            }
         });
         
         // Update geofence circle
@@ -886,16 +947,14 @@ $current_page = 'system';
             }, 100);
         }
         
-        // Load partnered schools
+        let allPartneredSchools = [];
+
+        // Load all partnered schools once
         async function loadPartneredSchools() {
             try {
-                const searchTerm = document.getElementById('searchInput').value.trim();
-                
                 const formData = new FormData();
                 formData.append('operation', 'read');
-                formData.append('json', JSON.stringify({
-                    search: searchTerm
-                }));
+                formData.append('json', JSON.stringify({}));
                 
                 const response = await fetch('../../api/partnered_schools.php', {
                     method: 'POST',
@@ -905,16 +964,40 @@ $current_page = 'system';
                 const result = await response.json();
                 
                 if (result.success) {
-                    renderPartneredSchoolsTable(result.data);
+                    allPartneredSchools = result.data;
+                    filterPartneredSchools();
                 } else {
                     showNotification(result.message, 'error');
-                    renderPartneredSchoolsTable([]);
+                    allPartneredSchools = [];
+                    filterPartneredSchools();
                 }
             } catch (error) {
                 showNotification('An error occurred while loading partnered schools', 'error');
                 console.error('Error:', error);
-                renderPartneredSchoolsTable([]);
+                allPartneredSchools = [];
+                filterPartneredSchools();
             }
+        }
+        
+        // Filter partnered schools based on search term
+        function filterPartneredSchools() {
+            const searchTerm = document.getElementById('searchInput').value.trim().toLowerCase();
+            
+            let filteredSchools = allPartneredSchools;
+            
+            // Filter by search term
+            if (searchTerm) {
+                filteredSchools = filteredSchools.filter(school => {
+                    return school.school_id_code.toLowerCase().includes(searchTerm) ||
+                           school.name.toLowerCase().includes(searchTerm) ||
+                           school.address.toLowerCase().includes(searchTerm) ||
+                           school.latitude.toString().includes(searchTerm) ||
+                           school.longitude.toString().includes(searchTerm) ||
+                           (school.geofencing_radius && school.geofencing_radius.toString().includes(searchTerm));
+                });
+            }
+            
+            renderPartneredSchoolsTable(filteredSchools);
         }
         
         // Render partnered schools table
@@ -953,14 +1036,22 @@ $current_page = 'system';
                         ${school.geofencing_radius || 80}m
                     </td>
                     <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                        <button onclick="openEditModal(${JSON.stringify(school).replace(/"/g, '&quot;')})" 
-                                class="text-indigo-600 hover:text-indigo-900 mr-3">
-                            <i class="fas fa-edit"></i>
-                        </button>
-                        <button onclick="deletePartneredSchool(${school.id})" 
-                                class="text-red-600 hover:text-red-900">
-                            <i class="fas fa-trash"></i>
-                        </button>
+                        <div class="dropdown" id="dropdown-${school.id}">
+                            <button onclick="toggleDropdown('${school.id}')" 
+                                    class="text-gray-600 hover:text-gray-900 p-2 rounded-md hover:bg-gray-100">
+                                <i class="fas fa-ellipsis-v"></i>
+                            </button>
+                            <div class="dropdown-content" id="dropdown-content-${school.id}">
+                                <div class="dropdown-item text-indigo-600 hover:text-indigo-900" 
+                                     onclick="closeDropdown('${school.id}'); openEditModal(${JSON.stringify(school).replace(/"/g, '&quot;')})">
+                                    <i class="fas fa-edit mr-2"></i> Edit
+                                </div>
+                                <div class="dropdown-item text-red-600 hover:text-red-900" 
+                                     onclick="closeDropdown('${school.id}'); deletePartneredSchool(${school.id})">
+                                    <i class="fas fa-trash mr-2"></i> Delete
+                                </div>
+                            </div>
+                        </div>
                     </td>
                 </tr>
             `).join('');
