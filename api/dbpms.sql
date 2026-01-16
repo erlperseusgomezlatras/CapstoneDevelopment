@@ -3,7 +3,7 @@
 -- https://www.phpmyadmin.net/
 --
 -- Host: localhost
--- Generation Time: Jan 16, 2026 at 12:50 AM
+-- Generation Time: Jan 16, 2026 at 03:48 AM
 -- Server version: 10.4.17-MariaDB
 -- PHP Version: 7.2.34
 
@@ -205,7 +205,7 @@ CREATE TABLE `users` (
 
 INSERT INTO `users` (`school_id`, `level_id`, `firstname`, `lastname`, `middlename`, `title`, `email`, `section_id`, `isActive`, `password`, `isApproved`) VALUES
 ('00000', 3, 'test', 'test', '', NULL, 'test@phinmaed.com', NULL, 1, '$2y$10$IMf/Fe9HlqtxXIaVLqbqsOvuQPLI7OakIKLLnUBHrlNTM5vbGVPWq', NULL),
-('02-1819-1509', 2, 'Ralph Jan', 'Gallegos', NULL, NULL, 'rape.gallegos.coc@phinmaed.com', NULL, 1, '$2y$10$nTdaVq4sO0lkNW1Y0VvEru.FUL1o8IWW5ymwRtskbNUsYInzt53ei', NULL),
+('02-1819-1509', 2, 'earl', 'latras', NULL, NULL, 'earl@phinmaed.com', NULL, 1, '$2y$10$nTdaVq4sO0lkNW1Y0VvEru.FUL1o8IWW5ymwRtskbNUsYInzt53ei', NULL),
 ('STU-2026-2449', 4, 'Kevin', 'sht', '', NULL, 'kevin@phinmaed.com', NULL, 1, '$2y$10$aBu95YRxRYJCbPchVeDHn.BJkHX4MpaqKuPihLQSAy8w.FrxcxZWq', 0),
 ('STU-2026-3692', 4, 'Ralph', 'Gallegos', '', NULL, 'latras@phinmaed.com', NULL, 1, '$2y$10$PHkwliOU1rMO/thhH9crMO824FScq9fsR9DKWeP1uhKJzIAyos6zO', 0),
 ('STU-2026-5287', 4, 'example', 'example', '', NULL, 'example@phinmaed.com', NULL, 1, '$2y$10$A7OJ0Qu/xl3NmErKVE.6QevpL8HJ.Lvr69oo85zb9tH9opefO/EWe', 0);
