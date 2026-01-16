@@ -41,10 +41,10 @@ $current_page = 'system';
     <title>System Configuration - Head Teacher Portal</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
-    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-    <link rel="stylesheet" href="https://unpkg.com/leaflet-control-geocoder/dist/Control.Geocoder.css" />
-    <script src="https://unpkg.com/leaflet-control-geocoder/dist/Control.Geocoder.js"></script>
+    <script src="https://unpkg.com/maplibre-gl@3.6.2/dist/maplibre-gl.js"></script>
+    <link href="https://unpkg.com/maplibre-gl@3.6.2/dist/maplibre-gl.css" rel="stylesheet" />
+    <script src="https://unpkg.com/@mapbox/mapbox-gl-geocoder@4.7.4/dist/mapbox-gl-geocoder.min.js"></script>
+    <link rel="stylesheet" href="https://unpkg.com/@mapbox/mapbox-gl-geocoder@4.7.4/dist/mapbox-gl-geocoder.css" type="text/css" />
     <style>
         /* Custom scrollbar */
         ::-webkit-scrollbar {
@@ -346,8 +346,22 @@ $current_page = 'system';
                     <!-- Map Preview -->
                     <div class="mt-6">
                         <label class="block text-sm font-medium text-gray-700 mb-2">Location Preview</label>
-                        <div id="map"></div>
-                        <p class="text-xs text-gray-500 mt-2">Click on the map to set location or enter coordinates manually</p>
+                        
+                        <!-- Search input for geocoding -->
+                        <div class="mb-3">
+                            <div class="relative">
+                                <input type="text" id="mapSearchInput" placeholder="Search for address..." 
+                                       class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500 pr-10"
+                                       onkeypress="if(event.key === 'Enter') searchAddress()">
+                                <button onclick="searchAddress()" 
+                                        class="absolute right-2 top-2 text-gray-500 hover:text-gray-700">
+                                    <i class="fas fa-search"></i>
+                                </button>
+                            </div>
+                        </div>
+                        
+                        <div id="map" style="height: 400px; border-radius: 8px; border: 1px solid #e5e7eb;"></div>
+                        <p class="text-xs text-gray-500 mt-2">Click on the map to set location or search for an address above</p>
                     </div>
                     
                     <!-- Form Actions -->
@@ -426,10 +440,43 @@ $current_page = 'system';
         
         // Update geofence circle
         function updateGeofenceCircle(lat, lng) {
-            if (geofenceCircle) {
+            if (map.getLayer('geofence-circle')) {
                 const radius = parseInt(document.getElementById('geofencingRadius').value) || 80;
-                geofenceCircle.setRadius(radius);
-                geofenceCircle.setCenter({ lat: parseFloat(lat), lng: parseFloat(lng) });
+                
+                // Remove existing geofence layers
+                map.removeLayer('geofence-circle');
+                map.removeLayer('geofence-circle-outline');
+                map.removeSource('geofence-circle');
+                
+                // Create new geofence circle
+                const circleGeoJSON = createCircleGeoJSON(lng, lat, radius);
+                
+                map.addSource('geofence-circle', {
+                    'type': 'geojson',
+                    'data': circleGeoJSON
+                });
+                
+                map.addLayer({
+                    'id': 'geofence-circle',
+                    'type': 'fill',
+                    'source': 'geofence-circle',
+                    'layout': {},
+                    'paint': {
+                        'fill-color': '#004d23',
+                        'fill-opacity': 0.2
+                    }
+                });
+                
+                map.addLayer({
+                    'id': 'geofence-circle-outline',
+                    'type': 'line',
+                    'source': 'geofence-circle',
+                    'layout': {},
+                    'paint': {
+                        'line-color': '#004d23',
+                        'line-width': 2
+                    }
+                });
             }
         }
         
@@ -454,35 +501,88 @@ $current_page = 'system';
             event.target.classList.remove('text-gray-500');
         }
         
+        // Search address function
+        async function searchAddress() {
+            const address = document.getElementById('mapSearchInput').value.trim();
+            if (!address) {
+                showNotification('Please enter an address to search', 'error');
+                return;
+            }
+            
+            showNotification('Searching for address...', 'info');
+            
+            try {
+                // Use server-side proxy to avoid CORS issues
+                const response = await fetch(`../../api/geocode.php?address=${encodeURIComponent(address)}`);
+                
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+                
+                const data = await response.json();
+                
+                if (data.success) {
+                    const lat = parseFloat(data.lat);
+                    const lng = parseFloat(data.lng);
+                    
+                    if (!isNaN(lat) && !isNaN(lng)) {
+                        setMapLocation(lat, lng);
+                        showNotification('Address found and located on map', 'success');
+                        
+                        // Update address field with the found address
+                        if (data.display_name) {
+                            document.getElementById('address').value = data.display_name;
+                        }
+                    } else {
+                        showNotification('Invalid coordinates received', 'error');
+                    }
+                } else {
+                    showNotification(data.message || 'Address not found. Try: 1) More specific address, 2) City name only, 3) Click on map directly', 'error');
+                }
+            } catch (error) {
+                console.error('Geocoding error:', error);
+                showNotification('Search failed. You can click on map to set location manually.', 'error');
+            }
+        }
+
         // Initialize map
         function initializeMap() {
-            // Initialize map with Philippines center
-            map = L.map('map').setView([12.8797, 121.7740], 6);
+            // Check if map container exists
+            if (!document.getElementById('map')) {
+                return;
+            }
             
-            // Add tile layer
-            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-                attribution: '© OpenStreetMap contributors'
-            }).addTo(map);
-            
-            // Add search control to map
-            const geocoder = L.Control.geocoder({
-                defaultMarkGeocode: false,
-                placeholder: 'Search by address or coordinates...',
-                collapsed: true,
-                position: 'topright'
-            }).addTo(map);
-            
-            // Handle geocoding results
-            geocoder.on('markgeocode', function(e) {
-                const lat = e.geocode.center.lat;
-                const lng = e.geocode.center.lng;
-                setMapLocation(lat, lng);
-                showNotification('Address found and located on map', 'success');
+            // Initialize map with Philippines center using OpenStreetMap style
+            map = new maplibregl.Map({
+                container: 'map',
+                style: {
+                    'version': 8,
+                    'sources': {
+                        'osm': {
+                            'type': 'raster',
+                            'tiles': ['https://tile.openstreetmap.org/{z}/{x}/{y}.png'],
+                            'tileSize': 256,
+                            'attribution': '© OpenStreetMap contributors'
+                        }
+                    },
+                    'layers': [
+                        {
+                            'id': 'osm',
+                            'type': 'raster',
+                            'source': 'osm'
+                        }
+                    ]
+                },
+                center: [121.7740, 12.8797],
+                zoom: 6
             });
+            
+            // Add navigation controls
+            map.addControl(new maplibregl.NavigationControl());
             
             // Add click event to map
             map.on('click', function(e) {
-                setMapLocation(e.latlng.lat, e.latlng.lng);
+                setMapLocation(e.lngLat.lat, e.lngLat.lng);
             });
             
             // Add search function
@@ -529,7 +629,7 @@ $current_page = 'system';
                     const lng = parseFloat(data.lng);
                     
                     console.log('Setting location to:', lat, lng);
-                    setMapLocation(lat, lng);
+                    setMapLocation(lat, lng, false); // Don't update address since we already have it
                     showNotification('Address found and located on map', 'success');
                     return;
                 }
@@ -543,68 +643,226 @@ $current_page = 'system';
             }
         }
         
-        // Update geofence when radius changes
-        function updateGeofenceCircle(lat, lng) {
-            if (geofenceCircle) {
-                const radius = parseInt(document.getElementById('geofencingRadius').value) || 80;
-                geofenceCircle.setRadius(radius);
-                geofenceCircle.setCenter({ lat: parseFloat(lat), lng: parseFloat(lng) });
+        // Reverse geocode function to get address from coordinates
+        async function reverseGeocode(lat, lng) {
+            try {
+                console.log('Reverse geocoding coordinates:', lat, lng);
+                
+                // Use our server-side proxy to avoid CORS issues
+                const response = await fetch(`../../api/geocode.php?lat=${encodeURIComponent(lat)}&lng=${encodeURIComponent(lng)}`);
+                
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+                
+                const data = await response.json();
+                console.log('Reverse geocoding response:', data);
+                
+                if (data.success && data.address) {
+                    // Update address field with the found address
+                    document.getElementById('address').value = data.address;
+                    showNotification('Address updated from map location', 'success');
+                } else {
+                    showNotification(data.message || 'Could not find address for this location', 'warning');
+                }
+                
+            } catch (error) {
+                console.error('Reverse geocoding error:', error);
+                // Don't show error for reverse geocoding as it's not critical
+                console.log('Could not fetch address for coordinates');
             }
         }
         
         // Set map location
-        function setMapLocation(lat, lng) {
+        function setMapLocation(lat, lng, updateAddress = true) {
+            console.log('setMapLocation called with:', lat, lng, 'updateAddress:', updateAddress);
+            
             // Update input fields
             document.getElementById('latitude').value = lat;
             document.getElementById('longitude').value = lng;
             
-            // Remove existing marker and circle
+            // Remove existing marker and layers
             if (marker) {
-                map.removeLayer(marker);
+                marker.remove();
+                console.log('Marker removed');
             }
-            if (geofenceCircle) {
-                map.removeLayer(geofenceCircle);
+            if (map.getLayer('geofence-circle')) {
+                map.removeLayer('geofence-circle');
+                map.removeLayer('geofence-circle-outline');
+                map.removeSource('geofence-circle');
+                console.log('Geofence layers removed');
             }
             
             // Add new marker
-            marker = L.marker([lat, lng]).addTo(map);
+            marker = new maplibregl.Marker({
+                draggable: true
+            })
+            .setLngLat([lng, lat])
+            .addTo(map);
             
-            // Add geofence circle
+            // Add geofence circle using GeoJSON
             const radius = parseInt(document.getElementById('geofencingRadius').value) || 80;
-            geofenceCircle = L.circle([lat, lng], {
-                color: '#004d23',
-                fillColor: '#004d23',
-                fillOpacity: 0.2,
-                radius: radius
-            }).addTo(map);
+            const circleGeoJSON = createCircleGeoJSON(lng, lat, radius);
+            console.log('Creating geofence with radius:', radius, 'at coordinates:', lng, lat);
+            
+            map.addSource('geofence-circle', {
+                'type': 'geojson',
+                'data': circleGeoJSON
+            });
+            console.log('Geofence source added');
+            
+            map.addLayer({
+                'id': 'geofence-circle',
+                'type': 'fill',
+                'source': 'geofence-circle',
+                'layout': {},
+                'paint': {
+                    'fill-color': '#004d23',
+                    'fill-opacity': 0.2
+                }
+            });
+            console.log('Geofence fill layer added');
+            
+            map.addLayer({
+                'id': 'geofence-circle-outline',
+                'type': 'line',
+                'source': 'geofence-circle',
+                'layout': {},
+                'paint': {
+                    'line-color': '#004d23',
+                    'line-width': 2
+                }
+            });
+            console.log('Geofence outline layer added');
             
             // Center map on new location
-            map.setView([lat, lng], 15);
-            
-            // Make marker draggable to update coordinates
-            marker.on('dragend', function(e) {
-                const newLat = e.latLng.lat();
-                const newLng = e.latLng.lng();
-                document.getElementById('latitude').value = newLat;
-                document.getElementById('longitude').value = newLng;
-                updateGeofenceCircle(newLat, newLng);
+            map.flyTo({
+                center: [lng, lat],
+                zoom: 15,
+                essential: true
             });
+            
+            // Get address from coordinates using reverse geocoding
+            if (updateAddress) {
+                console.log('Calling reverseGeocode for:', lat, lng);
+                reverseGeocode(lat, lng);
+            }
+            
+            // Handle marker drag events
+            marker.on('dragend', function(e) {
+                const newLngLat = e.target.getLngLat();
+                
+                // Update input fields
+                document.getElementById('latitude').value = newLngLat.lat;
+                document.getElementById('longitude').value = newLngLat.lng;
+                
+                // Update geofence circle by removing and recreating it
+                if (map.getLayer('geofence-circle')) {
+                    map.removeLayer('geofence-circle');
+                    map.removeLayer('geofence-circle-outline');
+                    map.removeSource('geofence-circle');
+                }
+                
+                // Recreate geofence circle at new location
+                const radius = parseInt(document.getElementById('geofencingRadius').value) || 80;
+                const circleGeoJSON = createCircleGeoJSON(newLngLat.lng, newLngLat.lat, radius);
+                
+                map.addSource('geofence-circle', {
+                    'type': 'geojson',
+                    'data': circleGeoJSON
+                });
+                
+                map.addLayer({
+                    'id': 'geofence-circle',
+                    'type': 'fill',
+                    'source': 'geofence-circle',
+                    'layout': {},
+                    'paint': {
+                        'fill-color': '#004d23',
+                        'fill-opacity': 0.2
+                    }
+                });
+                
+                map.addLayer({
+                    'id': 'geofence-circle-outline',
+                    'type': 'line',
+                    'source': 'geofence-circle',
+                    'layout': {},
+                    'paint': {
+                        'line-color': '#004d23',
+                        'line-width': 2
+                    }
+                });
+                
+                reverseGeocode(newLngLat.lat, newLngLat.lng);
+            });
+        }
+        
+        // Create circle GeoJSON for geofence
+        function createCircleGeoJSON(centerLng, centerLat, radiusInMeters) {
+            const points = 64;
+            const coordinates = [];
+            const km = radiusInMeters / 1000;
+            
+            for (let i = 0; i <= points; i++) {
+                const angle = (i * 2 * Math.PI) / points;
+                const lat = centerLat + (km * Math.sin(angle)) / 111.32;
+                const lng = centerLng + (km * Math.cos(angle)) / (111.32 * Math.cos(centerLat * Math.PI / 180));
+                coordinates.push([lng, lat]);
+            }
+            
+            return {
+                'type': 'Feature',
+                'geometry': {
+                    'type': 'Polygon',
+                    'coordinates': [coordinates]
+                }
+            };
         }
         
         // Update geofence radius
         document.getElementById('geofencingRadius').addEventListener('input', function() {
-            if (marker && geofenceCircle) {
+            if (marker) {
                 const lat = parseFloat(document.getElementById('latitude').value);
                 const lng = parseFloat(document.getElementById('longitude').value);
                 const radius = parseInt(this.value) || 80;
                 
-                map.removeLayer(geofenceCircle);
-                geofenceCircle = L.circle([lat, lng], {
-                    color: '#004d23',
-                    fillColor: '#004d23',
-                    fillOpacity: 0.2,
-                    radius: radius
-                }).addTo(map);
+                // Remove existing geofence layers
+                if (map.getLayer('geofence-circle')) {
+                    map.removeLayer('geofence-circle');
+                    map.removeLayer('geofence-circle-outline');
+                    map.removeSource('geofence-circle');
+                }
+                
+                // Create new geofence circle
+                const circleGeoJSON = createCircleGeoJSON(lng, lat, radius);
+                
+                map.addSource('geofence-circle', {
+                    'type': 'geojson',
+                    'data': circleGeoJSON
+                });
+                
+                map.addLayer({
+                    'id': 'geofence-circle',
+                    'type': 'fill',
+                    'source': 'geofence-circle',
+                    'layout': {},
+                    'paint': {
+                        'fill-color': '#004d23',
+                        'fill-opacity': 0.2
+                    }
+                });
+                
+                map.addLayer({
+                    'id': 'geofence-circle-outline',
+                    'type': 'line',
+                    'source': 'geofence-circle',
+                    'layout': {},
+                    'paint': {
+                        'line-color': '#004d23',
+                        'line-width': 2
+                    }
+                });
             }
         });
         
@@ -615,15 +873,17 @@ $current_page = 'system';
             document.getElementById('partneredSchoolForm').reset();
             document.getElementById('geofencingRadius').value = '80';
             
-            // Reset map
-            if (marker) {
-                map.removeLayer(marker);
-            }
-            if (geofenceCircle) {
-                map.removeLayer(geofenceCircle);
-            }
-            
             document.getElementById('partneredSchoolModal').classList.add('show');
+            
+            // Initialize map after modal is shown
+            setTimeout(() => {
+                if (!map) {
+                    initializeMap();
+                } else {
+                    // Refresh map to fix rendering issues
+                    map.resize();
+                }
+            }, 100);
         }
         
         // Load partnered schools
@@ -706,24 +966,6 @@ $current_page = 'system';
             `).join('');
         }
         
-        // Open add modal
-        function openAddModal() {
-            currentEditingSchool = null;
-            document.getElementById('modalTitle').textContent = 'Add Partnered School';
-            document.getElementById('partneredSchoolForm').reset();
-            document.getElementById('geofencingRadius').value = '80';
-            
-            // Reset map
-            if (marker) {
-                map.removeLayer(marker);
-            }
-            if (geofenceCircle) {
-                map.removeLayer(geofenceCircle);
-            }
-            
-            document.getElementById('partneredSchoolModal').classList.add('show');
-        }
-        
         // Open edit modal
         function openEditModal(school) {
             currentEditingSchool = school;
@@ -737,10 +979,20 @@ $current_page = 'system';
             document.getElementById('longitude').value = school.longitude;
             document.getElementById('geofencingRadius').value = school.geofencing_radius || 80;
             
-            // Set map location
-            setMapLocation(school.latitude, school.longitude);
-            
             document.getElementById('partneredSchoolModal').classList.add('show');
+            
+            // Initialize map after modal is shown and set location
+            setTimeout(() => {
+                if (!map) {
+                    initializeMap();
+                    setTimeout(() => {
+                        setMapLocation(school.latitude, school.longitude, false); // Don't update address
+                    }, 500);
+                } else {
+                    map.resize();
+                    setMapLocation(school.latitude, school.longitude, false); // Don't update address
+                }
+            }, 100);
         }
         
         // Close modal

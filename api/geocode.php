@@ -66,6 +66,37 @@ function geocodeAddress($address) {
     ];
 }
 
+// Reverse geocoding function using Nominatim API
+function reverseGeocode($lat, $lng) {
+    $url = "https://nominatim.openstreetmap.org/reverse?format=json&lat=" . urlencode($lat) . "&lon=" . urlencode($lng) . "&zoom=18&addressdetails=1";
+    
+    $options = [
+        'http' => [
+            'header' => "User-Agent: PHINMA-Education-System/1.0\r\n"
+        ]
+    ];
+    
+    $context = stream_context_create($options);
+    $response = file_get_contents($url, false, $context);
+    
+    if ($response !== false) {
+        $data = json_decode($response, true);
+        
+        if ($data && isset($data['display_name'])) {
+            return [
+                'success' => true,
+                'address' => $data['display_name'],
+                'address_details' => $data['address'] ?? []
+            ];
+        }
+    }
+    
+    return [
+        'success' => false,
+        'message' => 'Could not find address for these coordinates'
+    ];
+}
+
 // Extract city from address
 function extractCity($address) {
     $patterns = [
@@ -90,17 +121,34 @@ function extractStreet($address) {
 }
 
 // Handle the request
-if ($_SERVER['REQUEST_METHOD'] === 'GET' && isset($_GET['address'])) {
-    $address = $_GET['address'];
-    $result = geocodeAddress($address);
-    
-    header('Content-Type: application/json');
-    echo json_encode($result);
+if ($_SERVER['REQUEST_METHOD'] === 'GET') {
+    if (isset($_GET['address'])) {
+        // Forward geocoding
+        $address = $_GET['address'];
+        $result = geocodeAddress($address);
+        
+        header('Content-Type: application/json');
+        echo json_encode($result);
+    } elseif (isset($_GET['lat']) && isset($_GET['lng'])) {
+        // Reverse geocoding
+        $lat = $_GET['lat'];
+        $lng = $_GET['lng'];
+        $result = reverseGeocode($lat, $lng);
+        
+        header('Content-Type: application/json');
+        echo json_encode($result);
+    } else {
+        header('Content-Type: application/json');
+        echo json_encode([
+            'success' => false,
+            'message' => 'Address parameter (for forward geocoding) or lat and lng parameters (for reverse geocoding) are required'
+        ]);
+    }
 } else {
     header('Content-Type: application/json');
     echo json_encode([
         'success' => false,
-        'message' => 'Address parameter is required'
+        'message' => 'Only GET requests are supported'
     ]);
 }
 ?>
