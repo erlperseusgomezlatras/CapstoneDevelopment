@@ -1,12 +1,22 @@
 <?php
+// Include configuration
+require_once 'config/config.php';
+
 session_start();
 
-$a = rand(10, 25);
-$b = rand(1, 9);
+function generateCaptcha() {
+    $a = rand(10, 25);
+    $b = rand(1, 9);
+    $_SESSION['captcha'] = $a + $b;
+    return [$a, $b];
+}
 
-$_SESSION['captcha'] = $a + $b;
+[$a, $b] = generateCaptcha();
 
+header('Content-Type: application/json');
 echo json_encode([
-    "a" => $a,
-    "b" => $b
+    'success' => true,
+    'a' => $a,
+    'b' => $b
 ]);
+?>

@@ -221,11 +221,20 @@ input:focus {
     justify-content: center;
     font-weight: 600;
     background: #f9fafc;
+    font-size: 16px;
+}
+
+.captcha-row span {
+    font-weight: 600;
+    color: #374151;
+    font-size: 18px;
 }
 
 .captcha-row input {
     width: 100%;
     text-align: center;
+    font-size: 16px;
+    font-weight: 500;
 }
 
 .captcha-refresh {
@@ -234,6 +243,32 @@ input:focus {
     font-size: 18px;
     cursor: pointer;
     color: #0f766e;
+    padding: 4px;
+    border-radius: 4px;
+    transition: background 0.2s, color 0.2s;
+}
+
+.captcha-refresh:hover {
+    background: rgba(15, 118, 110, 0.1);
+    color: #059669;
+}
+
+/* CAPTCHA VALIDATION STATES */
+.captcha-row input.captcha-correct {
+    border-color: #16a34a;
+    box-shadow: 0 0 0 3px rgba(22, 163, 74, 0.2);
+}
+
+.captcha-row input.captcha-incorrect {
+    border-color: #dc2626;
+    box-shadow: 0 0 0 3px rgba(220, 38, 38, 0.2);
+    animation: shake 0.3s ease-in-out;
+}
+
+@keyframes shake {
+    0%, 100% { transform: translateX(0); }
+    25% { transform: translateX(-5px); }
+    75% { transform: translateX(5px); }
 }
 
 /* BUTTON */
@@ -269,6 +304,158 @@ input:focus {
     text-decoration: none;
 }
 
+/* ERROR MESSAGE */
+.error-message {
+    background: #fef2f2;
+    border: 1px solid #fecaca;
+    color: #dc2626;
+    padding: 12px 16px;
+    border-radius: 8px;
+    margin-bottom: 20px;
+    font-size: 14px;
+    display: none;
+}
+
+/* FORM STEPS */
+.form-step {
+    animation: fadeIn 0.3s ease-in-out;
+}
+
+@keyframes fadeIn {
+    from { opacity: 0; transform: translateY(10px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+/* WELCOME MESSAGE */
+.welcome-message {
+    margin-bottom: 20px;
+    padding: 16px;
+    background: #f8fafc;
+    border-radius: 8px;
+    border-left: 4px solid #0f766e;
+}
+
+.welcome-message p {
+    margin: 0;
+    font-size: 14px;
+    color: #374151;
+}
+
+.welcome-message p:first-child {
+    font-weight: 600;
+    color: #111827;
+    margin-bottom: 4px;
+}
+
+.email-display {
+    font-size: 12px !important;
+    color: #6b7280 !important;
+    font-weight: normal !important;
+}
+
+/* FORM ROW */
+.form-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px;
+    margin-bottom: 18px;
+}
+
+/* PASSWORD INPUT WRAPPER */
+.password-input-wrapper {
+    position: relative;
+}
+
+.password-input-wrapper input {
+    width: 100%;
+    padding-right: 45px;
+}
+
+.toggle-password {
+    position: absolute;
+    right: 12px;
+    top: 50%;
+    transform: translateY(-50%);
+    background: none;
+    border: none;
+    color: #6b7280;
+    cursor: pointer;
+    padding: 4px;
+    border-radius: 4px;
+    transition: color 0.2s;
+}
+
+.toggle-password:hover {
+    color: #374151;
+}
+
+.toggle-password svg {
+    width: 20px;
+    height: 20px;
+}
+
+/* BACK BUTTON */
+.btn-back {
+    width: 100%;
+    padding: 12px;
+    background: #f3f4f6;
+    color: #374151;
+    border: none;
+    border-radius: 8px;
+    font-size: 14px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: background 0.2s, color 0.2s;
+    margin-top: 12px;
+}
+
+.btn-back:hover {
+    background: #e5e7eb;
+    color: #111827;
+}
+
+/* PENDING MESSAGE */
+.pending-message {
+    text-align: center;
+    padding: 40px 20px;
+}
+
+.success-icon {
+    width: 64px;
+    height: 64px;
+    background: #dcfce7;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin: 0 auto 20px;
+}
+
+.success-icon svg {
+    color: #16a34a;
+    width: 32px;
+    height: 32px;
+}
+
+.pending-message h3 {
+    font-size: 20px;
+    font-weight: 600;
+    color: #111827;
+    margin-bottom: 12px;
+}
+
+.pending-message p {
+    color: #6b7280;
+    font-size: 14px;
+    line-height: 1.6;
+    margin-bottom: 12px;
+}
+
+.pending-message .note {
+    font-size: 13px !important;
+    color: #9ca3af !important;
+}
+
 /* RESPONSIVE */
 @media (max-width: 900px) {
     .login-wrapper {
@@ -281,5 +468,10 @@ input:focus {
 
     .form-panel {
         min-height: 100vh;
+    }
+    
+    .form-row {
+        grid-template-columns: 1fr;
+        gap: 0;
     }
 }
