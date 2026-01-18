@@ -3,7 +3,7 @@
 -- https://www.phpmyadmin.net/
 --
 -- Host: localhost
--- Generation Time: Jan 18, 2026 at 06:24 AM
+-- Generation Time: Jan 18, 2026 at 02:02 PM
 -- Server version: 10.4.17-MariaDB
 -- PHP Version: 7.2.34
 
@@ -68,6 +68,13 @@ CREATE TABLE `attendance` (
   `attendance_timeIn` time NOT NULL,
   `attendance_timeOut` time DEFAULT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+--
+-- Dumping data for table `attendance`
+--
+
+INSERT INTO `attendance` (`id`, `student_id`, `attendance_date`, `attendance_timeIn`, `attendance_timeOut`) VALUES
+(1, 'STU-2026-5287', '2026-01-18', '14:48:35', NULL);
 
 -- --------------------------------------------------------
 
@@ -136,7 +143,7 @@ CREATE TABLE `partnered_schools` (
 --
 
 INSERT INTO `partnered_schools` (`id`, `school_id_code`, `name`, `address`, `latitude`, `longitude`, `geofencing_radius`, `isActive`) VALUES
-(1, '2222', 'Misamis Oriental General Comprehensive High School', 'Misamis Oriental General Comprehensive High School, Don Apolinar Velez Street, Barangay 16, Poblacion, Cagayan de Oro, Northern Mindanao, 9000, Philippines', '8.48326356', '124.64715517', 80, 1);
+(1, '2222', 'Misamis Oriental General Comprehensive High School', 'Ramon Chavez Street, Barangay 33, Poblacion, Cagayan de Oro, Northern Mindanao, 9000, Philippines', '8.48057699', '124.64954352', 80, 1);
 
 -- --------------------------------------------------------
 
@@ -206,10 +213,10 @@ CREATE TABLE `users` (
 --
 
 INSERT INTO `users` (`school_id`, `level_id`, `firstname`, `lastname`, `middlename`, `title`, `email`, `section_id`, `isActive`, `password`, `isApproved`) VALUES
-('00000', 3, 'test', 'test', '', NULL, 'test@phinmaed.com', NULL, 1, '$2y$10$/5tLicm/9gdh.hWJWbNYQe9bk2fN0pv.PlHglZ/9Kmz8arNMTGqgW', NULL),
+('00000', 3, 'tests', 'test', '', NULL, 'test@phinmaed.com', NULL, 1, '$2y$10$cevVZ2IPseOYik44S1UDxuRGnOZgOuokrS8ecXQvNIUtFnByyjd3G', NULL),
 ('02-1819-1509', 2, 'earl', 'latras', NULL, NULL, 'earl@phinmaed.com', NULL, 1, '$2y$10$nTdaVq4sO0lkNW1Y0VvEru.FUL1o8IWW5ymwRtskbNUsYInzt53ei', NULL),
 ('STU-2026-2449', 4, 'Kevin', 'sht', '', NULL, 'kevin@phinmaed.com', NULL, 1, '$2y$10$aBu95YRxRYJCbPchVeDHn.BJkHX4MpaqKuPihLQSAy8w.FrxcxZWq', 0),
-('STU-2026-5287', 4, 'example', 'example', '', NULL, 'example@phinmaed.com', NULL, 1, '$2y$10$A7OJ0Qu/xl3NmErKVE.6QevpL8HJ.Lvr69oo85zb9tH9opefO/EWe', 1);
+('STU-2026-5287', 4, 'example', 'example', '', NULL, 'example@phinmaed.com', 1, 1, '$2y$10$A7OJ0Qu/xl3NmErKVE.6QevpL8HJ.Lvr69oo85zb9tH9opefO/EWe', 1);
 
 -- --------------------------------------------------------
 
@@ -338,7 +345,8 @@ ALTER TABLE `sections`
 ALTER TABLE `users`
   ADD PRIMARY KEY (`school_id`),
   ADD UNIQUE KEY `email` (`email`),
-  ADD KEY `level_id` (`level_id`);
+  ADD KEY `level_id` (`level_id`),
+  ADD KEY `section_id` (`section_id`);
 
 --
 -- Indexes for table `user_levels`
@@ -380,7 +388,7 @@ ALTER TABLE `assignments`
 -- AUTO_INCREMENT for table `attendance`
 --
 ALTER TABLE `attendance`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT;
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=2;
 
 --
 -- AUTO_INCREMENT for table `journal`
@@ -489,7 +497,8 @@ ALTER TABLE `sections`
 -- Constraints for table `users`
 --
 ALTER TABLE `users`
-  ADD CONSTRAINT `users_ibfk_1` FOREIGN KEY (`level_id`) REFERENCES `user_levels` (`id`);
+  ADD CONSTRAINT `users_ibfk_1` FOREIGN KEY (`level_id`) REFERENCES `user_levels` (`id`),
+  ADD CONSTRAINT `users_ibfk_2` FOREIGN KEY (`section_id`) REFERENCES `sections` (`id`);
 
 --
 -- Constraints for table `words_affirmation`

@@ -45,149 +45,7 @@ $current_page = 'system';
     <link href="https://unpkg.com/maplibre-gl@3.6.2/dist/maplibre-gl.css" rel="stylesheet" />
     <script src="https://unpkg.com/@mapbox/mapbox-gl-geocoder@4.7.4/dist/mapbox-gl-geocoder.min.js"></script>
     <link rel="stylesheet" href="https://unpkg.com/@mapbox/mapbox-gl-geocoder@4.7.4/dist/mapbox-gl-geocoder.css" type="text/css" />
-    <style>
-        /* Custom scrollbar */
-        ::-webkit-scrollbar {
-            width: 8px;
-            height: 8px;
-        }
-        ::-webkit-scrollbar-track {
-            background: #f1f1f1;
-            border-radius: 4px;
-        }
-        ::-webkit-scrollbar-thumb {
-            background: #888;
-            border-radius: 4px;
-        }
-        ::-webkit-scrollbar-thumb:hover {
-            background: #555;
-        }
-        
-        /* Modal styles */
-        .modal {
-            display: none;
-            position: fixed;
-            z-index: 1000;
-            left: 0;
-            top: 0;
-            width: 100%;
-            height: 100%;
-            background-color: rgba(0, 0, 0, 0.5);
-            animation: fadeIn 0.3s;
-        }
-        
-        .modal.show {
-            display: flex;
-            align-items: center;
-            justify-content: center;
-        }
-        
-        @keyframes fadeIn {
-            from { opacity: 0; }
-            to { opacity: 1; }
-        }
-        
-        /* Map container */
-        #map {
-            height: 400px;
-            border-radius: 8px;
-            border: 1px solid #e5e7eb;
-        }
-        
-        /* Tab styles */
-        .tab-button {
-            position: relative;
-            transition: all 0.3s ease;
-        }
-        
-        .tab-button.active::after {
-            content: '';
-            position: absolute;
-            bottom: 0;
-            left: 0;
-            right: 0;
-            height: 3px;
-            background-color: #004d23;
-        }
-        
-        .tab-content {
-            display: none;
-        }
-        
-        .tab-content.active {
-            display: block;
-            animation: slideIn 0.3s ease;
-        }
-        
-        @keyframes slideIn {
-            from {
-                opacity: 0;
-                transform: translateY(10px);
-            }
-            to {
-                opacity: 1;
-                transform: translateY(0);
-            }
-        }
-        
-        /* Notification styles */
-        .notification {
-            position: fixed;
-            top: 20px;
-            right: 20px;
-            z-index: 2000;
-            max-width: 400px;
-            animation: slideInRight 0.3s ease;
-        }
-        
-        @keyframes slideInRight {
-            from {
-                transform: translateX(100%);
-                opacity: 0;
-            }
-            to {
-                transform: translateX(0);
-                opacity: 1;
-            }
-        }
-        
-        /* Dropdown styles */
-        .dropdown {
-            position: relative;
-            display: inline-block;
-        }
-        .dropdown-content {
-            display: none;
-            position: absolute;
-            right: 0;
-            background-color: white;
-            min-width: 160px;
-            box-shadow: 0px 8px 16px 0px rgba(0,0,0,0.2);
-            z-index: 1001;
-            border-radius: 6px;
-            border: 1px solid #e5e7eb;
-        }
-        .dropdown-content.show {
-            display: block;
-        }
-        .dropdown-item {
-            padding: 8px 12px;
-            text-decoration: none;
-            display: block;
-            font-size: 14px;
-            cursor: pointer;
-            transition: background-color 0.2s;
-        }
-        .dropdown-item:hover {
-            background-color: #f3f4f6;
-        }
-        .dropdown-item:first-child {
-            border-radius: 6px 6px 0 0;
-        }
-        .dropdown-item:last-child {
-            border-radius: 0 0 6px 6px;
-        }
-    </style>
+    <link rel="stylesheet" href="../../assets/css/system.css">
 </head>
 <body class="bg-gray-100">
     <!-- Main Container -->
@@ -209,8 +67,10 @@ $current_page = 'system';
                         </div>
                         <div class="flex items-center space-x-4">
                             <span class="text-sm text-gray-600">
-                                <i class="fas fa-user-circle mr-2"></i>
-                                <?php echo htmlspecialchars($userData['firstname']); ?>
+                                <span class="text-sm text-gray-600">Welcome, <?php echo htmlspecialchars($userData['firstname']); ?></span>
+                                <button class="p-2 rounded-md text-gray-600 hover:text-gray-900 hover:bg-gray-100">
+                                    <i class="fas fa-bell"></i>
+                                </button>
                             </span>
                         </div>
                     </div>

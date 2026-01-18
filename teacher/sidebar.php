@@ -46,15 +46,15 @@ $base_url = "http://localhost/CapstoneDevelopment";
                     </a>
                 </li>
                 <li>
-                    <a href="<?php echo $base_url; ?>/teacher/pages/system.php" class="sidebar-item <?php echo $current_page === 'system' ? 'active' : ''; ?> flex items-center px-3 py-2 text-sm font-medium rounded-md <?php echo $current_page === 'system' ? 'text-white bg-white/10' : 'text-gray-300 hover:text-white hover:bg-white/10'; ?>">
-                        <i class="fas fa-cogs mr-3 h-4 w-4"></i>
-                        System Configuration
-                    </a>
-                </li>
-                <li>
                     <a href="<?php echo $base_url; ?>/teacher/pages/student.php" class="sidebar-item <?php echo $current_page === 'student' ? 'active' : ''; ?> flex items-center px-3 py-2 text-sm font-medium rounded-md <?php echo $current_page === 'student' ? 'text-white bg-white/10' : 'text-gray-300 hover:text-white hover:bg-white/10'; ?>">
                         <i class="fas fa-user-graduate mr-3 h-4 w-4"></i>
                         Student Management
+                    </a>
+                </li>
+                <li>
+                    <a href="<?php echo $base_url; ?>/teacher/pages/system.php" class="sidebar-item <?php echo $current_page === 'system' ? 'active' : ''; ?> flex items-center px-3 py-2 text-sm font-medium rounded-md <?php echo $current_page === 'system' ? 'text-white bg-white/10' : 'text-gray-300 hover:text-white hover:bg-white/10'; ?>">
+                        <i class="fas fa-cogs mr-3 h-4 w-4"></i>
+                        System Configuration
                     </a>
                 </li>
                 <li>

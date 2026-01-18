@@ -1,0 +1,151 @@
+/* Tab styles */
+.tab-button {
+    position: relative;
+    transition: all 0.3s ease;
+}
+
+.tab-button.active::after {
+    content: '';
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    height: 3px;
+    background-color: #004d23;
+}
+
+.tab-content {
+    display: none;
+}
+
+.tab-content.active {
+    display: block;
+    animation: slideIn 0.3s ease;
+}
+
+/* Mobile floating navigation */
+.mobile-nav {
+    position: fixed;
+    bottom: 15px;
+    left: 15px;
+    right: 15px;
+    background: #014621;
+    z-index: 1000;
+    padding: 8px 0;
+    box-shadow: 0 -2px 15px rgba(0,0,0,0.4);
+    border-radius: 20px;
+    display: none;
+}
+
+.mobile-nav-item {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 8px;
+    color: #f3f4f6;
+    transition: all 0.2s ease;
+    cursor: pointer;
+    text-decoration: none;
+}
+
+.mobile-nav-item.active {
+    color: #f3f4f6;
+}
+
+.mobile-nav-item i {
+    font-size: 20px;
+    margin-bottom: 4px;
+}
+
+.mobile-nav-item span {
+    font-size: 11px;
+    font-weight: 500;
+}
+
+/* Mobile content padding */
+.mobile-content {
+    padding-bottom: 80px;
+}
+
+/* Desktop tabs - hide on mobile */
+.desktop-tabs {
+    display: block;
+}
+
+/* Mobile responsive */
+@media (max-width: 768px) {
+    .mobile-nav {
+        display: flex;
+    }
+    .desktop-tabs {
+        display: none;
+    }
+    .mobile-content {
+        padding-bottom: 80px;
+    }
+    header .container {
+        padding: 12px 16px;
+    }
+    header img {
+        height: 32px !important;
+    }
+    header .text-sm {
+        font-size: 12px !important;
+    }
+}
+
+@keyframes slideIn {
+    from {
+        opacity: 0;
+        transform: translateY(10px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+/* Map container */
+#map {
+    height: 400px;
+    border-radius: 8px;
+    border: 1px solid #e5e7eb;
+}
+
+/* Notification styles */
+.notification {
+    position: fixed;
+    top: 20px;
+    right: 20px;
+    z-index: 2000;
+    max-width: 400px;
+    animation: slideInRight 0.3s ease;
+}
+
+@keyframes slideInRight {
+    from {
+        transform: translateX(100%);
+        opacity: 0;
+    }
+    to {
+        transform: translateX(0);
+        opacity: 1;
+    }
+}
+
+/* Loading spinner */
+.spinner {
+    border: 3px solid #f3f3f3;
+    border-top: 3px solid #004d23;
+    border-radius: 50%;
+    width: 40px;
+    height: 40px;
+    animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+}

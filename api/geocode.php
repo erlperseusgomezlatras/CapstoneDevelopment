@@ -3,13 +3,12 @@ include "headers.php";
 
 // Geocoding function using Nominatim API
 function geocodeAddress($address) {
-    // Try multiple search strategies
     $searchQueries = [
-        $address,                                    // Original address
-        $address . ', Philippines',                 // With country
-        str_replace('Philippines', '', $address),     // Without country (if already included)
-        extractCity($address),                       // City only
-        extractStreet($address)                        // Street only
+        $address,
+        $address . ', Philippines',                 
+        str_replace('Philippines', '', $address),   
+        extractCity($address),                       
+        extractStreet($address)                     
     ];
     
     foreach ($searchQueries as $index => $searchQuery) {
@@ -100,9 +99,9 @@ function reverseGeocode($lat, $lng) {
 // Extract city from address
 function extractCity($address) {
     $patterns = [
-        '/,\s*([^,]+),\s*[^,]*$/i',           // City, Province
-        '/,\s*([^,]+)\s*city$/i',            // City keyword
-        '/\b(City|City)\b([^,]+)/i'           // City word
+        '/,\s*([^,]+),\s*[^,]*$/i',           
+        '/,\s*([^,]+)\s*city$/i',            
+        '/\b(City|City)\b([^,]+)/i'
     ];
     
     foreach ($patterns as $pattern) {
