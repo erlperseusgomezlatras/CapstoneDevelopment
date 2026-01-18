@@ -3,7 +3,7 @@
 -- https://www.phpmyadmin.net/
 --
 -- Host: localhost
--- Generation Time: Jan 16, 2026 at 03:48 AM
+-- Generation Time: Jan 18, 2026 at 06:24 AM
 -- Server version: 10.4.17-MariaDB
 -- PHP Version: 7.2.34
 
@@ -64,21 +64,9 @@ CREATE TABLE `assignments` (
 CREATE TABLE `attendance` (
   `id` int(11) NOT NULL,
   `student_id` varchar(50) NOT NULL,
-  `session_id` int(11) NOT NULL,
-  `attendance_timeIn` datetime NOT NULL,
-  `attendance_timeOut` datetime DEFAULT NULL
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
-
--- --------------------------------------------------------
-
---
--- Table structure for table `attendance_session`
---
-
-CREATE TABLE `attendance_session` (
-  `id` int(11) NOT NULL,
-  `session_name` varchar(255) NOT NULL,
-  `session_status` varchar(50) NOT NULL
+  `attendance_date` date NOT NULL,
+  `attendance_timeIn` time NOT NULL,
+  `attendance_timeOut` time DEFAULT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 -- --------------------------------------------------------
@@ -143,6 +131,13 @@ CREATE TABLE `partnered_schools` (
   `isActive` tinyint(1) DEFAULT 1
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
+--
+-- Dumping data for table `partnered_schools`
+--
+
+INSERT INTO `partnered_schools` (`id`, `school_id_code`, `name`, `address`, `latitude`, `longitude`, `geofencing_radius`, `isActive`) VALUES
+(1, '2222', 'Misamis Oriental General Comprehensive High School', 'Misamis Oriental General Comprehensive High School, Don Apolinar Velez Street, Barangay 16, Poblacion, Cagayan de Oro, Northern Mindanao, 9000, Philippines', '8.48326356', '124.64715517', 80, 1);
+
 -- --------------------------------------------------------
 
 --
@@ -179,6 +174,13 @@ CREATE TABLE `sections` (
   `school_id` int(11) DEFAULT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
+--
+-- Dumping data for table `sections`
+--
+
+INSERT INTO `sections` (`id`, `section_name`, `school_id`) VALUES
+(1, 'COC-EDUC-1', 1);
+
 -- --------------------------------------------------------
 
 --
@@ -204,11 +206,10 @@ CREATE TABLE `users` (
 --
 
 INSERT INTO `users` (`school_id`, `level_id`, `firstname`, `lastname`, `middlename`, `title`, `email`, `section_id`, `isActive`, `password`, `isApproved`) VALUES
-('00000', 3, 'test', 'test', '', NULL, 'test@phinmaed.com', NULL, 1, '$2y$10$IMf/Fe9HlqtxXIaVLqbqsOvuQPLI7OakIKLLnUBHrlNTM5vbGVPWq', NULL),
+('00000', 3, 'test', 'test', '', NULL, 'test@phinmaed.com', NULL, 1, '$2y$10$/5tLicm/9gdh.hWJWbNYQe9bk2fN0pv.PlHglZ/9Kmz8arNMTGqgW', NULL),
 ('02-1819-1509', 2, 'earl', 'latras', NULL, NULL, 'earl@phinmaed.com', NULL, 1, '$2y$10$nTdaVq4sO0lkNW1Y0VvEru.FUL1o8IWW5ymwRtskbNUsYInzt53ei', NULL),
 ('STU-2026-2449', 4, 'Kevin', 'sht', '', NULL, 'kevin@phinmaed.com', NULL, 1, '$2y$10$aBu95YRxRYJCbPchVeDHn.BJkHX4MpaqKuPihLQSAy8w.FrxcxZWq', 0),
-('STU-2026-3692', 4, 'Ralph', 'Gallegos', '', NULL, 'latras@phinmaed.com', NULL, 1, '$2y$10$PHkwliOU1rMO/thhH9crMO824FScq9fsR9DKWeP1uhKJzIAyos6zO', 0),
-('STU-2026-5287', 4, 'example', 'example', '', NULL, 'example@phinmaed.com', NULL, 1, '$2y$10$A7OJ0Qu/xl3NmErKVE.6QevpL8HJ.Lvr69oo85zb9tH9opefO/EWe', 0);
+('STU-2026-5287', 4, 'example', 'example', '', NULL, 'example@phinmaed.com', NULL, 1, '$2y$10$A7OJ0Qu/xl3NmErKVE.6QevpL8HJ.Lvr69oo85zb9tH9opefO/EWe', 1);
 
 -- --------------------------------------------------------
 
@@ -282,14 +283,7 @@ ALTER TABLE `assignments`
 --
 ALTER TABLE `attendance`
   ADD PRIMARY KEY (`id`),
-  ADD KEY `fk_attendance_student` (`student_id`),
-  ADD KEY `fk_attendance_session` (`session_id`);
-
---
--- Indexes for table `attendance_session`
---
-ALTER TABLE `attendance_session`
-  ADD PRIMARY KEY (`id`);
+  ADD KEY `fk_attendance_student` (`student_id`);
 
 --
 -- Indexes for table `journal`
@@ -389,12 +383,6 @@ ALTER TABLE `attendance`
   MODIFY `id` int(11) NOT NULL AUTO_INCREMENT;
 
 --
--- AUTO_INCREMENT for table `attendance_session`
---
-ALTER TABLE `attendance_session`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT;
-
---
 -- AUTO_INCREMENT for table `journal`
 --
 ALTER TABLE `journal`
@@ -416,7 +404,7 @@ ALTER TABLE `modules`
 -- AUTO_INCREMENT for table `partnered_schools`
 --
 ALTER TABLE `partnered_schools`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT;
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=2;
 
 --
 -- AUTO_INCREMENT for table `practicum_checklist`
@@ -434,7 +422,7 @@ ALTER TABLE `practicum_subjects`
 -- AUTO_INCREMENT for table `sections`
 --
 ALTER TABLE `sections`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT;
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=2;
 
 --
 -- AUTO_INCREMENT for table `user_levels`
@@ -470,7 +458,6 @@ ALTER TABLE `assignments`
 -- Constraints for table `attendance`
 --
 ALTER TABLE `attendance`
-  ADD CONSTRAINT `fk_attendance_session` FOREIGN KEY (`session_id`) REFERENCES `attendance_session` (`id`) ON DELETE CASCADE ON UPDATE CASCADE,
   ADD CONSTRAINT `fk_attendance_student` FOREIGN KEY (`student_id`) REFERENCES `users` (`school_id`) ON DELETE CASCADE ON UPDATE CASCADE;
 
 --

@@ -1,5 +1,6 @@
 <?php
 include "headers.php";
+date_default_timezone_set('Asia/Manila');
 
 class Students {
     
@@ -249,6 +250,220 @@ class Students {
             ]);
         }
     }
+    
+    // Mark attendance for student
+    function markAttendance($json) {
+        include "connection.php";
+        
+        $data = json_decode($json, true);
+        
+        if (!isset($data['student_id']) || !isset($data['latitude']) || !isset($data['longitude'])) {
+            return json_encode([
+                'success' => false,
+                'message' => 'Missing required parameters'
+            ]);
+        }
+        
+        $student_id = $data['student_id'];
+        $latitude = $data['latitude'];
+        $longitude = $data['longitude'];
+        
+        try {
+            // Get student's section and partnered school information
+            $sql = "SELECT u.section_id, s.school_id as partnered_school_id, ps.latitude, ps.longitude, ps.geofencing_radius
+                    FROM users u
+                    LEFT JOIN sections s ON u.section_id = s.id
+                    LEFT JOIN partnered_schools ps ON s.school_id = ps.id
+                    WHERE u.school_id = ? AND u.level_id = 4";
+            $stmt = $conn->prepare($sql);
+            $stmt->execute([$student_id]);
+            $student_info = $stmt->fetch(PDO::FETCH_ASSOC);
+            
+            if (!$student_info || !$student_info['section_id']) {
+                return json_encode([
+                    'success' => false,
+                    'message' => 'Student is not assigned to any section'
+                ]);
+            }
+            
+            if (!$student_info['partnered_school_id'] || !$student_info['latitude'] || !$student_info['longitude']) {
+                return json_encode([
+                    'success' => false,
+                    'message' => 'No partnered school assigned to your section'
+                ]);
+            }
+            
+            // Calculate distance from school
+            $distance = $this->calculateDistance(
+                $latitude,
+                $longitude,
+                $student_info['latitude'],
+                $student_info['longitude']
+            );
+            
+            // Check if student is within geofence radius
+            if ($distance > $student_info['geofencing_radius']) {
+                return json_encode([
+                    'success' => false,
+                    'message' => 'You are outside the attendance area. Distance: ' . round($distance, 2) . 'm (Required: within ' . $student_info['geofencing_radius'] . 'm)'
+                ]);
+            }
+            
+            // Check if attendance already marked today
+            $check_sql = "SELECT id FROM attendance WHERE student_id = ? AND attendance_date = CURDATE()";
+            $stmt = $conn->prepare($check_sql);
+            $stmt->execute([$student_id]);
+            $existing_attendance = $stmt->fetch(PDO::FETCH_ASSOC);
+            
+            if ($existing_attendance) {
+                return json_encode([
+                    'success' => false,
+                    'message' => 'Attendance already marked for today'
+                ]);
+            }
+            
+            // Mark attendance
+            $insert_sql = "INSERT INTO attendance (student_id, attendance_date, attendance_timeIn, attendance_timeOut) VALUES (?, CURDATE(), CURTIME(), NULL)";
+            $stmt = $conn->prepare($insert_sql);
+            $result = $stmt->execute([$student_id]);
+            
+            if ($result) {
+                return json_encode([
+                    'success' => true,
+                    'message' => 'Attendance marked successfully',
+                    'data' => [
+                        'distance' => round($distance, 2),
+                        'geofence_radius' => $student_info['geofencing_radius'],
+                        'time' => date('H:i:s')
+                    ]
+                ]);
+            } else {
+                return json_encode([
+                    'success' => false,
+                    'message' => 'Failed to mark attendance'
+                ]);
+            }
+            
+        } catch(PDOException $e) {
+            return json_encode([
+                'success' => false,
+                'message' => 'Database error: ' . $e->getMessage()
+            ]);
+        }
+    }
+    
+    // Get attendance records for student
+    function getAttendance($json) {
+        include "connection.php";
+        
+        $data = json_decode($json, true);
+        $student_id = isset($data['student_id']) ? $data['student_id'] : '';
+        
+        if (empty($student_id)) {
+            return json_encode([
+                'success' => false,
+                'message' => 'Student ID is required'
+            ]);
+        }
+        
+        try {
+            // Get attendance records for the current month
+            $sql = "SELECT attendance_date, attendance_timeIn, attendance_timeOut 
+                    FROM attendance 
+                    WHERE student_id = ? 
+                    AND attendance_date >= DATE_FORMAT(CURDATE(), '%Y-%m-01')
+                    ORDER BY attendance_date DESC";
+            $stmt = $conn->prepare($sql);
+            $stmt->execute([$student_id]);
+            $attendance_records = $stmt->fetchAll(PDO::FETCH_ASSOC);
+            
+            return json_encode([
+                'success' => true,
+                'data' => $attendance_records
+            ]);
+            
+        } catch(PDOException $e) {
+            return json_encode([
+                'success' => false,
+                'message' => 'Database error: ' . $e->getMessage()
+            ]);
+        }
+    }
+    
+    // Get student information for dashboard
+    function getStudentInfo($json) {
+        include "connection.php";
+        
+        $data = json_decode($json, true);
+        $student_id = isset($data['student_id']) ? $data['student_id'] : '';
+        
+        if (empty($student_id)) {
+            return json_encode([
+                'success' => false,
+                'message' => 'Student ID is required'
+            ]);
+        }
+        
+        try {
+            // Get student's section and partnered school information
+            $sql = "SELECT u.section_id, s.section_name, s.school_id as partnered_school_id, 
+                           ps.name as school_name, ps.address, ps.latitude, ps.longitude, ps.geofencing_radius 
+                    FROM users u
+                    LEFT JOIN sections s ON u.section_id = s.id
+                    LEFT JOIN partnered_schools ps ON s.school_id = ps.id
+                    WHERE u.school_id = ? AND u.level_id = 4";
+            $stmt = $conn->prepare($sql);
+            $stmt->execute([$student_id]);
+            $student_info = $stmt->fetch(PDO::FETCH_ASSOC);
+            
+            if ($student_info) {
+                $has_section = !empty($student_info['section_id']);
+                $partnered_school = null;
+                
+                if ($has_section && !empty($student_info['partnered_school_id'])) {
+                    $partnered_school = $student_info;
+                }
+                
+                return json_encode([
+                    'success' => true,
+                    'data' => [
+                        'has_section' => $has_section,
+                        'partnered_school' => $partnered_school
+                    ]
+                ]);
+            } else {
+                return json_encode([
+                    'success' => true,
+                    'data' => [
+                        'has_section' => false,
+                        'partnered_school' => null
+                    ]
+                ]);
+            }
+            
+        } catch(PDOException $e) {
+            return json_encode([
+                'success' => false,
+                'message' => 'Database error: ' . $e->getMessage()
+            ]);
+        }
+    }
+    
+    // Helper function to calculate distance between two points
+    private function calculateDistance($lat1, $lon1, $lat2, $lon2) {
+        $R = 6371e3; // Earth's radius in meters
+        $φ1 = $lat1 * M_PI / 180;
+        $φ2 = $lat2 * M_PI / 180;
+        $Δφ = ($lat2 - $lat1) * M_PI / 180;
+        $Δλ = ($lon2 - $lon1) * M_PI / 180;
+
+        $a = sin($Δφ/2) * sin($Δφ/2) +
+                cos($φ1) * cos($φ2) *
+                sin($Δλ/2) * sin($Δλ/2);
+        $c = 2 * atan2(sqrt($a), sqrt(1-$a));
+
+        return $R * $c; // Distance in meters
+    }
 }
 
 $operation = isset($_POST["operation"]) ? $_POST["operation"] : "0";
@@ -275,6 +490,18 @@ switch ($operation) {
         
     case 'get_stats':
         echo $students->getStats($json);
+        break;
+        
+    case 'mark_attendance':
+        echo $students->markAttendance($json);
+        break;
+        
+    case 'get_attendance':
+        echo $students->getAttendance($json);
+        break;
+        
+    case 'get_student_info':
+        echo $students->getStudentInfo($json);
         break;
         
     default:

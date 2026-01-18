@@ -669,10 +669,12 @@ function openEditModal(school) {
             initializeMap();
             setTimeout(() => {
                 setMapLocation(school.latitude, school.longitude, false); // Don't update address
-            }, 5000);
+            }, 1000);
         } else {
             map.resize();
-            setMapLocation(school.latitude, school.longitude, false); // Don't update address
+            setTimeout(() => {
+                setMapLocation(school.latitude, school.longitude, false); // Don't update address
+            }, 500);
         }
     }, 100);
 }
