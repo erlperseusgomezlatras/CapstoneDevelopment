@@ -198,8 +198,11 @@ class Teachers {
             }
             
             // Validate password if provided
-            if (!empty($data['password']) && strlen($data['password']) < 6) {
-                $errors['password'] = 'Password must be at least 6 characters';
+            if (!empty($data['password'])) {
+                // Skip length validation if password is the same as school_id
+                if ($data['password'] !== $data['school_id'] && strlen($data['password']) < 6) {
+                    $errors['password'] = 'Password must be at least 6 characters';
+                }
             }
             
             // Check if user exists (could be teacher or coordinator)
@@ -437,6 +440,241 @@ class Teachers {
             ]);
         }
     }
+    
+    // Create new section
+    function createSection($json) {
+        include "connection.php";
+        
+        $data = json_decode($json, true);
+        
+        try {
+            // Validate required fields
+            $required_fields = ['section_name'];
+            $errors = [];
+            
+            foreach ($required_fields as $field) {
+                if (empty($data[$field])) {
+                    $errors[$field] = ucfirst(str_replace('_', ' ', $field)) . ' is required';
+                }
+            }
+            
+            // Check if section name already exists
+            $check_sql = "SELECT section_name FROM sections WHERE section_name = ?";
+            $stmt = $conn->prepare($check_sql);
+            $stmt->execute([$data['section_name']]);
+            if ($stmt->fetch(PDO::FETCH_ASSOC)) {
+                $errors['section_name'] = 'Section name already exists';
+            }
+            
+            // Check if partnered school is already assigned to another section
+            if (!empty($data['school_id'])) {
+                $school_check_sql = "SELECT section_name FROM sections WHERE school_id = ?";
+                $stmt = $conn->prepare($school_check_sql);
+                $stmt->execute([$data['school_id']]);
+                $existing_section = $stmt->fetch(PDO::FETCH_ASSOC);
+                if ($existing_section) {
+                    $errors['school_id'] = 'This partnered school is already assigned to section: ' . $existing_section['section_name'];
+                }
+            }
+            
+            if (!empty($errors)) {
+                return json_encode([
+                    'success' => false,
+                    'message' => 'Validation failed',
+                    'errors' => $errors
+                ]);
+            }
+            
+            // Insert new section
+            $sql = "INSERT INTO sections (section_name, school_id) VALUES (?, ?)";
+            $stmt = $conn->prepare($sql);
+            $stmt->execute([
+                $data['section_name'],
+                !empty($data['school_id']) ? $data['school_id'] : null
+            ]);
+            
+            return json_encode([
+                'success' => true,
+                'message' => 'Section created successfully',
+                'id' => $conn->lastInsertId()
+            ]);
+            
+        } catch(PDOException $e) {
+            return json_encode([
+                'success' => false,
+                'message' => 'Database error: ' . $e->getMessage()
+            ]);
+        }
+    }
+    
+    // Read all sections
+    function readSections($json) {
+        include "connection.php";
+        
+        try {
+            $sql = "SELECT s.id, s.section_name, s.school_id,
+                           ps.school_id_code, ps.name as school_name
+                    FROM sections s
+                    LEFT JOIN partnered_schools ps ON s.school_id = ps.id
+                    ORDER BY s.section_name";
+            
+            $stmt = $conn->prepare($sql);
+            $stmt->execute();
+            $sections = $stmt->fetchAll(PDO::FETCH_ASSOC);
+            
+            return json_encode([
+                'success' => true,
+                'data' => $sections
+            ]);
+            
+        } catch(PDOException $e) {
+            return json_encode([
+                'success' => false,
+                'message' => 'Database error: ' . $e->getMessage()
+            ]);
+        }
+    }
+    
+    // Update section
+    function updateSection($json) {
+        include "connection.php";
+        
+        $data = json_decode($json, true);
+        
+        if (empty($data['id'])) {
+            return json_encode([
+                'success' => false,
+                'message' => 'Section ID is required'
+            ]);
+        }
+        
+        try {
+            // Validate required fields
+            $required_fields = ['section_name'];
+            $errors = [];
+            
+            foreach ($required_fields as $field) {
+                if (empty($data[$field])) {
+                    $errors[$field] = ucfirst(str_replace('_', ' ', $field)) . ' is required';
+                }
+            }
+            
+            // Check if section name already exists (excluding current section)
+            $check_sql = "SELECT section_name FROM sections WHERE section_name = ? AND id != ?";
+            $stmt = $conn->prepare($check_sql);
+            $stmt->execute([$data['section_name'], $data['id']]);
+            if ($stmt->fetch(PDO::FETCH_ASSOC)) {
+                $errors['section_name'] = 'Section name already exists';
+            }
+            
+            // Check if partnered school is already assigned to another section (excluding current section)
+            if (!empty($data['school_id'])) {
+                $school_check_sql = "SELECT section_name FROM sections WHERE school_id = ? AND id != ?";
+                $stmt = $conn->prepare($school_check_sql);
+                $stmt->execute([$data['school_id'], $data['id']]);
+                $existing_section = $stmt->fetch(PDO::FETCH_ASSOC);
+                if ($existing_section) {
+                    $errors['school_id'] = 'This partnered school is already assigned to section: ' . $existing_section['section_name'];
+                }
+            }
+            
+            if (!empty($errors)) {
+                return json_encode([
+                    'success' => false,
+                    'message' => 'Validation failed',
+                    'errors' => $errors
+                ]);
+            }
+            
+            // Update section
+            $sql = "UPDATE sections SET section_name = ?, school_id = ? WHERE id = ?";
+            $stmt = $conn->prepare($sql);
+            $stmt->execute([
+                $data['section_name'],
+                !empty($data['school_id']) ? $data['school_id'] : null,
+                $data['id']
+            ]);
+            
+            return json_encode([
+                'success' => true,
+                'message' => 'Section updated successfully'
+            ]);
+            
+        } catch(PDOException $e) {
+            return json_encode([
+                'success' => false,
+                'message' => 'Database error: ' . $e->getMessage()
+            ]);
+        }
+    }
+    
+    // Delete section
+    function deleteSection($json) {
+        include "connection.php";
+        
+        $data = json_decode($json, true);
+        
+        if (empty($data['id'])) {
+            return json_encode([
+                'success' => false,
+                'message' => 'Section ID is required'
+            ]);
+        }
+        
+        try {
+            // Check if section is being used by users
+            $check_sql = "SELECT COUNT(*) as count FROM users WHERE section_id = ?";
+            $stmt = $conn->prepare($check_sql);
+            $stmt->execute([$data['id']]);
+            $result = $stmt->fetch(PDO::FETCH_ASSOC);
+            
+            if ($result['count'] > 0) {
+                return json_encode([
+                    'success' => false,
+                    'message' => 'Cannot delete section. It is assigned to ' . $result['count'] . ' user(s).'
+                ]);
+            }
+            
+            // Delete section
+            $sql = "DELETE FROM sections WHERE id = ?";
+            $stmt = $conn->prepare($sql);
+            $stmt->execute([$data['id']]);
+            
+            return json_encode([
+                'success' => true,
+                'message' => 'Section deleted successfully'
+            ]);
+            
+        } catch(PDOException $e) {
+            return json_encode([
+                'success' => false,
+                'message' => 'Database error: ' . $e->getMessage()
+            ]);
+        }
+    }
+    
+    // Get partnered schools for dropdown
+    function getPartneredSchoolsForDropdown($json) {
+        include "connection.php";
+        
+        try {
+            $sql = "SELECT id, school_id_code, name FROM partnered_schools WHERE isActive = 1 ORDER BY name";
+            $stmt = $conn->prepare($sql);
+            $stmt->execute();
+            $schools = $stmt->fetchAll(PDO::FETCH_ASSOC);
+            
+            return json_encode([
+                'success' => true,
+                'data' => $schools
+            ]);
+            
+        } catch(PDOException $e) {
+            return json_encode([
+                'success' => false,
+                'message' => 'Database error: ' . $e->getMessage()
+            ]);
+        }
+    }
 }
 
 $operation = isset($_POST["operation"]) ? $_POST["operation"] : "0";
@@ -471,6 +709,27 @@ switch ($operation) {
         
     case 'get_partnered_school':
         echo $teachers->getPartneredSchool($json);
+        break;
+        
+    // Section operations
+    case 'create_section':
+        echo $teachers->createSection($json);
+        break;
+        
+    case 'read_sections':
+        echo $teachers->readSections($json);
+        break;
+        
+    case 'update_section':
+        echo $teachers->updateSection($json);
+        break;
+        
+    case 'delete_section':
+        echo $teachers->deleteSection($json);
+        break;
+        
+    case 'get_partnered_schools_dropdown':
+        echo $teachers->getPartneredSchoolsForDropdown($json);
         break;
         
     default:

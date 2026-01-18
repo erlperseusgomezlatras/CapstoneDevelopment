@@ -248,7 +248,15 @@ $current_page = 'coordinators';
         <div class="flex items-center justify-center min-h-screen p-4">
             <div class="bg-white rounded-lg shadow-xl w-[600px] max-w-[90vw]">
                 <div class="p-6">
-                    <h3 id="modalTitle" class="text-lg font-semibold text-gray-900 mb-4">Add New Coordinator</h3>
+                    <div class="flex justify-between items-center mb-4">
+                        <h3 id="modalTitle" class="text-lg font-semibold text-gray-900">Add New Coordinator</h3>
+                        <button id="resetPasswordBtn" onclick="openResetPasswordModal()" 
+                                class="px-4 py-2 bg-orange-600 text-white rounded-md hover:bg-orange-700 focus:outline-none focus:ring-2 focus:ring-orange-500 hidden"
+                                style="display: none;">
+                            <i class="fas fa-key mr-2"></i>
+                            Reset Password
+                        </button>
+                    </div>
                     <form id="coordinatorForm">
                         <input type="hidden" id="coordinatorId" name="school_id">
                         
@@ -289,11 +297,26 @@ $current_page = 'coordinators';
                                 <span class="text-xs text-red-500" id="emailError"></span>
                             </div>
                             
-                            <div>
+                            <div id="passwordField">
                                 <label class="block text-sm font-medium text-gray-700 mb-1">Password *</label>
-                                <input type="password" id="password" name="password" required
-                                       class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500">
+                                <div class="flex space-x-2">
+                                    <div class="relative flex-1">
+                                        <input type="password" id="password" name="password" required
+                                               class="w-full px-3 py-2 pr-10 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500">
+                                        <button type="button" onclick="togglePasswordVisibility()" 
+                                                class="absolute inset-y-0 right-0 px-3 flex items-center text-gray-500 hover:text-gray-700"
+                                                title="Show/Hide password">
+                                            <i id="passwordToggleIcon" class="fas fa-eye"></i>
+                                        </button>
+                                    </div>
+                                    <button type="button" onclick="resetPasswordToSchoolId()" 
+                                            class="px-3 py-2 bg-gray-500 text-white text-sm rounded-md hover:bg-gray-600 focus:outline-none focus:ring-2 focus:ring-gray-500"
+                                            title="Reset password to School ID">
+                                        <i class="fas fa-undo"></i>
+                                    </button>
+                                </div>
                                 <span class="text-xs text-red-500" id="passwordError"></span>
+                                <span class="text-xs text-gray-500" id="passwordHint"></span>
                             </div>
                             
                             <div>
@@ -326,6 +349,51 @@ $current_page = 'coordinators';
                             </button>
                         </div>
                     </form>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Reset Password Modal -->
+    <div id="resetPasswordModal" class="modal">
+        <div class="flex items-center justify-center min-h-screen p-4">
+            <div class="bg-white rounded-lg shadow-xl w-[500px] max-w-[90vw]">
+                <div class="p-6">
+                    <h3 class="text-lg font-semibold text-gray-900 mb-4">Reset Coordinator Password</h3>
+                    <p class="text-sm text-gray-600 mb-4">
+                        Reset password for <strong id="resetCoordinatorName"></strong>
+                    </p>
+                    <div class="mb-4">
+                        <label class="block text-sm font-medium text-gray-700 mb-1">New Password</label>
+                        <div class="flex space-x-2">
+                            <div class="relative flex-1">
+                                <input type="password" id="resetPassword" name="resetPassword" 
+                                       class="w-full px-3 py-2 pr-10 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-orange-500">
+                                <button type="button" onclick="toggleResetPasswordVisibility()" 
+                                        class="absolute inset-y-0 right-0 px-3 flex items-center text-gray-500 hover:text-gray-700"
+                                        title="Show/Hide password">
+                                    <i id="resetPasswordToggleIcon" class="fas fa-eye"></i>
+                                </button>
+                            </div>
+                            <button type="button" onclick="setResetPasswordToSchoolId()" 
+                                    class="px-3 py-2 bg-gray-500 text-white text-sm rounded-md hover:bg-gray-600 focus:outline-none focus:ring-2 focus:ring-gray-500"
+                                    title="Use School ID as password">
+                                <i class="fas fa-undo"></i>
+                            </button>
+                        </div>
+                        <span class="text-xs text-red-500" id="resetPasswordError"></span>
+                        <span class="text-xs text-gray-500" id="resetPasswordHint"></span>
+                    </div>
+                    <div class="flex justify-end space-x-3">
+                        <button onclick="closeResetPasswordModal()" 
+                                class="px-4 py-2 border border-gray-300 rounded-md text-gray-700 hover:bg-gray-50">
+                            Cancel
+                        </button>
+                        <button onclick="confirmResetPassword()" 
+                                class="px-4 py-2 bg-orange-600 text-white rounded-md hover:bg-orange-700 focus:outline-none focus:ring-2 focus:ring-orange-500">
+                            Reset Password
+                        </button>
+                    </div>
                 </div>
             </div>
         </div>
@@ -393,6 +461,27 @@ $current_page = 'coordinators';
             document.getElementById('modalTitle').textContent = 'Add New Coordinator';
             document.getElementById('coordinatorForm').reset();
             clearValidationErrors();
+            
+            // Show password field for adding
+            document.getElementById('passwordField').style.display = 'block';
+            document.getElementById('password').required = true;
+            
+            // Hide reset password button for adding
+            document.getElementById('resetPasswordBtn').style.display = 'none';
+            
+            // Auto-fill password with school_id when it's entered
+            const schoolIdInput = document.getElementById('schoolId');
+            schoolIdInput.addEventListener('input', function() {
+                const schoolId = this.value.trim();
+                if (schoolId) {
+                    document.getElementById('password').value = schoolId;
+                    document.getElementById('passwordHint').textContent = 'Password auto-filled with School ID';
+                } else {
+                    document.getElementById('password').value = '';
+                    document.getElementById('passwordHint').textContent = '';
+                }
+            });
+            
             document.getElementById('coordinatorModal').classList.add('show');
             loadSections();
         }
@@ -400,6 +489,13 @@ $current_page = 'coordinators';
         function openEditModal(coordinator) {
             currentEditingCoordinator = coordinator;
             document.getElementById('modalTitle').textContent = 'Edit Coordinator';
+            
+            // Show reset password button for editing
+            document.getElementById('resetPasswordBtn').style.display = 'inline-flex';
+            
+            // Hide password field for editing (use separate reset modal)
+            document.getElementById('passwordField').style.display = 'none';
+            document.getElementById('password').required = false;
             
             // Populate form fields
             document.getElementById('schoolId').value = coordinator.school_id;
@@ -452,6 +548,132 @@ $current_page = 'coordinators';
             }, 3000);
         }
 
+        // Reset Password Functions
+        let currentResetCoordinator = null;
+
+        function openResetPasswordModal() {
+            if (!currentEditingCoordinator) return;
+            
+            currentResetCoordinator = currentEditingCoordinator;
+            document.getElementById('resetCoordinatorName').textContent = 
+                `${currentEditingCoordinator.firstname} ${currentEditingCoordinator.lastname}`;
+            
+            // Auto-fill password with school_id by default
+            const schoolId = currentEditingCoordinator.school_id;
+            document.getElementById('resetPassword').value = schoolId;
+            
+            // Clear previous values and set hints
+            document.getElementById('resetPasswordError').textContent = '';
+            document.getElementById('resetPasswordHint').textContent = 
+                `Password set to School ID: ${schoolId}. You can edit this if needed.`;
+            
+            document.getElementById('resetPasswordModal').classList.add('show');
+        }
+
+        function closeResetPasswordModal() {
+            document.getElementById('resetPasswordModal').classList.remove('show');
+            currentResetCoordinator = null;
+        }
+
+        function toggleResetPasswordVisibility() {
+            const passwordInput = document.getElementById('resetPassword');
+            const toggleIcon = document.getElementById('resetPasswordToggleIcon');
+            
+            if (passwordInput.type === 'password') {
+                passwordInput.type = 'text';
+                toggleIcon.classList.remove('fa-eye');
+                toggleIcon.classList.add('fa-eye-slash');
+            } else {
+                passwordInput.type = 'password';
+                toggleIcon.classList.remove('fa-eye-slash');
+                toggleIcon.classList.add('fa-eye');
+            }
+        }
+
+        function setResetPasswordToSchoolId() {
+            if (currentResetCoordinator) {
+                const schoolId = currentResetCoordinator.school_id;
+                document.getElementById('resetPassword').value = schoolId;
+                document.getElementById('resetPasswordHint').textContent = `Password reset to School ID: ${schoolId}`;
+                document.getElementById('resetPasswordError').textContent = '';
+            }
+        }
+
+        async function confirmResetPassword() {
+            const newPassword = document.getElementById('resetPassword').value.trim();
+            
+            if (!newPassword) {
+                document.getElementById('resetPasswordError').textContent = 'Password is required';
+                return;
+            }
+            
+            // Skip length validation if password is the default school_id
+            const isDefaultSchoolId = newPassword === currentResetCoordinator.school_id;
+            
+            if (!isDefaultSchoolId && newPassword.length < 6) {
+                document.getElementById('resetPasswordError').textContent = 'Password must be at least 6 characters';
+                return;
+            }
+
+            try {
+                const formData = new FormData();
+                formData.append('operation', 'update');
+                formData.append('json', JSON.stringify({
+                    school_id: currentResetCoordinator.school_id,
+                    password: newPassword,
+                    firstname: currentResetCoordinator.firstname,
+                    lastname: currentResetCoordinator.lastname,
+                    middlename: currentResetCoordinator.middlename || '',
+                    email: currentResetCoordinator.email || '',
+                    section_id: currentResetCoordinator.section_id || '',
+                    isActive: currentResetCoordinator.isActive
+                }));
+
+                const response = await fetch('../../api/teachers.php', {
+                    method: 'POST',
+                    body: formData
+                });
+
+                const result = await response.json();
+
+                if (result.success) {
+                    showNotification('Password reset successfully!', 'success');
+                    closeResetPasswordModal();
+                } else {
+                    showNotification(result.message || 'Failed to reset password', 'error');
+                }
+            } catch (error) {
+                console.error('Error resetting password:', error);
+                showNotification('An error occurred while resetting password', 'error');
+            }
+        }
+
+        function togglePasswordVisibility() {
+            const passwordInput = document.getElementById('password');
+            const toggleIcon = document.getElementById('passwordToggleIcon');
+            
+            if (passwordInput.type === 'password') {
+                passwordInput.type = 'text';
+                toggleIcon.classList.remove('fa-eye');
+                toggleIcon.classList.add('fa-eye-slash');
+            } else {
+                passwordInput.type = 'password';
+                toggleIcon.classList.remove('fa-eye-slash');
+                toggleIcon.classList.add('fa-eye');
+            }
+        }
+
+        function resetPasswordToSchoolId() {
+            const schoolId = document.getElementById('schoolId').value.trim();
+            if (schoolId) {
+                document.getElementById('password').value = schoolId;
+                document.getElementById('passwordHint').textContent = 'Password reset to School ID';
+                document.getElementById('passwordError').textContent = '';
+            } else {
+                document.getElementById('passwordError').textContent = 'Please enter School ID first';
+            }
+        }
+
         function validateForm() {
             clearValidationErrors();
             let isValid = true;
@@ -460,7 +682,8 @@ $current_page = 'coordinators';
             const firstname = document.getElementById('firstname').value.trim();
             const lastname = document.getElementById('lastname').value.trim();
             const email = document.getElementById('email').value.trim();
-            const password = document.getElementById('password').value;
+            const password = document.getElementById('passwordField').style.display !== 'none' ? 
+                           document.getElementById('password').value : '';
             const sectionId = document.getElementById('section').value;
             
             if (!schoolId) {
@@ -486,12 +709,15 @@ $current_page = 'coordinators';
                 isValid = false;
             }
             
-            if (!password && !currentEditingCoordinator) {
-                document.getElementById('passwordError').textContent = 'Password is required';
-                isValid = false;
-            } else if (password && password.length < 6) {
-                document.getElementById('passwordError').textContent = 'Password must be at least 6 characters';
-                isValid = false;
+            // Password validation only for adding new coordinators
+            if (document.getElementById('passwordField').style.display !== 'none') {
+                if (!password) {
+                    document.getElementById('passwordError').textContent = 'Password is required';
+                    isValid = false;
+                } else if (password.length < 6) {
+                    document.getElementById('passwordError').textContent = 'Password must be at least 6 characters';
+                    isValid = false;
+                }
             }
             
             // Section is now optional - no validation needed
