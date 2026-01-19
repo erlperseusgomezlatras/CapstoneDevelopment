@@ -329,6 +329,7 @@ $current_page = 'coordinators';
     <div id="notificationContainer" class="notification"></div>
 
     <!-- JavaScript -->
+    <script src="../../assets/js/config.js"></script>
     <script src="../js/coordinator.js"></script>
 </body>
 </html>

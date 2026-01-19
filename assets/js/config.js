@@ -1,6 +1,7 @@
 // JavaScript Configuration
 window.APP_CONFIG = {
-    API_BASE_URL: 'http://localhost/CapstoneDevelopment/api',
+    API_BASE_URL: 'http://localhost/CapstoneDevelopment/api/',
+    BASE_URL: 'http://localhost/CapstoneDevelopment',
     APP_NAME: 'PHINMA | Practicum Management System',
     APP_VERSION: '1.0.0',
     SESSION_LIFETIME: 24 * 60 * 60, // 24 hours in seconds

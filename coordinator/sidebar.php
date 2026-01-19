@@ -13,7 +13,7 @@ $base_url = "http://localhost/CapstoneDevelopment";
 ?>
 
 <!-- Desktop Sidebar -->
-<aside class="hidden md:flex md:flex-col md:w-72 md:bg-[#1e40af] md:border-r md:border-gray-200">
+<aside class="hidden md:flex md:flex-col md:w-72 md:bg-[#004d23] md:border-r md:border-gray-200">
     <div class="flex flex-col h-full">
         <!-- Sidebar Header -->
         <div class="p-6">
@@ -34,15 +34,39 @@ $base_url = "http://localhost/CapstoneDevelopment";
                     </a>
                 </li>
                 <li>
-                    <a href="<?php echo $base_url; ?>/coordinator/student.php" class="sidebar-item <?php echo $current_page === 'student' ? 'active' : ''; ?> flex items-center px-3 py-2 text-sm font-medium rounded-md <?php echo $current_page === 'student' ? 'text-white bg-white/10' : 'text-gray-300 hover:text-white hover:bg-white/10'; ?>">
+                    <a href="<?php echo $base_url; ?>/coordinator/pages/student.php" class="sidebar-item <?php echo $current_page === 'student' ? 'active' : ''; ?> flex items-center px-3 py-2 text-sm font-medium rounded-md <?php echo $current_page === 'student' ? 'text-white bg-white/10' : 'text-gray-300 hover:text-white hover:bg-white/10'; ?>">
                         <i class="fas fa-user-graduate mr-3 h-4 w-4"></i>
                         Student Management
                     </a>
                 </li>
                 <li>
-                    <a href="#" class="sidebar-item <?php echo $current_page === 'reports' ? 'active' : ''; ?> flex items-center px-3 py-2 text-sm font-medium rounded-md <?php echo $current_page === 'reports' ? 'text-white bg-white/10' : 'text-gray-300 hover:text-white hover:bg-white/10'; ?>">
-                        <i class="fas fa-chart-bar mr-3 h-4 w-4"></i>
+                    <a href="<?php echo $base_url; ?>/coordinator/pages/attendance.php" class="sidebar-item <?php echo $current_page === 'attendance' ? 'active' : ''; ?> flex items-center px-3 py-2 text-sm font-medium rounded-md <?php echo $current_page === 'attendance' ? 'text-white bg-white/10' : 'text-gray-300 hover:text-white hover:bg-white/10'; ?>">
+                        <i class="fas fa-clock mr-3 h-4 w-4"></i>
+                        Attendance Monitoring
+                    </a>
+                </li>
+                <li>
+                    <a href="<?php echo $base_url; ?>/coordinator/pages/journals.php" class="sidebar-item <?php echo $current_page === 'journals' ? 'active' : ''; ?> flex items-center px-3 py-2 text-sm font-medium rounded-md <?php echo $current_page === 'journals' ? 'text-white bg-white/10' : 'text-gray-300 hover:text-white hover:bg-white/10'; ?>">
+                        <i class="fas fa-book mr-3 h-4 w-4"></i>
+                        Journal Review
+                    </a>
+                </li>
+                <li>
+                    <a href="<?php echo $base_url; ?>/coordinator/pages/checklist.php" class="sidebar-item <?php echo $current_page === 'checklist' ? 'active' : ''; ?> flex items-center px-3 py-2 text-sm font-medium rounded-md <?php echo $current_page === 'checklist' ? 'text-white bg-white/10' : 'text-gray-300 hover:text-white hover:bg-white/10'; ?>">
+                        <i class="fas fa-tasks mr-3 h-4 w-4"></i>
+                        Practicum Checklist
+                    </a>
+                </li>
+                <li>
+                    <a href="<?php echo $base_url; ?>/coordinator/pages/reports.php" class="sidebar-item <?php echo $current_page === 'reports' ? 'active' : ''; ?> flex items-center px-3 py-2 text-sm font-medium rounded-md <?php echo $current_page === 'reports' ? 'text-white bg-white/10' : 'text-gray-300 hover:text-white hover:bg-white/10'; ?>">
+                        <i class="fas fa-chart-line mr-3 h-4 w-4"></i>
                         Reports
+                    </a>
+                </li>
+                <li>
+                    <a href="<?php echo $base_url; ?>/coordinator/school.php" class="sidebar-item <?php echo $current_page === 'school' ? 'active' : ''; ?> flex items-center px-3 py-2 text-sm font-medium rounded-md <?php echo $current_page === 'school' ? 'text-white bg-white/10' : 'text-gray-300 hover:text-white hover:bg-white/10'; ?>">
+                        <i class="fas fa-school mr-3 h-4 w-4"></i>
+                        Partnered School
                     </a>
                 </li>
                 <li>
@@ -90,15 +114,39 @@ $base_url = "http://localhost/CapstoneDevelopment";
                         </a>
                     </li>
                     <li>
-                        <a href="<?php echo $base_url; ?>/coordinator/student.php" class="sidebar-item <?php echo $current_page === 'student' ? 'active' : ''; ?> flex items-center px-3 py-2 text-sm font-medium rounded-md <?php echo $current_page === 'student' ? 'text-gray-900 bg-gray-100' : 'text-gray-600 hover:text-gray-900 hover:bg-gray-50'; ?>">
+                        <a href="<?php echo $base_url; ?>/coordinator/pages/student.php" class="sidebar-item <?php echo $current_page === 'student' ? 'active' : ''; ?> flex items-center px-3 py-2 text-sm font-medium rounded-md <?php echo $current_page === 'student' ? 'text-gray-900 bg-gray-100' : 'text-gray-600 hover:text-gray-900 hover:bg-gray-50'; ?>">
                             <i class="fas fa-user-graduate mr-3 h-4 w-4"></i>
                             Student Management
                         </a>
                     </li>
                     <li>
-                        <a href="#" class="sidebar-item <?php echo $current_page === 'reports' ? 'active' : ''; ?> flex items-center px-3 py-2 text-sm font-medium rounded-md <?php echo $current_page === 'reports' ? 'text-gray-900 bg-gray-100' : 'text-gray-600 hover:text-gray-900 hover:bg-gray-50'; ?>">
-                            <i class="fas fa-chart-bar mr-3 h-4 w-4"></i>
+                        <a href="<?php echo $base_url; ?>/coordinator/pages/attendance.php" class="sidebar-item <?php echo $current_page === 'attendance' ? 'active' : ''; ?> flex items-center px-3 py-2 text-sm font-medium rounded-md <?php echo $current_page === 'attendance' ? 'text-gray-900 bg-gray-100' : 'text-gray-600 hover:text-gray-900 hover:bg-gray-50'; ?>">
+                            <i class="fas fa-clock mr-3 h-4 w-4"></i>
+                            Attendance Monitoring
+                        </a>
+                    </li>
+                    <li>
+                        <a href="<?php echo $base_url; ?>/coordinator/pages/journals.php" class="sidebar-item <?php echo $current_page === 'journals' ? 'active' : ''; ?> flex items-center px-3 py-2 text-sm font-medium rounded-md <?php echo $current_page === 'journals' ? 'text-gray-900 bg-gray-100' : 'text-gray-600 hover:text-gray-900 hover:bg-gray-50'; ?>">
+                            <i class="fas fa-book mr-3 h-4 w-4"></i>
+                            Journal Review
+                        </a>
+                    </li>
+                    <li>
+                        <a href="<?php echo $base_url; ?>/coordinator/pages/checklist.php" class="sidebar-item <?php echo $current_page === 'checklist' ? 'active' : ''; ?> flex items-center px-3 py-2 text-sm font-medium rounded-md <?php echo $current_page === 'checklist' ? 'text-gray-900 bg-gray-100' : 'text-gray-600 hover:text-gray-900 hover:bg-gray-50'; ?>">
+                            <i class="fas fa-tasks mr-3 h-4 w-4"></i>
+                            Practicum Checklist
+                        </a>
+                    </li>
+                    <li>
+                        <a href="<?php echo $base_url; ?>/coordinator/pages/reports.php" class="sidebar-item <?php echo $current_page === 'reports' ? 'active' : ''; ?> flex items-center px-3 py-2 text-sm font-medium rounded-md <?php echo $current_page === 'reports' ? 'text-gray-900 bg-gray-100' : 'text-gray-600 hover:text-gray-900 hover:bg-gray-50'; ?>">
+                            <i class="fas fa-chart-line mr-3 h-4 w-4"></i>
                             Reports
+                        </a>
+                    </li>
+                    <li>
+                        <a href="<?php echo $base_url; ?>/coordinator/pages/school.php" class="sidebar-item <?php echo $current_page === 'school' ? 'active' : ''; ?> flex items-center px-3 py-2 text-sm font-medium rounded-md <?php echo $current_page === 'school' ? 'text-gray-900 bg-gray-100' : 'text-gray-600 hover:text-gray-900 hover:bg-gray-50'; ?>">
+                            <i class="fas fa-school mr-3 h-4 w-4"></i>
+                            Partnered School
                         </a>
                     </li>
                     <li>
@@ -129,6 +177,9 @@ $base_url = "http://localhost/CapstoneDevelopment";
 </div>
 
 <script>
+    // Base URL from PHP
+    const baseUrl = "<?php echo $base_url; ?>";
+    
 // Mobile sidebar functionality
 document.getElementById('mobileMenuButton').addEventListener('click', function() {
     document.getElementById('mobileSidebar').classList.remove('hidden');
@@ -142,9 +193,31 @@ document.getElementById('mobileSidebarOverlay').addEventListener('click', functi
     document.getElementById('mobileSidebar').classList.add('hidden');
 });
 
-function logout() {
-    if (confirm('Are you sure you want to logout?')) {
-        window.location.href = '../login.php';
+// Logout function
+    function logout() {
+        if (confirm('Are you sure you want to logout?')) {
+            fetch(baseUrl + '/api/auth.php', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    action: 'logout'
+                })
+            })
+            .then(response => response.json())
+            .then(result => {
+                if (result.success) {
+                    // Redirect to login page
+                    window.location.href = baseUrl + '/login.php';
+                } else {
+                    alert('Logout failed: ' + result.message);
+                }
+            })
+            .catch(error => {
+                console.error('Logout error:', error);
+                alert('An error occurred during logout');
+            });
+        }
     }
-}
 </script>

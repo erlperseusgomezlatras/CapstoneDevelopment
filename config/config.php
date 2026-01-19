@@ -3,6 +3,7 @@
 define('API_BASE_URL', 'http://localhost/CapstoneDevelopment/api');
 
 // Application Configuration
+define('BASE_URL', 'http://localhost/CapstoneDevelopment');
 define('APP_NAME', 'PHINMA | Practicum Management System');
 define('APP_VERSION', '1.0.0');
 

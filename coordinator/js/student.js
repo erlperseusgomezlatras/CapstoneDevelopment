@@ -1,4 +1,4 @@
-// Student Management JavaScript
+// Coordinator Student Management JavaScript
 let currentTab = 'pending';
 
 // Load data on page load
@@ -7,14 +7,16 @@ document.addEventListener('DOMContentLoaded', function() {
     loadStudents('pending');
 });
 
-// Load student statistics
+// Load student statistics for coordinator's section
 function loadStats() {
-    fetch(window.APP_CONFIG.API_BASE_URL + 'students.php', {
+    console.log('Coordinator ID:', coordinatorId);
+    
+    fetch(window.APP_CONFIG.API_BASE_URL + 'coordinator.php', {
         method: 'POST',
         headers: {
             'Content-Type': 'application/x-www-form-urlencoded',
         },
-        body: 'operation=get_stats&json={}'
+        body: `operation=get_coordinator_stats&json=${encodeURIComponent(JSON.stringify({coordinator_id: coordinatorId}))}`
     })
     .then(response => response.json())
     .then(data => {
@@ -33,7 +35,7 @@ function loadStats() {
     });
 }
 
-// Load students by approval status
+// Load students by approval status for coordinator's section
 function loadStudents(approvalStatus) {
     const loadingEl = document.getElementById(approvalStatus + '-loading');
     const tableEl = document.getElementById(approvalStatus + '-table');
@@ -41,12 +43,15 @@ function loadStudents(approvalStatus) {
     if (loadingEl) loadingEl.classList.remove('hidden');
     if (tableEl) tableEl.classList.add('hidden');
     
-    fetch(window.APP_CONFIG.API_BASE_URL + 'students.php', {
+    fetch(window.APP_CONFIG.API_BASE_URL + 'coordinator.php', {
         method: 'POST',
         headers: {
             'Content-Type': 'application/x-www-form-urlencoded',
         },
-        body: `operation=read&json=${encodeURIComponent(JSON.stringify({approval_status: approvalStatus}))}`
+        body: `operation=read_coordinator_students&json=${encodeURIComponent(JSON.stringify({
+            approval_status: approvalStatus,
+            coordinator_id: coordinatorId
+        }))}`
     })
     .then(response => response.json())
     .then(data => {
@@ -80,6 +85,7 @@ function createStudentTable(students, approvalStatus) {
                         <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Student ID</th>
                         <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Name</th>
                         <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Email</th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Section</th>
                         <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
                         <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
                     </tr>
@@ -93,6 +99,7 @@ function createStudentTable(students, approvalStatus) {
                 <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">${escapeHtml(student.school_id)}</td>
                 <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">${escapeHtml(student.firstname + ' ' + student.lastname)}</td>
                 <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">${escapeHtml(student.email)}</td>
+                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">${escapeHtml(student.section_name || 'N/A')}</td>
                 <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${getStatusText(approvalStatus)}</td>
                 <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
                     ${getActionButtons(student, approvalStatus)}
@@ -116,17 +123,17 @@ function createEmptyState(approvalStatus) {
         pending: {
             icon: 'fa-clock',
             title: 'No pending approvals',
-            text: 'All student registration requests have been processed.'
+            text: 'There are no student registration requests pending for your section.'
         },
         approved: {
             icon: 'fa-check-circle',
             title: 'No approved students',
-            text: 'No students have been approved yet.'
+            text: 'No students have been approved in your section yet.'
         },
         declined: {
             icon: 'fa-times-circle',
             title: 'No declined requests',
-            text: 'No student requests have been declined.'
+            text: 'No student requests have been declined in your section.'
         }
     };
     
@@ -225,7 +232,7 @@ function showNotification(message, type) {
 function approveStudent(schoolId) {
     if (!confirm('Approve this student?')) return;
     
-    fetch(window.APP_CONFIG.API_BASE_URL + 'students.php', {
+    fetch(window.APP_CONFIG.API_BASE_URL + 'coordinator.php', {
         method: 'POST',
         headers: {
             'Content-Type': 'application/x-www-form-urlencoded',
@@ -252,7 +259,7 @@ function approveStudent(schoolId) {
 function declineStudent(schoolId) {
     if (!confirm('Decline this student?')) return;
     
-    fetch(window.APP_CONFIG.API_BASE_URL + 'students.php', {
+    fetch(window.APP_CONFIG.API_BASE_URL + 'coordinator.php', {
         method: 'POST',
         headers: {
             'Content-Type': 'application/x-www-form-urlencoded',
@@ -279,7 +286,7 @@ function declineStudent(schoolId) {
 function deleteStudent(schoolId) {
     if (!confirm('Delete this student record?')) return;
     
-    fetch(window.APP_CONFIG.API_BASE_URL + 'students.php', {
+    fetch(window.APP_CONFIG.API_BASE_URL + 'coordinator.php', {
         method: 'POST',
         headers: {
             'Content-Type': 'application/x-www-form-urlencoded',

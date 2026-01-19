@@ -383,6 +383,7 @@ $current_page = 'system';
     <!-- Notification Container -->
     <div id="notificationContainer"></div>
     
+    <script src="../../assets/js/config.js"></script>
     <script src="../js/system.js"></script>
     </body>
 </html>

@@ -46,7 +46,7 @@ function switchTab(tabName) {
 // Logout function
 function logout() {
     if (confirm('Are you sure you want to logout?')) {
-        fetch('../api/auth.php', {
+        fetch(window.APP_CONFIG.API_BASE_URL + 'auth.php', {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',

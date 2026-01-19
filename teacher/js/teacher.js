@@ -171,7 +171,7 @@ async function saveTeacher(formData) {
         apiFormData.append('operation', currentEditingTeacher ? 'update' : 'create');
         apiFormData.append('json', JSON.stringify(formData));
         
-        const response = await fetch('../../api/teachers.php', {
+        const response = await fetch(window.APP_CONFIG.API_BASE_URL + 'teachers.php', {
             method: 'POST',
             body: apiFormData
         });
@@ -211,7 +211,7 @@ async function deleteTeacher(schoolId) {
         apiFormData.append('operation', 'delete');
         apiFormData.append('json', JSON.stringify({ school_id: schoolId }));
         
-        const response = await fetch('../../api/teachers.php', {
+        const response = await fetch(window.APP_CONFIG.API_BASE_URL + 'teachers.php', {
             method: 'POST',
             body: apiFormData
         });
@@ -239,7 +239,7 @@ async function toggleTeacherStatus(schoolId, currentStatus) {
             isActive: currentStatus === 1 ? 0 : 1 
         }));
         
-        const response = await fetch('../../api/teachers.php', {
+        const response = await fetch(window.APP_CONFIG.API_BASE_URL + 'teachers.php', {
             method: 'POST',
             body: apiFormData
         });
@@ -266,7 +266,7 @@ async function loadTeachers() {
         formData.append('operation', 'read');
         formData.append('json', JSON.stringify({}));
         
-        const response = await fetch('../../api/teachers.php', {
+        const response = await fetch(window.APP_CONFIG.API_BASE_URL + 'teachers.php', {
             method: 'POST',
             body: formData
         });
@@ -385,7 +385,7 @@ async function loadSections() {
         formData.append('operation', 'get_sections');
         formData.append('json', JSON.stringify({}));
         
-        const response = await fetch('../../api/teachers.php', {
+        const response = await fetch(window.APP_CONFIG.API_BASE_URL + 'teachers.php', {
             method: 'POST',
             body: formData
         });

@@ -15,7 +15,7 @@ function initializeAttendance(studentId) {
 
 // Load student information from API
 function loadStudentInfo(studentSchoolId) {
-    fetch('../api/students.php', {
+    fetch(window.APP_CONFIG.API_BASE_URL + 'students.php', {
         method: 'POST',
         headers: {
             'Content-Type': 'application/x-www-form-urlencoded',
@@ -689,7 +689,7 @@ function markAttendance(studentSchoolId) {
     `;
 
     // Send attendance data to server
-    fetch('../api/students.php', {
+    fetch(window.APP_CONFIG.API_BASE_URL + 'students.php', {
         method: 'POST',
         headers: {
             'Content-Type': 'application/x-www-form-urlencoded',

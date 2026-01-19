@@ -264,6 +264,7 @@ $current_page = 'teachers';
     </div>
 
     <!-- JavaScript -->
+    <script src="../../assets/js/config.js"></script>
     <script src="../js/teacher.js"></script>
 </body>
 </html>

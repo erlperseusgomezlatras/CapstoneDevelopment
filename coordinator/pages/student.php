@@ -15,21 +15,26 @@ if (!isset($_SESSION['user_id']) && !(isset($_COOKIE['authToken']) && isset($_CO
 $userData = null;
 if (isset($_SESSION['user_id'])) {
     $userData = [
-        'level' => $_SESSION['user_role'] ?? 'Head Teacher',
-        'firstname' => $_SESSION['first_name'] ?? 'Teacher',
-        'email' => $_SESSION['email'] ?? ''
+        'level' => $_SESSION['user_role'] ?? 'Coordinator',
+        'firstname' => $_SESSION['first_name'] ?? 'Coordinator',
+        'email' => $_SESSION['email'] ?? '',
+        'school_id' => $_SESSION['school_id'] ?? '',
+        'section_id' => $_SESSION['section_id'] ?? ''
     ];
 } else {
     $userData = json_decode($_COOKIE['userData'], true);
 }
 
-// Verify user is a teacher
-if ($userData['level'] !== 'Head Teacher') {
+// Verify user is a coordinator
+if ($userData['level'] !== 'Coordinator') {
     header('Location: ../../login.php');
     exit();
 }
 
-$teacher_name = $userData['firstname'] ?? 'Teacher';
+$coordinator_name = $userData['firstname'] ?? 'Coordinator';
+$coordinator_section_id = $userData['section_id'] ?? '';
+
+error_log("Coordinator section_id: $coordinator_section_id");
 ?>
 
 <!DOCTYPE html>
@@ -54,10 +59,10 @@ $teacher_name = $userData['firstname'] ?? 'Teacher';
                     <div class="flex items-center justify-between">
                         <div>
                             <h1 class="text-2xl font-bold text-gray-900">Student Management</h1>
-                            <p class="text-sm text-gray-600 mt-1">Manage student accounts and approval requests</p>
+                            <p class="text-sm text-gray-600 mt-1">Manage students in your assigned sections</p>
                         </div>
                         <div class="flex items-center space-x-4">
-                            <span class="text-sm text-gray-600">Welcome, <?php echo htmlspecialchars($teacher_name); ?></span>
+                            <span class="text-sm text-gray-600">Welcome, <?php echo htmlspecialchars($coordinator_name); ?></span>
                             <button class="p-2 rounded-md text-gray-600 hover:text-gray-900 hover:bg-gray-100">
                                 <i class="fas fa-bell"></i>
                             </button>
@@ -68,6 +73,17 @@ $teacher_name = $userData['firstname'] ?? 'Teacher';
             
             <!-- Content Area -->
             <div class="p-6">
+                <!-- Section Info -->
+                <div class="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-6">
+                    <div class="flex items-center">
+                        <i class="fas fa-info-circle text-blue-600 mr-3"></i>
+                        <div>
+                            <h3 class="text-sm font-medium text-blue-900">Your Assigned Section</h3>
+                            <p class="text-sm text-blue-700">Showing students from your assigned section(s) only</p>
+                        </div>
+                    </div>
+                </div>
+
                 <!-- Tabs -->
                 <div class="bg-white rounded-lg shadow">
                     <div class="flex justify-between items-center border-b border-gray-200">
@@ -132,6 +148,11 @@ $teacher_name = $userData['firstname'] ?? 'Teacher';
             </div>
         </main>
     </div>
+    
+    <!-- Global JavaScript Variables -->
+    <script>
+        const coordinatorId = '<?php echo $userData['school_id']; ?>';
+    </script>
     
     <script src="../../assets/js/config.js"></script>
     <script src="../js/student.js"></script>

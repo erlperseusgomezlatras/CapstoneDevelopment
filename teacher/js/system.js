@@ -167,7 +167,7 @@ async function searchAddress() {
     
     try {
         // Use server-side proxy to avoid CORS issues
-        const response = await fetch(`../../api/geocode.php?address=${encodeURIComponent(address)}`);
+        const response = await fetch(window.APP_CONFIG.API_BASE_URL + 'geocode.php?address=' + encodeURIComponent(address));
         
         if (!response.ok) {
             throw new Error(`HTTP error! status: ${response.status}`);
@@ -246,7 +246,7 @@ function initializeMap() {
             formData.append('operation', 'search_near');
             formData.append('json', JSON.stringify({ lat, lng }));
             
-            fetch('../../api/partnered_schools.php', {
+            fetch(window.APP_CONFIG.API_BASE_URL + 'partnered_schools.php', {
                 method: 'POST',
                 body: formData
             })
@@ -272,7 +272,7 @@ async function geocodeAddress(address) {
         console.log('Geocoding address:', address);
         
         // Use our server-side proxy to avoid CORS issues
-        const response = await fetch(`../../api/geocode.php?address=${encodeURIComponent(address)}`);
+        const response = await fetch(window.APP_CONFIG.API_BASE_URL + 'geocode.php?address=' + encodeURIComponent(address));
         
         console.log('API Response status:', response.status);
         const data = await response.json();
@@ -303,7 +303,7 @@ async function reverseGeocode(lat, lng) {
         console.log('Reverse geocoding coordinates:', lat, lng);
         
         // Use our server-side proxy to avoid CORS issues
-        const response = await fetch(`../../api/geocode.php?lat=${encodeURIComponent(lat)}&lng=${encodeURIComponent(lng)}`);
+        const response = await fetch(window.APP_CONFIG.API_BASE_URL + 'geocode.php?lat=' + encodeURIComponent(lat) + '&lng=' + encodeURIComponent(lng));
         
         if (!response.ok) {
             throw new Error(`HTTP error! status: ${response.status}`);
@@ -547,7 +547,7 @@ async function loadPartneredSchools() {
         formData.append('operation', 'read');
         formData.append('json', JSON.stringify({}));
         
-        const response = await fetch('../../api/partnered_schools.php', {
+        const response = await fetch(window.APP_CONFIG.API_BASE_URL + 'partnered_schools.php', {
             method: 'POST',
             body: formData
         });
@@ -756,7 +756,7 @@ async function savePartneredSchool() {
         apiFormData.append('operation', currentEditingSchool ? 'update' : 'create');
         apiFormData.append('json', JSON.stringify(formData));
         
-        const response = await fetch('../../api/partnered_schools.php', {
+        const response = await fetch(window.APP_CONFIG.API_BASE_URL + 'partnered_schools.php', {
             method: 'POST',
             body: apiFormData
         });
@@ -797,7 +797,7 @@ async function deletePartneredSchool(id) {
         formData.append('operation', 'delete');
         formData.append('json', JSON.stringify({ id: id }));
         
-        const response = await fetch('../../api/partnered_schools.php', {
+        const response = await fetch(window.APP_CONFIG.API_BASE_URL + 'partnered_schools.php', {
             method: 'POST',
             body: formData
         });
@@ -852,7 +852,7 @@ async function loadSections() {
         formData.append('operation', 'read_sections');
         formData.append('json', JSON.stringify({}));
         
-        const response = await fetch('../../api/teachers.php', {
+        const response = await fetch(window.APP_CONFIG.API_BASE_URL + 'teachers.php', {
             method: 'POST',
             body: formData
         });
@@ -1009,7 +1009,7 @@ async function loadPartneredSchoolsForSectionDropdown(selectedSchoolId = null) {
         formData.append('operation', 'get_partnered_schools_dropdown');
         formData.append('json', JSON.stringify({}));
         
-        const response = await fetch('../../api/teachers.php', {
+        const response = await fetch(window.APP_CONFIG.API_BASE_URL + 'teachers.php', {
             method: 'POST',
             body: formData
         });
@@ -1070,7 +1070,7 @@ async function saveSection() {
         apiFormData.append('operation', currentEditingSection ? 'update_section' : 'create_section');
         apiFormData.append('json', JSON.stringify(formData));
         
-        const response = await fetch('../../api/teachers.php', {
+        const response = await fetch(window.APP_CONFIG.API_BASE_URL + 'teachers.php', {
             method: 'POST',
             body: apiFormData
         });
@@ -1111,7 +1111,7 @@ async function deleteSection(id) {
         formData.append('operation', 'delete_section');
         formData.append('json', JSON.stringify({ id: id }));
         
-        const response = await fetch('../../api/teachers.php', {
+        const response = await fetch(window.APP_CONFIG.API_BASE_URL + 'teachers.php', {
             method: 'POST',
             body: formData
         });

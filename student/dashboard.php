@@ -158,6 +158,7 @@ $student_school_id = $userData['school_id'] ?? '';
     </script>
 
     <!-- JavaScript Files -->
+    <script src="../assets/js/config.js"></script>
     <script src="https://unpkg.com/maplibre-gl@3.6.2/dist/maplibre-gl.js"></script>
     <script src="js/attendance.js"></script>
     <script src="js/dashboard.js"></script>
