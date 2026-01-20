@@ -169,7 +169,15 @@ $current_page = 'teachers';
         <div class="flex items-center justify-center min-h-screen p-4">
             <div class="bg-white rounded-lg shadow-xl w-[600px] max-w-[90vw]">
                 <div class="p-6">
-                    <h3 id="modalTitle" class="text-lg font-semibold text-gray-900 mb-4">Add New Teacher</h3>
+                    <div class="flex justify-between items-center mb-4">
+                        <h3 id="modalTitle" class="text-lg font-semibold text-gray-900">Add New Teacher</h3>
+                        <button id="resetPasswordBtn" onclick="openResetPasswordModal()" 
+                                class="px-4 py-2 bg-orange-600 text-white rounded-md hover:bg-orange-700 focus:outline-none focus:ring-2 focus:ring-orange-500 hidden"
+                                style="display: none;">
+                            <i class="fas fa-key mr-2"></i>
+                            Reset Password
+                        </button>
+                    </div>
                     <form id="teacherForm">
                         <input type="hidden" id="teacherId" name="school_id">
                         
@@ -209,13 +217,6 @@ $current_page = 'teachers';
                             </div>
                             
                             <div>
-                                <label class="block text-sm font-medium text-gray-700 mb-1">Password *</label>
-                                <input type="password" id="password" name="password" required
-                                       class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500">
-                                <span class="text-xs text-red-500" id="passwordError"></span>
-                            </div>
-                            
-                            <div>
                                 <label class="block text-sm font-medium text-gray-700 mb-1">Section (Optional)</label>
                                 <select id="section" name="section_id" 
                                         class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500">
@@ -243,6 +244,51 @@ $current_page = 'teachers';
                             </button>
                         </div>
                     </form>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Reset Password Modal -->
+    <div id="resetPasswordModal" class="modal">
+        <div class="flex items-center justify-center min-h-screen p-4">
+            <div class="bg-white rounded-lg shadow-xl w-[500px] max-w-[90vw]">
+                <div class="p-6">
+                    <h3 class="text-lg font-semibold text-gray-900 mb-4">Reset Teacher Password</h3>
+                    <p class="text-sm text-gray-600 mb-4">
+                        Reset password for <strong id="resetTeacherName"></strong>
+                    </p>
+                    <div class="mb-4">
+                        <label class="block text-sm font-medium text-gray-700 mb-1">New Password</label>
+                        <div class="flex space-x-2">
+                            <div class="relative flex-1">
+                                <input type="password" id="resetPassword" name="resetPassword" 
+                                       class="w-full px-3 py-2 pr-10 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-orange-500">
+                                <button type="button" onclick="toggleResetPasswordVisibility()" 
+                                        class="absolute inset-y-0 right-0 px-3 flex items-center text-gray-500 hover:text-gray-700"
+                                        title="Show/Hide password">
+                                    <i id="resetPasswordToggleIcon" class="fas fa-eye"></i>
+                                </button>
+                            </div>
+                            <button type="button" onclick="setResetPasswordToSchoolId()" 
+                                    class="px-3 py-2 bg-gray-500 text-white text-sm rounded-md hover:bg-gray-600 focus:outline-none focus:ring-2 focus:ring-gray-500"
+                                    title="Use School ID as password">
+                                <i class="fas fa-undo"></i>
+                            </button>
+                        </div>
+                        <span class="text-xs text-red-500" id="resetPasswordError"></span>
+                        <span class="text-xs text-gray-500" id="resetPasswordHint"></span>
+                    </div>
+                    <div class="flex justify-end space-x-3">
+                        <button onclick="closeResetPasswordModal()" 
+                                class="px-4 py-2 border border-gray-300 rounded-md text-gray-700 hover:bg-gray-50">
+                            Cancel
+                        </button>
+                        <button onclick="confirmResetPassword()" 
+                                class="px-4 py-2 bg-orange-600 text-white rounded-md hover:bg-orange-700 focus:outline-none focus:ring-2 focus:ring-orange-500">
+                            Reset Password
+                        </button>
+                    </div>
                 </div>
             </div>
         </div>

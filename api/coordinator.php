@@ -159,39 +159,38 @@ class Coordinators {
         $date_to = isset($data['date_to']) ? $data['date_to'] : date('Y-m-d');
         
         try {
-            // Get coordinator's assigned sections
-            $sections_sql = "SELECT DISTINCT s.id 
-                            FROM assignments a 
-                            JOIN sections s ON a.school_id = s.school_id 
-                            WHERE a.assigner_id = ? AND a.isCurrent = 1";
-            $stmt = $conn->prepare($sections_sql);
+            // Get coordinator's section_id from users table (same as getAssignedStudents)
+            $section_sql = "SELECT section_id FROM users WHERE school_id = ? AND level_id = 3";
+            $stmt = $conn->prepare($section_sql);
             $stmt->execute([$coordinator_id]);
-            $section_data = $stmt->fetchAll(PDO::FETCH_ASSOC);
+            $coordinator = $stmt->fetch(PDO::FETCH_ASSOC);
             
-            $section_ids = array_column($section_data, 'id');
-            
-            if (empty($section_ids)) {
+            if (!$coordinator || empty($coordinator['section_id'])) {
+                error_log("No section found for coordinator_id: $coordinator_id");
                 return json_encode([
                     'success' => true,
                     'data' => []
                 ]);
             }
             
-            // Get attendance records
+            $section_id = $coordinator['section_id'];
+            
+            // Get attendance records for students in coordinator's section
             $sql = "SELECT a.*, u.firstname, u.lastname, u.school_id, s.section_name 
                     FROM attendance a 
                     JOIN users u ON a.student_id = u.school_id 
                     LEFT JOIN sections s ON u.section_id = s.id 
                     WHERE a.attendance_date BETWEEN ? AND ? 
-                    AND u.section_id IN (" . str_repeat('?,', count($section_ids)-1) . "?) 
+                    AND u.section_id = ? 
                     ORDER BY a.attendance_date DESC, a.attendance_timeIn DESC";
             
-            $params = [$date_from, $date_to];
-            $params = array_merge($params, $section_ids);
+            $params = [$date_from, $date_to, $section_id];
             
             $stmt = $conn->prepare($sql);
             $stmt->execute($params);
             $attendance = $stmt->fetchAll(PDO::FETCH_ASSOC);
+            
+            error_log("Found " . count($attendance) . " attendance records for section_id: $section_id from $date_from to $date_to");
             
             return json_encode([
                 'success' => true,

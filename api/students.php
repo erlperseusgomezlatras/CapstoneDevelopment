@@ -449,6 +449,158 @@ class Students {
         }
     }
     
+    // Mark time out for student
+    function markTimeOut($json) {
+        include "connection.php";
+        
+        $data = json_decode($json, true);
+        
+        if (!isset($data['student_id']) || !isset($data['latitude']) || !isset($data['longitude'])) {
+            return json_encode([
+                'success' => false,
+                'message' => 'Missing required parameters'
+            ]);
+        }
+        
+        $student_id = $data['student_id'];
+        $latitude = $data['latitude'];
+        $longitude = $data['longitude'];
+        
+        try {
+            // Get student's section and partnered school information
+            $sql = "SELECT u.section_id, s.school_id as partnered_school_id, ps.latitude, ps.longitude, ps.geofencing_radius
+                    FROM users u
+                    LEFT JOIN sections s ON u.section_id = s.id
+                    LEFT JOIN partnered_schools ps ON s.school_id = ps.id
+                    WHERE u.school_id = ? AND u.level_id = 4";
+            $stmt = $conn->prepare($sql);
+            $stmt->execute([$student_id]);
+            $student_info = $stmt->fetch(PDO::FETCH_ASSOC);
+            
+            if (!$student_info || !$student_info['section_id']) {
+                return json_encode([
+                    'success' => false,
+                    'message' => 'Student is not assigned to any section'
+                ]);
+            }
+            
+            if (!$student_info['partnered_school_id'] || !$student_info['latitude'] || !$student_info['longitude']) {
+                return json_encode([
+                    'success' => false,
+                    'message' => 'No partnered school assigned to your section'
+                ]);
+            }
+            
+            // Calculate distance from school
+            $distance = $this->calculateDistance(
+                $latitude,
+                $longitude,
+                $student_info['latitude'],
+                $student_info['longitude']
+            );
+            
+            // Check if student is within geofence radius
+            if ($distance > $student_info['geofencing_radius']) {
+                return json_encode([
+                    'success' => false,
+                    'message' => 'You are outside the attendance area. Distance: ' . round($distance, 2) . 'm (Required: within ' . $student_info['geofencing_radius'] . 'm)'
+                ]);
+            }
+            
+            // Check if attendance exists for today with time in but no time out
+            $check_sql = "SELECT id, attendance_timeIn FROM attendance WHERE student_id = ? AND attendance_date = CURDATE() AND attendance_timeOut IS NULL";
+            $stmt = $conn->prepare($check_sql);
+            $stmt->execute([$student_id]);
+            $existing_attendance = $stmt->fetch(PDO::FETCH_ASSOC);
+            
+            if (!$existing_attendance) {
+                return json_encode([
+                    'success' => false,
+                    'message' => 'No active time in found for today. Please mark your time in first.'
+                ]);
+            }
+            
+            // Update time out
+            $update_sql = "UPDATE attendance SET attendance_timeOut = CURTIME() WHERE id = ?";
+            $stmt = $conn->prepare($update_sql);
+            $result = $stmt->execute([$existing_attendance['id']]);
+            
+            if ($result) {
+                return json_encode([
+                    'success' => true,
+                    'message' => 'Time out marked successfully',
+                    'data' => [
+                        'distance' => round($distance, 2),
+                        'geofence_radius' => $student_info['geofencing_radius'],
+                        'time_in' => $existing_attendance['attendance_timeIn'],
+                        'time_out' => date('H:i:s')
+                    ]
+                ]);
+            } else {
+                return json_encode([
+                    'success' => false,
+                    'message' => 'Failed to mark time out'
+                ]);
+            }
+            
+        } catch(PDOException $e) {
+            return json_encode([
+                'success' => false,
+                'message' => 'Database error: ' . $e->getMessage()
+            ]);
+        }
+    }
+    
+    // Check attendance status for student
+    function checkAttendanceStatus($json) {
+        include "connection.php";
+        
+        $data = json_decode($json, true);
+        $student_id = isset($data['student_id']) ? $data['student_id'] : '';
+        
+        if (empty($student_id)) {
+            return json_encode([
+                'success' => false,
+                'message' => 'Student ID is required'
+            ]);
+        }
+        
+        try {
+            // Check today's attendance status
+            $sql = "SELECT attendance_timeIn, attendance_timeOut 
+                    FROM attendance 
+                    WHERE student_id = ? AND attendance_date = CURDATE()";
+            $stmt = $conn->prepare($sql);
+            $stmt->execute([$student_id]);
+            $attendance = $stmt->fetch(PDO::FETCH_ASSOC);
+            
+            $status = [
+                'has_time_in' => false,
+                'has_time_out' => false,
+                'time_in' => null,
+                'time_out' => null
+            ];
+            
+            if ($attendance) {
+                $status['has_time_in'] = !empty($attendance['attendance_timeIn']);
+                $status['has_time_out'] = !empty($attendance['attendance_timeOut']);
+                $status['time_in'] = $attendance['attendance_timeIn'];
+                $status['time_out'] = $attendance['attendance_timeOut'];
+            }
+            
+            return json_encode([
+                'success' => true,
+                'data' => $status
+            ]);
+            
+        } catch(PDOException $e) {
+            return json_encode([
+                'success' => false,
+                'message' => 'Database error: ' . $e->getMessage()
+            ]);
+        }
+    }
+    
     // Helper function to calculate distance between two points
     private function calculateDistance($lat1, $lon1, $lat2, $lon2) {
         $R = 6371e3; // Earth's radius in meters
@@ -496,8 +648,16 @@ switch ($operation) {
         echo $students->markAttendance($json);
         break;
         
+    case 'mark_timeout':
+        echo $students->markTimeOut($json);
+        break;
+        
     case 'get_attendance':
         echo $students->getAttendance($json);
+        break;
+        
+    case 'check_attendance_status':
+        echo $students->checkAttendanceStatus($json);
         break;
         
     case 'get_student_info':

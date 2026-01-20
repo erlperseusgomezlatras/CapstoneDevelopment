@@ -43,32 +43,116 @@ function switchTab(tabName) {
     }
 }
 
-// Logout function
-function logout() {
-    if (confirm('Are you sure you want to logout?')) {
-        fetch(window.APP_CONFIG.API_BASE_URL + 'auth.php', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({
-                action: 'logout'
-            })
-        })
-        .then(response => response.json())
-        .then(result => {
-            if (result.success) {
-                // Redirect to login page
-                window.location.href = '../login.php';
-            } else {
-                alert('Logout failed: ' + result.message);
-            }
-        })
-        .catch(error => {
-            console.error('Logout error:', error);
-            alert('An error occurred during logout');
-        });
+// Logout Modal
+function showLogoutModal() {
+    const modalHtml = `
+        <div id="logoutModal" class="fixed inset-0 z-50 flex items-center justify-center">
+            <div class="fixed inset-0 bg-black bg-opacity-50 transition-opacity"></div>
+            <div class="relative bg-white rounded-lg shadow-xl max-w-md w-full mx-4 transform transition-all">
+                <div class="p-6">
+                    <div class="flex items-center justify-center w-12 h-12 mx-auto bg-red-100 rounded-full mb-4">
+                        <i class="fas fa-sign-out-alt text-red-600 text-xl"></i>
+                    </div>
+                    <h3 class="text-lg font-semibold text-gray-900 text-center mb-2">Confirm Logout</h3>
+                    <p class="text-sm text-gray-600 text-center mb-6">Are you sure you want to logout? You will need to sign in again to access your account.</p>
+                    <div class="flex space-x-3">
+                        <button type="button" onclick="closeLogoutModal()" class="flex-1 px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 border border-gray-300 rounded-md hover:bg-gray-200 focus:outline-none focus:ring-2 focus:ring-gray-500 focus:ring-offset-2 transition-colors">
+                            Cancel
+                        </button>
+                        <button type="button" onclick="confirmLogout()" class="flex-1 px-4 py-2 text-sm font-medium text-white bg-red-600 border border-transparent rounded-md hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2 transition-colors">
+                            Logout
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    `;
+    
+    // Add modal to body
+    const modalContainer = document.createElement('div');
+    modalContainer.innerHTML = modalHtml;
+    document.body.appendChild(modalContainer);
+    
+    // Add escape key listener
+    document.addEventListener('keydown', handleEscapeKey);
+}
+
+function closeLogoutModal() {
+    const modal = document.getElementById('logoutModal');
+    if (modal) {
+        modal.remove();
+        document.removeEventListener('keydown', handleEscapeKey);
     }
+}
+
+function handleEscapeKey(e) {
+    if (e.key === 'Escape') {
+        closeLogoutModal();
+    }
+}
+
+function confirmLogout() {
+    closeLogoutModal();
+    performLogout();
+}
+
+// Original logout function (renamed)
+function performLogout() {
+    fetch(window.APP_CONFIG.API_BASE_URL + 'auth.php', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+            action: 'logout'
+        })
+    })
+    .then(response => response.json())
+    .then(result => {
+        if (result.success) {
+            // Redirect to login page
+            window.location.href = '../login.php';
+        } else {
+            showErrorToast('Logout failed: ' + result.message);
+        }
+    })
+    .catch(error => {
+        console.error('Logout error:', error);
+        showErrorToast('An error occurred during logout. Please try again.');
+    });
+}
+
+// Error toast function
+function showErrorToast(message) {
+    const toastHtml = `
+        <div id="errorToast" class="fixed top-4 right-4 z-50 bg-red-600 text-white px-6 py-3 rounded-lg shadow-lg transform transition-all duration-300 translate-x-full">
+            <div class="flex items-center">
+                <i class="fas fa-exclamation-circle mr-2"></i>
+                <span class="text-sm font-medium">${message}</span>
+            </div>
+        </div>
+    `;
+    
+    const toastContainer = document.createElement('div');
+    toastContainer.innerHTML = toastHtml;
+    document.body.appendChild(toastContainer);
+    
+    // Animate in
+    setTimeout(() => {
+        const toast = document.getElementById('errorToast');
+        if (toast) {
+            toast.classList.remove('translate-x-full');
+        }
+    }, 100);
+    
+    // Remove after 3 seconds
+    setTimeout(() => {
+        const toast = document.getElementById('errorToast');
+        if (toast) {
+            toast.classList.add('translate-x-full');
+            setTimeout(() => toast.remove(), 300);
+        }
+    }, 3000);
 }
 
 // Show notification

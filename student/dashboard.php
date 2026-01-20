@@ -68,7 +68,7 @@ $student_school_id = $userData['school_id'] ?? '';
                             <i class="fas fa-id-card mr-2"></i>
                             <?php echo htmlspecialchars($student_school_id); ?>
                         </span>
-                        <button onclick="logout()" class="text-sm md:text-sm text-red-600 hover:text-red-800">
+                        <button onclick="showLogoutModal()" class="text-sm md:text-sm text-red-600 hover:text-red-800">
                             <i class="fas fa-sign-out-alt mr-1 md:mr-2"></i>
                             <span class="hidden md:inline">Logout</span>
                         </button>

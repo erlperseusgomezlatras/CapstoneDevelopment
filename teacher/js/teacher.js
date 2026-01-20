@@ -52,31 +52,61 @@ document.addEventListener('click', function(event) {
 
 // Teacher Management Functions
 let currentEditingTeacher = null;
+let currentResetTeacher = null;
 
 function openAddModal() {
     currentEditingTeacher = null;
-    document.getElementById('modalTitle').textContent = 'Add New Teacher';
-    document.getElementById('teacherForm').reset();
+    const modalTitle = document.getElementById('modalTitle');
+    const teacherForm = document.getElementById('teacherForm');
+    const resetPasswordBtn = document.getElementById('resetPasswordBtn');
+    
+    if (modalTitle) modalTitle.textContent = 'Add New Teacher';
+    if (teacherForm) teacherForm.reset();
     clearValidationErrors();
+    
+    // Hide reset password button for adding
+    if (resetPasswordBtn) resetPasswordBtn.style.display = 'none';
+    
     document.getElementById('teacherModal').classList.add('show');
+    loadSections();
 }
 
 function openEditModal(teacher) {
     currentEditingTeacher = teacher;
-    document.getElementById('modalTitle').textContent = 'Edit Teacher';
+    
+    // Check if modal elements exist
+    const modalTitle = document.getElementById('modalTitle');
+    const resetPasswordBtn = document.getElementById('resetPasswordBtn');
+    const teacherModal = document.getElementById('teacherModal');
+    
+    if (modalTitle) modalTitle.textContent = 'Edit Teacher';
+    
+    // Show reset password button for editing
+    if (resetPasswordBtn) resetPasswordBtn.style.display = 'inline-flex';
+    
+    // Check form elements
+    const schoolIdEl = document.getElementById('schoolId');
+    const firstNameEl = document.getElementById('firstName');
+    const lastNameEl = document.getElementById('lastName');
+    const middleNameEl = document.getElementById('middleName');
+    const emailEl = document.getElementById('email');
+    const sectionEl = document.getElementById('section');
+    const isActiveEl = document.getElementById('isActive');
     
     // Populate form fields
-    document.getElementById('schoolId').value = teacher.school_id;
-    document.getElementById('firstName').value = teacher.firstname;
-    document.getElementById('lastName').value = teacher.lastname;
-    document.getElementById('middleName').value = teacher.middlename || '';
-    document.getElementById('email').value = teacher.email || '';
-    document.getElementById('password').value = ''; // Don't populate password for security
-    document.getElementById('section').value = teacher.section_id || '';
-    document.getElementById('isActive').checked = teacher.isActive == 1;
+    if (schoolIdEl) schoolIdEl.value = teacher.school_id;
+    if (firstNameEl) firstNameEl.value = teacher.firstname;
+    if (lastNameEl) lastNameEl.value = teacher.lastname;
+    if (middleNameEl) middleNameEl.value = teacher.middlename || '';
+    if (emailEl) emailEl.value = teacher.email || '';
+    if (sectionEl) sectionEl.value = teacher.section_id || '';
+    if (isActiveEl) isActiveEl.checked = teacher.isActive == 1;
+    
+    // Store original school_id for validation
+    if (schoolIdEl) schoolIdEl.dataset.originalSchoolId = teacher.school_id;
     
     clearValidationErrors();
-    document.getElementById('teacherModal').classList.add('show');
+    if (teacherModal) teacherModal.classList.add('show');
 }
 
 function closeModal() {
@@ -125,40 +155,41 @@ function validateForm() {
     let isValid = true;
     clearValidationErrors();
     
-    const schoolId = document.getElementById('schoolId').value.trim();
-    const firstName = document.getElementById('firstName').value.trim();
-    const lastName = document.getElementById('lastName').value.trim();
-    const email = document.getElementById('email').value.trim();
-    const password = document.getElementById('password').value;
+    const schoolIdEl = document.getElementById('schoolId');
+    const firstNameEl = document.getElementById('firstName');
+    const lastNameEl = document.getElementById('lastName');
+    const emailEl = document.getElementById('email');
+    
+    const schoolId = schoolIdEl ? schoolIdEl.value.trim() : '';
+    const firstName = firstNameEl ? firstNameEl.value.trim() : '';
+    const lastName = lastNameEl ? lastNameEl.value.trim() : '';
+    const email = emailEl ? emailEl.value.trim() : '';
     
     if (!schoolId) {
-        document.getElementById('schoolIdError').textContent = 'School ID is required';
+        const schoolIdError = document.getElementById('schoolIdError');
+        if (schoolIdError) schoolIdError.textContent = 'School ID is required';
         isValid = false;
     }
     
     if (!firstName) {
-        document.getElementById('firstNameError').textContent = 'First name is required';
+        const firstNameError = document.getElementById('firstNameError');
+        if (firstNameError) firstNameError.textContent = 'First name is required';
         isValid = false;
     }
     
     if (!lastName) {
-        document.getElementById('lastNameError').textContent = 'Last name is required';
+        const lastNameError = document.getElementById('lastNameError');
+        if (lastNameError) lastNameError.textContent = 'Last name is required';
         isValid = false;
     }
     
     if (!email) {
-        document.getElementById('emailError').textContent = 'Email is required';
+        const emailError = document.getElementById('emailError');
+        if (emailError) emailError.textContent = 'Email is required';
         isValid = false;
     } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
-        document.getElementById('emailError').textContent = 'Invalid email format';
-        isValid = false;
-    }
-    
-    if (!currentEditingTeacher && !password) {
-        document.getElementById('passwordError').textContent = 'Password is required for new teachers';
-        isValid = false;
-    } else if (password && password.length < 6) {
-        document.getElementById('passwordError').textContent = 'Password must be at least 6 characters';
+        const emailError = document.getElementById('emailError');
+        if (emailError) emailError.textContent = 'Invalid email format';
         isValid = false;
     }
     
@@ -167,6 +198,8 @@ function validateForm() {
 
 async function saveTeacher(formData) {
     try {
+        console.log('Saving teacher with data:', formData);
+        
         const apiFormData = new FormData();
         apiFormData.append('operation', currentEditingTeacher ? 'update' : 'create');
         apiFormData.append('json', JSON.stringify(formData));
@@ -177,6 +210,7 @@ async function saveTeacher(formData) {
         });
         
         const result = await response.json();
+        console.log('API response:', result);
         
         if (result.success) {
             showNotification(result.message, 'success');
@@ -255,6 +289,153 @@ async function toggleTeacherStatus(schoolId, currentStatus) {
     } catch (error) {
         showNotification('An error occurred while updating teacher status', 'error');
         console.error('Error:', error);
+    }
+}
+
+// Reset Password Functions
+function openResetPasswordModal() {
+    if (!currentEditingTeacher) return;
+    
+    currentResetTeacher = currentEditingTeacher;
+    const resetTeacherName = document.getElementById('resetTeacherName');
+    const resetPassword = document.getElementById('resetPassword');
+    const resetPasswordHint = document.getElementById('resetPasswordHint');
+    const resetPasswordModal = document.getElementById('resetPasswordModal');
+    
+    if (resetTeacherName) {
+        resetTeacherName.textContent = 
+            `${currentEditingTeacher.firstname} ${currentEditingTeacher.lastname}`;
+    }
+    
+    // Auto-fill password with school_id by default
+    const schoolId = currentEditingTeacher.school_id;
+    if (resetPassword) resetPassword.value = schoolId;
+    
+    // Clear previous values and set hints
+    const resetPasswordError = document.getElementById('resetPasswordError');
+    if (resetPasswordError) resetPasswordError.textContent = '';
+    if (resetPasswordHint) {
+        resetPasswordHint.textContent = 
+            `Password set to School ID: ${schoolId}. You can edit this if needed.`;
+    }
+    
+    if (resetPasswordModal) resetPasswordModal.classList.add('show');
+}
+
+function closeResetPasswordModal() {
+    const resetPasswordModal = document.getElementById('resetPasswordModal');
+    if (resetPasswordModal) resetPasswordModal.classList.remove('show');
+    currentResetTeacher = null;
+}
+
+function openResetPasswordModalForTeacher(teacher) {
+    currentResetTeacher = teacher;
+    const resetTeacherName = document.getElementById('resetTeacherName');
+    const resetPassword = document.getElementById('resetPassword');
+    const resetPasswordHint = document.getElementById('resetPasswordHint');
+    const resetPasswordModal = document.getElementById('resetPasswordModal');
+    
+    if (resetTeacherName) {
+        resetTeacherName.textContent = 
+            `${teacher.firstname} ${teacher.lastname}`;
+    }
+    
+    // Auto-fill password with school_id by default
+    const schoolId = teacher.school_id;
+    if (resetPassword) resetPassword.value = schoolId;
+    
+    // Clear previous values and set hints
+    const resetPasswordError = document.getElementById('resetPasswordError');
+    if (resetPasswordError) resetPasswordError.textContent = '';
+    if (resetPasswordHint) {
+        resetPasswordHint.textContent = 
+            `Password set to School ID: ${schoolId}. You can edit this if needed.`;
+    }
+    
+    if (resetPasswordModal) resetPasswordModal.classList.add('show');
+}
+
+function toggleResetPasswordVisibility() {
+    const passwordInput = document.getElementById('resetPassword');
+    const toggleIcon = document.getElementById('resetPasswordToggleIcon');
+    
+    if (!passwordInput || !toggleIcon) return;
+    
+    if (passwordInput.type === 'password') {
+        passwordInput.type = 'text';
+        toggleIcon.classList.remove('fa-eye');
+        toggleIcon.classList.add('fa-eye-slash');
+    } else {
+        passwordInput.type = 'password';
+        toggleIcon.classList.remove('fa-eye-slash');
+        toggleIcon.classList.add('fa-eye');
+    }
+}
+
+function setResetPasswordToSchoolId() {
+    if (currentResetTeacher) {
+        const schoolId = currentResetTeacher.school_id;
+        const resetPassword = document.getElementById('resetPassword');
+        const resetPasswordHint = document.getElementById('resetPasswordHint');
+        const resetPasswordError = document.getElementById('resetPasswordError');
+        
+        if (resetPassword) resetPassword.value = schoolId;
+        if (resetPasswordHint) resetPasswordHint.textContent = `Password reset to School ID: ${schoolId}`;
+        if (resetPasswordError) resetPasswordError.textContent = '';
+    }
+}
+
+async function confirmResetPassword() {
+    const resetPassword = document.getElementById('resetPassword');
+    const resetPasswordError = document.getElementById('resetPasswordError');
+    
+    if (!resetPassword || !currentResetTeacher) return;
+    
+    const newPassword = resetPassword.value.trim();
+    
+    if (!newPassword) {
+        if (resetPasswordError) resetPasswordError.textContent = 'Password is required';
+        return;
+    }
+    
+    // Skip length validation if password is default school_id
+    const isDefaultSchoolId = newPassword === currentResetTeacher.school_id;
+    
+    if (!isDefaultSchoolId && newPassword.length < 6) {
+        if (resetPasswordError) resetPasswordError.textContent = 'Password must be at least 6 characters';
+        return;
+    }
+
+    try {
+        const formData = new FormData();
+        formData.append('operation', 'update');
+        formData.append('json', JSON.stringify({
+            school_id: currentResetTeacher.school_id,
+            password: newPassword,
+            firstname: currentResetTeacher.firstname,
+            lastname: currentResetTeacher.lastname,
+            middlename: currentResetTeacher.middlename || '',
+            email: currentResetTeacher.email || '',
+            section_id: currentResetTeacher.section_id || '',
+            isActive: currentResetTeacher.isActive
+        }));
+
+        const response = await fetch(window.APP_CONFIG.API_BASE_URL + 'teachers.php', {
+            method: 'POST',
+            body: formData
+        });
+
+        const result = await response.json();
+
+        if (result.success) {
+            showNotification('Password reset successfully!', 'success');
+            closeResetPasswordModal();
+        } else {
+            showNotification(result.message || 'Failed to reset password', 'error');
+        }
+    } catch (error) {
+        console.error('Error resetting password:', error);
+        showNotification('An error occurred while resetting password', 'error');
     }
 }
 
@@ -368,6 +549,10 @@ function renderTeachersTable(teachers) {
                             <i class="fas fa-${teacher.isActive == 1 ? 'toggle-off' : 'toggle-on'} mr-2"></i> 
                             ${teacher.isActive == 1 ? 'Deactivate' : 'Activate'}
                         </div>
+                        <div class="dropdown-item text-orange-600 hover:text-orange-900" 
+                             onclick="closeDropdown('${teacher.school_id}'); openResetPasswordModalForTeacher(${JSON.stringify(teacher).replace(/"/g, '&quot;')})">
+                            <i class="fas fa-key mr-2"></i> Reset Password
+                        </div>
                         <div class="dropdown-item text-red-600 hover:text-red-900" 
                              onclick="closeDropdown('${teacher.school_id}'); deleteTeacher('${teacher.school_id}')">
                             <i class="fas fa-trash mr-2"></i> Delete
@@ -417,15 +602,23 @@ document.addEventListener('DOMContentLoaded', function() {
                 return;
             }
             
+            const schoolIdEl = document.getElementById('schoolId');
+            const firstNameEl = document.getElementById('firstName');
+            const lastNameEl = document.getElementById('lastName');
+            const middleNameEl = document.getElementById('middleName');
+            const emailEl = document.getElementById('email');
+            const sectionEl = document.getElementById('section');
+            const isActiveEl = document.getElementById('isActive');
+            
             const formData = {
-                school_id: document.getElementById('schoolId').value.trim(),
-                firstname: document.getElementById('firstName').value.trim(),
-                lastname: document.getElementById('lastName').value.trim(),
-                middlename: document.getElementById('middleName').value.trim(),
-                email: document.getElementById('email').value.trim(),
-                password: document.getElementById('password').value,
-                section_id: document.getElementById('section').value || null,
-                isActive: document.getElementById('isActive').checked ? 1 : 0,
+                school_id: schoolIdEl ? schoolIdEl.value.trim() : '',
+                original_school_id: schoolIdEl ? (schoolIdEl.dataset.originalSchoolId || '') : '',
+                firstname: firstNameEl ? firstNameEl.value.trim() : '',
+                lastname: lastNameEl ? lastNameEl.value.trim() : '',
+                middlename: middleNameEl ? middleNameEl.value.trim() : '',
+                email: emailEl ? emailEl.value.trim() : '',
+                section_id: sectionEl ? sectionEl.value || null : null,
+                isActive: isActiveEl ? (isActiveEl.checked ? 1 : 0) : 0,
                 level_id: 2 // Head Teacher level
             };
             

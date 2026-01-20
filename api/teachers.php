@@ -210,14 +210,26 @@ class Teachers {
             $stmt = $conn->prepare($check_sql);
             $stmt->execute([$data['school_id']]);
             if (!$stmt->fetch(PDO::FETCH_ASSOC)) {
-                $errors['school_id'] = 'User not found';
+                // If new school_id doesn't exist, check if we're updating and original exists
+                if (isset($data['original_school_id'])) {
+                    $check_original_sql = "SELECT school_id FROM users WHERE school_id = ? AND level_id IN (2, 3)";
+                    $stmt = $conn->prepare($check_original_sql);
+                    $stmt->execute([$data['original_school_id']]);
+                    if (!$stmt->fetch(PDO::FETCH_ASSOC)) {
+                        $errors['school_id'] = 'Original user not found';
+                    }
+                } else {
+                    $errors['school_id'] = 'User not found';
+                }
             }
             
             // Check if email already exists (excluding current user)
             if (!empty($data['email'])) {
+                // Use original school_id if available, otherwise use new school_id
+                $exclude_school_id = isset($data['original_school_id']) ? $data['original_school_id'] : $data['school_id'];
                 $check_email_sql = "SELECT email FROM users WHERE email = ? AND email IS NOT NULL AND school_id != ?";
                 $stmt = $conn->prepare($check_email_sql);
-                $stmt->execute([$data['email'], $data['school_id']]);
+                $stmt->execute([$data['email'], $exclude_school_id]);
                 if ($stmt->fetch(PDO::FETCH_ASSOC)) {
                     $errors['email'] = 'Email already exists';
                 }
@@ -232,8 +244,15 @@ class Teachers {
             }
             
             // Build update query
-            $sql = "UPDATE users SET firstname = ?, lastname = ?, middlename = ?, email = ?, section_id = ?, isActive = ?";
-            $params = [$data['firstname'], $data['lastname'], $data['middlename'] ?? null, $data['email']];
+            if ($data['school_id'] !== ($data['original_school_id'] ?? '')) {
+                // School ID is changing, need to update it
+                $sql = "UPDATE users SET school_id = ?, firstname = ?, lastname = ?, middlename = ?, email = ?, section_id = ?, isActive = ?";
+                $params = [$data['school_id'], $data['firstname'], $data['lastname'], $data['middlename'] ?? null, $data['email']];
+            } else {
+                // School ID is not changing, exclude it from update
+                $sql = "UPDATE users SET firstname = ?, lastname = ?, middlename = ?, email = ?, section_id = ?, isActive = ?";
+                $params = [$data['firstname'], $data['lastname'], $data['middlename'] ?? null, $data['email']];
+            }
             
             // Add section_id (can be null)
             $section_id = !empty($data['section_id']) ? $data['section_id'] : null;
@@ -249,7 +268,7 @@ class Teachers {
             }
             
             $sql .= " WHERE school_id = ? AND level_id IN (2, 3)";
-            $params[] = $data['school_id'];
+            $params[] = $data['original_school_id'] ?? $data['school_id'];
             
             $stmt = $conn->prepare($sql);
             $result = $stmt->execute($params);

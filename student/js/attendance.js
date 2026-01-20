@@ -8,6 +8,39 @@ let partneredSchool = null;
 let hasSection = false;
 let canMarkAttendance = false;
 
+// Helper function to convert 24-hour time to 12-hour format
+function formatTimeTo12Hour(time24) {
+    if (!time24) return '';
+    
+    const [hour, minute, second] = time24.split(':');
+    const date = new Date();
+    date.setHours(parseInt(hour), parseInt(minute), parseInt(second));
+    
+    let hours = date.getHours();
+    let minutes = date.getMinutes();
+    let seconds = date.getSeconds();
+    const ampm = hours >= 12 ? 'PM' : 'AM';
+
+    hours = hours % 12;
+    hours = hours ? hours : 12; // the hour '0' should be '12'
+    minutes = minutes < 10 ? '0' + minutes : minutes;
+    seconds = seconds < 10 ? '0' + seconds : seconds;
+
+    return `${hours}:${minutes}:${seconds} ${ampm}`;
+}
+
+// Helper function to get today's date in readable format
+function getTodayDate() {
+    const today = new Date();
+    const options = { 
+        weekday: 'long', 
+        year: 'numeric', 
+        month: 'long', 
+        day: 'numeric' 
+    };
+    return today.toLocaleDateString('en-US', options);
+}
+
 // Initialize attendance functionality
 function initializeAttendance(studentId) {
     loadStudentInfo(studentId);
@@ -64,7 +97,16 @@ function renderAttendanceContent() {
             </div>
         `;
     } else {
+        const todayDate = getTodayDate();
         attendanceContent.innerHTML = `
+            <div class="mb-6">
+                <div class="bg-white rounded-lg shadow p-4 text-center">
+                    <h2 class="text-lg font-semibold text-gray-900">
+                        <i class="fas fa-calendar-day mr-2 text-green-600"></i>
+                        ${todayDate}
+                    </h2>
+                </div>
+            </div>
             <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
                 <!-- School Information -->
                 <div class="bg-white rounded-lg shadow p-6">
@@ -141,6 +183,9 @@ function renderAttendanceContent() {
         // Initialize map and location services
         initializeMap();
         getUserLocation();
+        
+        // Check attendance status to show correct button
+        checkAttendanceStatus();
     }
 }
 
@@ -455,6 +500,9 @@ function handleLocationSuccess(position) {
     updateUserLocation();
     checkGeofence();
     
+    // Check attendance status to show correct button
+    checkAttendanceStatus();
+    
     // Start watching position for real-time updates
     startLocationWatching();
 }
@@ -636,12 +684,8 @@ function checkGeofence() {
         locationText.classList.remove('text-red-600');
         locationText.classList.add('text-green-600');
         
-        attendanceButton.innerHTML = `
-            <button onclick="markAttendance('${studentSchoolId}')" class="w-full px-4 py-3 bg-green-600 text-white rounded-md hover:bg-green-700 font-medium">
-                <i class="fas fa-check-circle mr-2"></i>
-                Mark Attendance
-            </button>
-        `;
+        // Check attendance status to determine which button to show
+        checkAttendanceStatus();
     } else {
         locationText.textContent = 'You are outside the attendance area';
         locationText.classList.remove('text-green-600');
@@ -672,6 +716,155 @@ function calculateDistance(lat1, lon1, lat2, lon2) {
     return R * c; // Distance in meters
 }
 
+// Check attendance status for today
+function checkAttendanceStatus() {
+    fetch(window.APP_CONFIG.API_BASE_URL + 'students.php', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/x-www-form-urlencoded',
+        },
+        body: new URLSearchParams({
+            operation: 'check_attendance_status',
+            json: JSON.stringify({
+                student_id: studentSchoolId
+            })
+        })
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            updateAttendanceButton(data.data);
+        } else {
+            console.error('Failed to check attendance status:', data.message);
+            // Fallback to time in button
+            showTimeInButton();
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        // Fallback to time in button
+        showTimeInButton();
+    });
+}
+
+// Update attendance button based on status
+function updateAttendanceButton(status) {
+    const attendanceButton = document.getElementById('attendanceButton');
+    
+    if (status.has_time_in && !status.has_time_out) {
+        // Show time out button
+        showTimeOutButton(status.time_in);
+    } else if (status.has_time_in && status.has_time_out) {
+        // Show completed attendance
+        showCompletedAttendance(status.time_in, status.time_out);
+    } else {
+        // Show time in button
+        showTimeInButton();
+    }
+}
+
+// Show time in button
+function showTimeInButton() {
+    const attendanceButton = document.getElementById('attendanceButton');
+    attendanceButton.innerHTML = `
+        <button onclick="markAttendance('${studentSchoolId}')" class="w-full px-4 py-3 bg-green-600 text-white rounded-md hover:bg-green-700 font-medium">
+            <i class="fas fa-sign-in-alt mr-2"></i>
+            Time In
+        </button>
+    `;
+}
+
+// Show time out button
+function showTimeOutButton(timeIn) {
+    const attendanceButton = document.getElementById('attendanceButton');
+    const formattedTimeIn = formatTimeTo12Hour(timeIn);
+    attendanceButton.innerHTML = `
+        <div class="mb-2 p-2 bg-green-50 border border-green-200 rounded text-sm">
+            <i class="fas fa-clock text-green-600 mr-1"></i>
+            Time In: ${formattedTimeIn}
+        </div>
+        <button onclick="markTimeOut('${studentSchoolId}')" class="w-full px-4 py-3 bg-orange-600 text-white rounded-md hover:bg-orange-700 font-medium">
+            <i class="fas fa-sign-out-alt mr-2"></i>
+            Time Out
+        </button>
+    `;
+}
+
+// Show completed attendance
+function showCompletedAttendance(timeIn, timeOut) {
+    const attendanceButton = document.getElementById('attendanceButton');
+    const formattedTimeIn = formatTimeTo12Hour(timeIn);
+    const formattedTimeOut = formatTimeTo12Hour(timeOut);
+    attendanceButton.innerHTML = `
+        <div class="p-3 bg-gray-50 border border-gray-200 rounded">
+            <div class="flex items-center justify-between mb-2">
+                <span class="text-sm font-medium text-gray-600">Today's Attendance</span>
+                <span class="text-xs px-2 py-1 bg-green-100 text-green-800 rounded-full">Complete</span>
+            </div>
+            <div class="grid grid-cols-2 gap-2 text-sm">
+                <div>
+                    <span class="text-gray-500">Time In:</span>
+                    <div class="font-medium">${formattedTimeIn}</div>
+                </div>
+                <div>
+                    <span class="text-gray-500">Time Out:</span>
+                    <div class="font-medium">${formattedTimeOut}</div>
+                </div>
+            </div>
+        </div>
+    `;
+}
+
+// Mark time out
+function markTimeOut(studentSchoolId) {
+    if (!canMarkAttendance) {
+        showNotification('You must be within the attendance area to mark time out', 'error');
+        return;
+    }
+
+    // Show loading state
+    const attendanceButton = document.getElementById('attendanceButton');
+    attendanceButton.innerHTML = `
+        <button disabled class="w-full px-4 py-3 bg-yellow-500 text-white rounded-md cursor-not-allowed font-medium">
+            <i class="fas fa-spinner fa-spin mr-2"></i>
+            Marking Time Out...
+        </button>
+    `;
+
+    // Send time out data to server
+    fetch(window.APP_CONFIG.API_BASE_URL + 'students.php', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/x-www-form-urlencoded',
+        },
+        body: new URLSearchParams({
+            operation: 'mark_timeout',
+            json: JSON.stringify({
+                student_id: studentSchoolId,
+                latitude: userLocation.lat,
+                longitude: userLocation.lng
+            })
+        })
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            showNotification('Time out marked successfully!', 'success');
+            showCompletedAttendance(data.data.time_in, data.data.time_out);
+        } else {
+            showNotification(data.message || 'Failed to mark time out', 'error');
+            // Reset button
+            checkAttendanceStatus();
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        showNotification('Error marking time out. Please try again.', 'error');
+        // Reset button
+        checkAttendanceStatus();
+    });
+}
+
 // Mark attendance
 function markAttendance(studentSchoolId) {
     if (!canMarkAttendance) {
@@ -684,7 +877,7 @@ function markAttendance(studentSchoolId) {
     attendanceButton.innerHTML = `
         <button disabled class="w-full px-4 py-3 bg-yellow-500 text-white rounded-md cursor-not-allowed font-medium">
             <i class="fas fa-spinner fa-spin mr-2"></i>
-            Marking Attendance...
+            Marking Time In...
         </button>
     `;
 
@@ -706,23 +899,18 @@ function markAttendance(studentSchoolId) {
     .then(response => response.json())
     .then(data => {
         if (data.success) {
-            showNotification('Attendance marked successfully!', 'success');
-            attendanceButton.innerHTML = `
-                <button disabled class="w-full px-4 py-3 bg-green-600 text-white rounded-md cursor-not-allowed font-medium">
-                    <i class="fas fa-check mr-2"></i>
-                    Attendance Marked
-                </button>
-            `;
+            showNotification('Time in marked successfully!', 'success');
+            showTimeOutButton(data.data.time);
         } else {
-            showNotification(data.message || 'Failed to mark attendance', 'error');
+            showNotification(data.message || 'Failed to mark time in', 'error');
             // Reset button
-            checkGeofence();
+            checkAttendanceStatus();
         }
     })
     .catch(error => {
         console.error('Error:', error);
-        showNotification('Error marking attendance. Please try again.', 'error');
+        showNotification('Error marking time in. Please try again.', 'error');
         // Reset button
-        checkGeofence();
+        checkAttendanceStatus();
     });
 }
