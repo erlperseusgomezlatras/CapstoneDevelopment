@@ -3,7 +3,7 @@
 -- https://www.phpmyadmin.net/
 --
 -- Host: localhost
--- Generation Time: Jan 21, 2026 at 06:02 AM
+-- Generation Time: Jan 21, 2026 at 04:04 PM
 -- Server version: 10.4.17-MariaDB
 -- PHP Version: 7.2.34
 
@@ -42,7 +42,7 @@ CREATE TABLE `academic_sessions` (
 
 INSERT INTO `academic_sessions` (`academic_session_id`, `school_year_id`, `semester_id`, `created_at`, `updated_at`, `is_Active`) VALUES
 (1, 1, 1, '2025-10-18 08:04:50', '2025-10-18 08:04:50', 0),
-(2, 1, 2, '2025-10-18 08:04:50', '2025-10-18 08:04:50', 0),
+(2, 1, 2, '2025-10-18 08:04:50', '2026-01-21 14:28:04', 1),
 (3, 1, 3, '2025-10-18 08:04:50', '2025-10-18 08:04:50', 0),
 (4, 2, 1, '2025-10-18 08:04:50', '2025-10-18 08:04:50', 0),
 (5, 2, 2, '2025-10-18 08:04:50', '2025-10-18 08:04:50', 0),
@@ -135,6 +135,13 @@ CREATE TABLE `attendance` (
   `attendance_timeOut` time DEFAULT NULL,
   `session_id` int(11) NOT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+--
+-- Dumping data for table `attendance`
+--
+
+INSERT INTO `attendance` (`id`, `student_id`, `attendance_date`, `attendance_timeIn`, `attendance_timeOut`, `session_id`) VALUES
+(3, 'STU-2026-5287', '2026-01-21', '21:09:32', '22:30:18', 2);
 
 -- --------------------------------------------------------
 
@@ -321,18 +328,21 @@ CREATE TABLE `users` (
   `section_id` int(11) DEFAULT NULL,
   `isActive` tinyint(1) DEFAULT 1,
   `password` varchar(255) NOT NULL,
-  `isApproved` tinyint(1) DEFAULT NULL
+  `isApproved` tinyint(1) DEFAULT NULL,
+  `created_at` datetime DEFAULT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 --
 -- Dumping data for table `users`
 --
 
-INSERT INTO `users` (`school_id`, `level_id`, `firstname`, `lastname`, `middlename`, `title`, `email`, `section_id`, `isActive`, `password`, `isApproved`) VALUES
-('00000', 3, 'tests', 'test', '', NULL, 'test@phinmaed.com', 1, 1, '$2y$10$cevVZ2IPseOYik44S1UDxuRGnOZgOuokrS8ecXQvNIUtFnByyjd3G', NULL),
-('11111', 2, 'earl', 'latras', '', NULL, 'earl@phinmaed.com', NULL, 1, '$2y$10$wkjwZfWjHHTUG0YQJ8kRiOTTMh5nV2g7Ms7FiDYbEb1gDuWjuse6m', NULL),
-('STU-2026-2449', 4, 'Kevin', 'sht', '', NULL, 'kevin@phinmaed.com', NULL, 1, '$2y$10$aBu95YRxRYJCbPchVeDHn.BJkHX4MpaqKuPihLQSAy8w.FrxcxZWq', 0),
-('STU-2026-5287', 4, 'example', 'example', '', NULL, 'example@phinmaed.com', 1, 1, '$2y$10$A7OJ0Qu/xl3NmErKVE.6QevpL8HJ.Lvr69oo85zb9tH9opefO/EWe', 1);
+INSERT INTO `users` (`school_id`, `level_id`, `firstname`, `lastname`, `middlename`, `title`, `email`, `section_id`, `isActive`, `password`, `isApproved`, `created_at`) VALUES
+('00000', 3, 'tests', 'test', '', NULL, 'test@phinmaed.com', 1, 1, '$2y$10$cevVZ2IPseOYik44S1UDxuRGnOZgOuokrS8ecXQvNIUtFnByyjd3G', NULL, NULL),
+('11111', 2, 'earl', 'latras', '', NULL, 'earl@phinmaed.com', NULL, 1, '$2y$10$wkjwZfWjHHTUG0YQJ8kRiOTTMh5nV2g7Ms7FiDYbEb1gDuWjuse6m', NULL, NULL),
+('123123', 4, 'wow', 'wow', '', NULL, 'wow@phinmaed.com', NULL, 1, '$2y$10$X9tiPQ.sBGOf4T7QWad4YewhXOXnSleMm9ROoyNVDgnTYkhlYanKO', 0, NULL),
+('1231234', 4, 'qwe', 'qwe', 'qwe', NULL, 'qwe@phinmaed.com', 1, 1, '$2y$10$48WX71MMoAD8bLjwMRXPV.M4gBx1IQWKIOxtmo75rqbVjHAMU.Qrq', 1, '2026-01-21 23:01:53'),
+('STU-2026-2449', 4, 'Kevin', 'sht', '', NULL, 'kevin@phinmaed.com', NULL, 1, '$2y$10$aBu95YRxRYJCbPchVeDHn.BJkHX4MpaqKuPihLQSAy8w.FrxcxZWq', 0, '2026-01-21 15:57:15'),
+('STU-2026-5287', 4, 'example', 'example', '', NULL, 'example@phinmaed.com', 1, 1, '$2y$10$A7OJ0Qu/xl3NmErKVE.6QevpL8HJ.Lvr69oo85zb9tH9opefO/EWe', 1, NULL);
 
 -- --------------------------------------------------------
 
@@ -536,7 +546,7 @@ ALTER TABLE `assignments`
 -- AUTO_INCREMENT for table `attendance`
 --
 ALTER TABLE `attendance`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=3;
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=4;
 
 --
 -- AUTO_INCREMENT for table `journal`
