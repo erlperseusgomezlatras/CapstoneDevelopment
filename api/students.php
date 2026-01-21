@@ -652,6 +652,141 @@ class Students {
         }
     }
     
+    // Create new student account
+    function create($json) {
+        include "connection.php";
+        
+        $data = json_decode($json, true);
+        
+        // Validate required fields
+        $required_fields = ['school_id', 'firstname', 'lastname', 'email', 'section_id'];
+        foreach ($required_fields as $field) {
+            if (empty($data[$field])) {
+                return json_encode([
+                    'success' => false,
+                    'message' => ucfirst(str_replace('_', ' ', $field)) . ' is required'
+                ]);
+            }
+        }
+        
+        try {
+            // Check if school ID already exists
+            $check_sql = "SELECT school_id FROM users WHERE school_id = ?";
+            $stmt = $conn->prepare($check_sql);
+            $stmt->execute([$data['school_id']]);
+            if ($stmt->fetch(PDO::FETCH_ASSOC)) {
+                return json_encode([
+                    'success' => false,
+                    'message' => 'School ID already exists'
+                ]);
+            }
+            
+            // Check if email already exists
+            $check_email_sql = "SELECT email FROM users WHERE email = ?";
+            $stmt = $conn->prepare($check_email_sql);
+            $stmt->execute([$data['email']]);
+            if ($stmt->fetch(PDO::FETCH_ASSOC)) {
+                return json_encode([
+                    'success' => false,
+                    'message' => 'Email already exists'
+                ]);
+            }
+            
+            // Validate email domain against allowed_email_domains
+            $email_parts = explode('@', $data['email']);
+            if (count($email_parts) !== 2) {
+                return json_encode([
+                    'success' => false,
+                    'message' => 'Invalid email format'
+                ]);
+            }
+            
+            $domain = '@' . $email_parts[1];
+            $domain_check_sql = "SELECT domain_name FROM allowed_email_domains WHERE domain_name = ?";
+            $stmt = $conn->prepare($domain_check_sql);
+            $stmt->execute([$domain]);
+            if (!$stmt->fetch(PDO::FETCH_ASSOC)) {
+                return json_encode([
+                    'success' => false,
+                    'message' => 'Email domain is not allowed. Please use an approved email domain.'
+                ]);
+            }
+            
+            // Check if section exists
+            $section_sql = "SELECT id FROM sections WHERE id = ?";
+            $stmt = $conn->prepare($section_sql);
+            $stmt->execute([$data['section_id']]);
+            if (!$stmt->fetch(PDO::FETCH_ASSOC)) {
+                return json_encode([
+                    'success' => false,
+                    'message' => 'Invalid section'
+                ]);
+            }
+            
+            // Set password as School ID and hash it
+            $password = $data['school_id'];
+            $hashed_password = password_hash($password, PASSWORD_DEFAULT);
+            
+            // Insert student
+            $insert_sql = "INSERT INTO users (school_id, level_id, firstname, lastname, middlename, email, section_id, password, isApproved, created_at) 
+                          VALUES (?, 4, ?, ?, ?, ?, ?, ?, 1, NOW())";
+            $stmt = $conn->prepare($insert_sql);
+            $result = $stmt->execute([
+                $data['school_id'],
+                $data['firstname'],
+                $data['lastname'],
+                $data['middlename'] ?? null,
+                $data['email'],
+                $data['section_id'],
+                $hashed_password
+            ]);
+            
+            if ($result) {
+                return json_encode([
+                    'success' => true,
+                    'message' => 'Student account created successfully. Password is set to School ID.'
+                ]);
+            } else {
+                return json_encode([
+                    'success' => false,
+                    'message' => 'Failed to create student account'
+                ]);
+            }
+            
+        } catch(PDOException $e) {
+            return json_encode([
+                'success' => false,
+                'message' => 'Database error: ' . $e->getMessage()
+            ]);
+        }
+    }
+    
+    // Get sections for dropdown
+    function getSections($json) {
+        include "connection.php";
+        
+        try {
+            $sql = "SELECT s.id, s.section_name, ps.name as school_name 
+                    FROM sections s 
+                    LEFT JOIN partnered_schools ps ON s.school_id = ps.id 
+                    ORDER BY s.section_name";
+            $stmt = $conn->prepare($sql);
+            $stmt->execute();
+            $sections = $stmt->fetchAll(PDO::FETCH_ASSOC);
+            
+            return json_encode([
+                'success' => true,
+                'data' => $sections
+            ]);
+            
+        } catch(PDOException $e) {
+            return json_encode([
+                'success' => false,
+                'message' => 'Database error: ' . $e->getMessage()
+            ]);
+        }
+    }
+    
     // Helper function to calculate distance between two points
     private function calculateDistance($lat1, $lon1, $lat2, $lon2) {
         $R = 6371e3; // Earth's radius in meters
@@ -713,6 +848,14 @@ switch ($operation) {
         
     case 'get_student_info':
         echo $students->getStudentInfo($json);
+        break;
+        
+    case 'create':
+        echo $students->create($json);
+        break;
+        
+    case 'get_sections':
+        echo $students->getSections($json);
         break;
         
     default:

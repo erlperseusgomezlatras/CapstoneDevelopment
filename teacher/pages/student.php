@@ -57,6 +57,10 @@ $teacher_name = $userData['firstname'] ?? 'Teacher';
                             <p class="text-sm text-gray-600 mt-1">Manage student accounts and approval requests</p>
                         </div>
                         <div class="flex items-center space-x-4">
+                            <button onclick="openCreateStudentModal()" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-md text-sm font-medium flex items-center">
+                                <i class="fas fa-plus mr-2"></i>
+                                Create Student
+                            </button>
                             <span class="text-sm text-gray-600">Welcome, <?php echo htmlspecialchars($teacher_name); ?></span>
                             <button class="p-2 rounded-md text-gray-600 hover:text-gray-900 hover:bg-gray-100">
                                 <i class="fas fa-bell"></i>
@@ -131,6 +135,79 @@ $teacher_name = $userData['firstname'] ?? 'Teacher';
                 </div>
             </div>
         </main>
+    </div>
+    
+    <!-- Create Student Modal -->
+    <div id="createStudentModal" class="fixed inset-0 bg-gray-600 bg-opacity-50 hidden overflow-y-auto h-full w-full z-50">
+        <div class="relative top-20 mx-auto p-5 border w-[700px] shadow-lg rounded-md bg-white">
+            <div class="mt-3">
+                <div class="flex items-center justify-between mb-4">
+                    <h3 class="text-lg font-medium text-gray-900">Create New Student Account</h3>
+                    <button onclick="closeCreateStudentModal()" class="text-gray-400 hover:text-gray-600">
+                        <i class="fas fa-times"></i>
+                    </button>
+                </div>
+                
+                <form id="createStudentForm" onsubmit="createStudent(event)">
+                    <div class="mb-4">
+                        <label class="block text-sm font-medium text-gray-700 mb-1">School ID *</label>
+                        <input type="text" id="school_id" name="school_id" required 
+                               class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
+                    </div>
+                    
+                    <div class="mb-4">
+                        <label class="block text-sm font-medium text-gray-700 mb-1">First Name *</label>
+                        <input type="text" id="firstname" name="firstname" required 
+                               class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
+                    </div>
+                    
+                    <div class="mb-4">
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Last Name *</label>
+                        <input type="text" id="lastname" name="lastname" required 
+                               class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
+                    </div>
+                    
+                    <div class="mb-4">
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Middle Name</label>
+                        <input type="text" id="middlename" name="middlename" 
+                               class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
+                    </div>
+                    
+                    <div class="mb-4">
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Email *</label>
+                        <input type="email" id="email" name="email" required 
+                               class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
+                        <p class="text-xs text-gray-500 mt-1">Must be from approved domain (@phinmaed.com)</p>
+                    </div>
+                    
+                    <div class="mb-4 p-3 bg-blue-50 border border-blue-200 rounded-md">
+                        <p class="text-sm text-blue-700">
+                            <i class="fas fa-info-circle mr-2"></i>
+                            <strong>Password:</strong> Will be automatically set to the School ID
+                        </p>
+                    </div>
+                    
+                    <div class="mb-6">
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Section *</label>
+                        <select id="section_id" name="section_id" required 
+                                class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
+                            <option value="">Select a section</option>
+                        </select>
+                    </div>
+                    
+                    <div class="flex justify-end space-x-3">
+                        <button type="button" onclick="closeCreateStudentModal()" 
+                                class="px-4 py-2 bg-gray-300 text-gray-700 rounded-md hover:bg-gray-400">
+                            Cancel
+                        </button>
+                        <button type="submit" 
+                                class="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700">
+                            Create Student
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
     </div>
     
     <script src="../../assets/js/config.js"></script>

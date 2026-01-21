@@ -334,3 +334,94 @@ function logout() {
         window.location.href = '../../login.php';
     }
 }
+
+// Open Create Student Modal
+function openCreateStudentModal() {
+    const modal = document.getElementById('createStudentModal');
+    if (modal) {
+        modal.classList.remove('hidden');
+        loadSections();
+    }
+}
+
+// Close Create Student Modal
+function closeCreateStudentModal() {
+    const modal = document.getElementById('createStudentModal');
+    if (modal) {
+        modal.classList.add('hidden');
+        document.getElementById('createStudentForm').reset();
+    }
+}
+
+// Load sections for dropdown
+function loadSections() {
+    fetch(window.APP_CONFIG.API_BASE_URL + 'students.php', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/x-www-form-urlencoded',
+        },
+        body: 'operation=get_sections&json={}'
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success && data.data) {
+            const select = document.getElementById('section_id');
+            if (select) {
+                // Clear existing options except the first one
+                select.innerHTML = '<option value="">Select a section</option>';
+                
+                data.data.forEach(section => {
+                    const option = document.createElement('option');
+                    option.value = section.id;
+                    option.textContent = `${section.section_name} - ${section.school_name || 'No School'}`;
+                    select.appendChild(option);
+                });
+            }
+        } else {
+            showNotification('Failed to load sections', 'error');
+        }
+    })
+    .catch(error => {
+        console.error('Error loading sections:', error);
+        showNotification('Error loading sections', 'error');
+    });
+}
+
+// Create student
+function createStudent(event) {
+    event.preventDefault();
+    
+    const formData = new FormData(event.target);
+    const studentData = {
+        school_id: formData.get('school_id'),
+        firstname: formData.get('firstname'),
+        lastname: formData.get('lastname'),
+        middlename: formData.get('middlename'),
+        email: formData.get('email'),
+        section_id: formData.get('section_id')
+        // Password will be automatically set to School ID in the backend
+    };
+    
+    fetch(window.APP_CONFIG.API_BASE_URL + 'students.php', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/x-www-form-urlencoded',
+        },
+        body: `operation=create&json=${encodeURIComponent(JSON.stringify(studentData))}`
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            showNotification(data.message || 'Student created successfully', 'success');
+            closeCreateStudentModal();
+            loadStats();
+            loadStudents(currentTab);
+        } else {
+            showNotification(data.message || 'Failed to create student', 'error');
+        }
+    })
+    .catch(error => {
+        console.error('Error creating student:', error);
+        showNotification('Error creating student', 'error');
+    });
+}
