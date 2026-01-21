@@ -72,15 +72,20 @@ class Auth {
         $data = json_decode($json, true);
         
         try {
-            // Generate school ID (you might want to implement a better system)
-            $school_id = 'STU-' . date('Y') . '-' . str_pad(mt_rand(1, 9999), 4, '0', STR_PAD_LEFT);
+            // Validate school ID is provided
+            if (empty($data['schoolId'])) {
+                return json_encode([
+                    'success' => false,
+                    'message' => 'School ID is required'
+                ]);
+            }
             
             $sql = "INSERT INTO users (school_id, level_id, firstname, lastname, middlename, email, password, isApproved) 
                     VALUES (?, 4, ?, ?, ?, ?, ?, 0)";
             $stmt = $conn->prepare($sql);
             $hashed_password = password_hash($data['password'], PASSWORD_DEFAULT);
             $result = $stmt->execute([
-                $school_id,
+                $data['schoolId'],
                 $data['firstname'],
                 $data['lastname'],
                 $data['middlename'] ?? null,
@@ -92,7 +97,7 @@ class Auth {
                 return json_encode([
                     'success' => true,
                     'message' => 'Account created successfully. Please wait for approval before accessing your dashboard.',
-                    'school_id' => $school_id
+                    'school_id' => $data['schoolId']
                 ]);
             } else {
                 return json_encode([

@@ -158,6 +158,11 @@ function generateCaptcha() {
                     </div>
 
                     <div class="form-group">
+                        <label for="schoolId">School ID *</label>
+                        <input type="text" id="schoolId" name="schoolId" required placeholder="Enter your School ID">
+                    </div>
+
+                    <div class="form-group">
                         <label for="regPassword">Password *</label>
                         <div class="password-input-wrapper">
                             <input type="password" id="regPassword" name="regPassword" required placeholder="Create a password">
@@ -218,7 +223,8 @@ let formData = {
     password: '',
     firstname: '',
     lastname: '',
-    middlename: ''
+    middlename: '',
+    schoolId: ''
 };
 
 // API base URL
@@ -241,6 +247,7 @@ const regPasswordInput = document.getElementById('regPassword');
 const firstnameInput = document.getElementById('firstname');
 const lastnameInput = document.getElementById('lastname');
 const middlenameInput = document.getElementById('middlename');
+const schoolIdInput = document.getElementById('schoolId');
 const captchaInput = document.getElementById('captchaInput');
 const capAElement = document.getElementById('capA');
 const capBElement = document.getElementById('capB');
@@ -475,7 +482,7 @@ async function createAccount() {
     const lastname = lastnameInput.value.trim();
     const password = regPasswordInput.value.trim();
     
-    if (!firstname || !lastname || !password) {
+    if (!firstname || !lastname || !schoolIdInput.value.trim() || !password) {
         showError('Please fill in all required fields');
         return;
     }
@@ -495,6 +502,7 @@ async function createAccount() {
                 firstname: firstname,
                 lastname: lastname,
                 middlename: middlenameInput.value.trim(),
+                schoolId: schoolIdInput.value.trim(),
                 password: password
             })
         });

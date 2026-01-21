@@ -309,23 +309,38 @@ class Students {
                 ]);
             }
             
-            // Check if attendance already marked today
-            $check_sql = "SELECT id FROM attendance WHERE student_id = ? AND attendance_date = CURDATE()";
+            // Get active academic session
+            $session_sql = "SELECT academic_session_id FROM academic_sessions WHERE is_Active = 1 LIMIT 1";
+            $session_stmt = $conn->prepare($session_sql);
+            $session_stmt->execute();
+            $active_session = $session_stmt->fetch(PDO::FETCH_ASSOC);
+            
+            if (!$active_session) {
+                return json_encode([
+                    'success' => false,
+                    'message' => 'No active academic session found. Please contact your coordinator.'
+                ]);
+            }
+            
+            $session_id = $active_session['academic_session_id'];
+
+            // Check if attendance already marked for today in this session
+            $check_sql = "SELECT id FROM attendance WHERE student_id = ? AND attendance_date = CURDATE() AND session_id = ?";
             $stmt = $conn->prepare($check_sql);
-            $stmt->execute([$student_id]);
+            $stmt->execute([$student_id, $session_id]);
             $existing_attendance = $stmt->fetch(PDO::FETCH_ASSOC);
             
             if ($existing_attendance) {
                 return json_encode([
                     'success' => false,
-                    'message' => 'Attendance already marked for today'
+                    'message' => 'Attendance already marked for today in the current session'
                 ]);
             }
-            
+
             // Mark attendance
-            $insert_sql = "INSERT INTO attendance (student_id, attendance_date, attendance_timeIn, attendance_timeOut) VALUES (?, CURDATE(), CURTIME(), NULL)";
+            $insert_sql = "INSERT INTO attendance (student_id, attendance_date, attendance_timeIn, attendance_timeOut, session_id) VALUES (?, CURDATE(), CURTIME(), NULL, ?)";
             $stmt = $conn->prepare($insert_sql);
-            $result = $stmt->execute([$student_id]);
+            $result = $stmt->execute([$student_id, $session_id]);
             
             if ($result) {
                 return json_encode([
@@ -507,10 +522,25 @@ class Students {
                 ]);
             }
             
-            // Check if attendance exists for today with time in but no time out
-            $check_sql = "SELECT id, attendance_timeIn FROM attendance WHERE student_id = ? AND attendance_date = CURDATE() AND attendance_timeOut IS NULL";
+            // Get active academic session
+            $session_sql = "SELECT academic_session_id FROM academic_sessions WHERE is_Active = 1 LIMIT 1";
+            $session_stmt = $conn->prepare($session_sql);
+            $session_stmt->execute();
+            $active_session = $session_stmt->fetch(PDO::FETCH_ASSOC);
+            
+            if (!$active_session) {
+                return json_encode([
+                    'success' => false,
+                    'message' => 'No active academic session found. Please contact your coordinator.'
+                ]);
+            }
+            
+            $session_id = $active_session['academic_session_id'];
+            
+            // Check if attendance exists for today with time in but no time out in this session
+            $check_sql = "SELECT id, attendance_timeIn FROM attendance WHERE student_id = ? AND attendance_date = CURDATE() AND session_id = ? AND attendance_timeOut IS NULL";
             $stmt = $conn->prepare($check_sql);
-            $stmt->execute([$student_id]);
+            $stmt->execute([$student_id, $session_id]);
             $existing_attendance = $stmt->fetch(PDO::FETCH_ASSOC);
             
             if (!$existing_attendance) {
@@ -566,12 +596,33 @@ class Students {
         }
         
         try {
-            // Check today's attendance status
+            // Get active academic session
+            $session_sql = "SELECT academic_session_id FROM academic_sessions WHERE is_Active = 1 LIMIT 1";
+            $session_stmt = $conn->prepare($session_sql);
+            $session_stmt->execute();
+            $active_session = $session_stmt->fetch(PDO::FETCH_ASSOC);
+            
+            if (!$active_session) {
+                // If no active session, we can't properly check status, but we return empty status
+                return json_encode([
+                    'success' => true,
+                    'data' => [
+                        'has_time_in' => false,
+                        'has_time_out' => false,
+                        'time_in' => null,
+                        'time_out' => null
+                    ]
+                ]);
+            }
+            
+            $session_id = $active_session['academic_session_id'];
+
+            // Check today's attendance status for the active session
             $sql = "SELECT attendance_timeIn, attendance_timeOut 
                     FROM attendance 
-                    WHERE student_id = ? AND attendance_date = CURDATE()";
+                    WHERE student_id = ? AND attendance_date = CURDATE() AND session_id = ?";
             $stmt = $conn->prepare($sql);
-            $stmt->execute([$student_id]);
+            $stmt->execute([$student_id, $session_id]);
             $attendance = $stmt->fetch(PDO::FETCH_ASSOC);
             
             $status = [

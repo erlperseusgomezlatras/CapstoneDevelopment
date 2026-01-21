@@ -110,98 +110,69 @@ $current_page = 'dashboard';
                             Welcome to Head Teacher Portal
                         </h2>
                         <p class="text-gray-600">
-                            Manage the entire practicum system with comprehensive administrative tools for accounts, configurations, and oversight.
+                            Monitor recent activities and manage student attendance across all sections.
                         </p>
                     </div>
 
-                    <!-- Dashboard Cards -->
-                    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
-                        <div class="card-hover bg-white p-6 rounded-lg shadow cursor-pointer">
-                            <div class="w-12 h-12 bg-green-100 rounded-lg flex items-center justify-center mb-4">
-                                <i class="fas fa-user-tie text-green-600 text-xl"></i>
+                    <!-- Recent Activity Section -->
+                    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
+                        <!-- Recent Student Registration Approval Request -->
+                        <div class="bg-white rounded-lg shadow">
+                            <div class="px-6 py-4 border-b border-gray-200">
+                                <h3 class="text-lg font-semibold text-gray-900 flex items-center">
+                                    <i class="fas fa-user-check text-yellow-500 mr-2"></i>
+                                    Recent Student Registration Requests
+                                </h3>
+                                <p class="text-sm text-gray-600 mt-1">Pending approval requests</p>
                             </div>
-                            <h3 class="text-lg font-semibold text-gray-900 mb-2">Teacher Management</h3>
-                            <p class="text-gray-600 text-sm mb-4">Create, update, and deactivate teacher accounts</p>
-                            <button class="w-full px-4 py-2 border border-gray-300 rounded-md text-sm font-medium text-gray-700 bg-white hover:bg-gray-50">
-                                Manage Teachers
-                            </button>
+                            <div class="p-6">
+                                <div id="recent-registrations" class="space-y-2">
+                                    <div class="text-center py-4 text-gray-500">
+                                        <i class="fas fa-spinner fa-spin"></i>
+                                        <p class="mt-2">Loading...</p>
+                                    </div>
+                                </div>
+                            </div>
                         </div>
 
-                        <div class="card-hover bg-white p-6 rounded-lg shadow cursor-pointer">
-                            <div class="w-12 h-12 bg-emerald-100 rounded-lg flex items-center justify-center mb-4">
-                                <i class="fas fa-user-check text-emerald-600 text-xl"></i>
+                        <!-- Latest Attendance Logs (Realtime) -->
+                        <div class="bg-white rounded-lg shadow">
+                            <div class="px-6 py-4 border-b border-gray-200">
+                                <h3 class="text-lg font-semibold text-gray-900 flex items-center">
+                                    <i class="fas fa-clock text-green-500 mr-2"></i>
+                                    Latest Attendance Logs
+                                    <span class="ml-2 text-xs bg-green-100 text-green-800 px-2 py-1 rounded-full">Live</span>
+                                </h3>
+                                <p class="text-sm text-gray-600 mt-1">Today's attendance activities</p>
                             </div>
-                            <h3 class="text-lg font-semibold text-gray-900 mb-2">Coordinator Management</h3>
-                            <p class="text-gray-600 text-sm mb-4">Create, update, and deactivate coordinator accounts</p>
-                            <button class="w-full px-4 py-2 border border-gray-300 rounded-md text-sm font-medium text-gray-700 bg-white hover:bg-gray-50">
-                                Manage Coordinators
-                            </button>
-                        </div>
-
-                        <div class="card-hover bg-white p-6 rounded-lg shadow cursor-pointer">
-                            <div class="w-12 h-12 bg-lime-100 rounded-lg flex items-center justify-center mb-4">
-                                <i class="fas fa-cogs text-lime-600 text-xl"></i>
+                            <div class="p-6">
+                                <div id="attendance-logs" class="space-y-2">
+                                    <div class="text-center py-4 text-gray-500">
+                                        <i class="fas fa-spinner fa-spin"></i>
+                                        <p class="mt-2">Loading...</p>
+                                    </div>
+                                </div>
                             </div>
-                            <h3 class="text-lg font-semibold text-gray-900 mb-2">System Configuration</h3>
-                            <p class="text-gray-600 text-sm mb-4">Academic year, practicum term, and system settings</p>
-                            <button class="w-full px-4 py-2 border border-gray-300 rounded-md text-sm font-medium text-gray-700 bg-white hover:bg-gray-50">
-                                Configure System
-                            </button>
-                        </div>
-
-                        <div class="card-hover bg-white p-6 rounded-lg shadow cursor-pointer">
-                            <div class="w-12 h-12 bg-teal-100 rounded-lg flex items-center justify-center mb-4">
-                                <i class="fas fa-shield-alt text-teal-600 text-xl"></i>
-                            </div>
-                            <h3 class="text-lg font-semibold text-gray-900 mb-2">Security & Permissions</h3>
-                            <p class="text-gray-600 text-sm mb-4">Assign roles and manage access permissions</p>
-                            <button class="w-full px-4 py-2 border border-gray-300 rounded-md text-sm font-medium text-gray-700 bg-white hover:bg-gray-50">
-                                Manage Security
-                            </button>
-                        </div>
-
-                        <div class="card-hover bg-white p-6 rounded-lg shadow cursor-pointer">
-                            <div class="w-12 h-12 bg-green-50 rounded-lg flex items-center justify-center mb-4">
-                                <i class="fas fa-database text-green-700 text-xl"></i>
-                            </div>
-                            <h3 class="text-lg font-semibold text-gray-900 mb-2">Data & Backups</h3>
-                            <p class="text-gray-600 text-sm mb-4">Maintain system security, backups, and data integrity</p>
-                            <button class="w-full px-4 py-2 border border-gray-300 rounded-md text-sm font-medium text-gray-700 bg-white hover:bg-gray-50">
-                                Manage Data
-                            </button>
-                        </div>
-
-                        <div class="card-hover bg-white p-6 rounded-lg shadow cursor-pointer">
-                            <div class="w-12 h-12 bg-emerald-50 rounded-lg flex items-center justify-center mb-4">
-                                <i class="fas fa-graduation-cap text-emerald-700 text-xl"></i>
-                            </div>
-                            <h3 class="text-lg font-semibold text-gray-900 mb-2">Practicum Subjects</h3>
-                            <p class="text-gray-600 text-sm mb-4">Manage and oversee all practicum subjects</p>
-                            <button class="w-full px-4 py-2 border border-gray-300 rounded-md text-sm font-medium text-gray-700 bg-white hover:bg-gray-50">
-                                Manage Subjects
-                            </button>
                         </div>
                     </div>
 
-                    <!-- Quick Stats -->
-                    <div class="bg-white p-6 rounded-lg shadow">
-                        <h3 class="text-xl font-semibold text-gray-900 mb-6">System Overview</h3>
-                        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-                            <div class="text-center">
-                                <div class="text-3xl font-bold text-green-600 mb-2">0</div>
-                                <div class="text-gray-600">Total Teachers</div>
-                            </div>
-                            <div class="text-center">
-                                <div class="text-3xl font-bold text-emerald-600 mb-2">0</div>
-                                <div class="text-gray-600">Total Coordinators</div>
-                            </div>
-                            <div class="text-center">
-                                <div class="text-3xl font-bold text-lime-600 mb-2">0</div>
-                                <div class="text-gray-600">Active Sections</div>
-                            </div>
-                            <div class="text-center">
-                                <div class="text-3xl font-bold text-teal-600 mb-2">100%</div>
-                                <div class="text-gray-600">System Health</div>
+                    <!-- Section Student Attendance Overview -->
+                    <div class="bg-white rounded-lg shadow">
+                        <div class="px-6 py-4 border-b border-gray-200">
+                            <h3 class="text-lg font-semibold text-gray-900 flex items-center">
+                                <i class="fas fa-users text-blue-500 mr-2"></i>
+                                Section Student Attendance Overview
+                            </h3>
+                            <p class="text-sm text-gray-600 mt-1">
+                                <span id="current-session">2025-2026</span> OJT Students - Day 1
+                            </p>
+                        </div>
+                        <div class="p-6">
+                            <div id="section-overview" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                                <div class="text-center py-8 text-gray-500 col-span-full">
+                                    <i class="fas fa-spinner fa-spin"></i>
+                                    <p class="mt-2">Loading section data...</p>
+                                </div>
                             </div>
                         </div>
                     </div>
@@ -210,6 +181,23 @@ $current_page = 'dashboard';
         </div>
     </div>
 
+    <!-- Section Details Modal -->
+    <div id="sectionDetailsModal" class="hidden fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50 flex justify-center items-center">
+        <div class="relative p-5 border w-11/12 md:w-2/3 lg:w-1/2 xl:w-2/5 shadow-lg rounded-lg bg-white mx-4 my-8">
+            <div class="flex justify-between items-center pb-3 border-b border-gray-200 mb-4">
+                <h3 id="sectionModalTitle" class="text-xl font-semibold text-gray-900"></h3>
+                <button id="closeModalBtn" class="text-gray-400 hover:text-gray-600 focus:outline-none">
+                    <i class="fas fa-times text-2xl"></i>
+                </button>
+            </div>
+            <div id="sectionModalBody" class="max-h-[70vh] overflow-y-auto pr-2">
+                <!-- Content will be dynamically loaded here -->
+            </div>
+        </div>
+    </div>
+
+    <!-- Include dashboard.js -->
+    <script src="js/dashboard.js"></script>
 
     <script>
         // Mobile sidebar functionality
@@ -228,29 +216,15 @@ $current_page = 'dashboard';
             document.body.style.overflow = 'auto';
         }
 
-        mobileMenuBtn.addEventListener('click', openMobileSidebar);
-        closeMobileSidebar.addEventListener('click', closeMobileSidebarFunc);
-        mobileSidebarOverlay.addEventListener('click', closeMobileSidebarFunc);
-
-        // Add click handlers to dashboard cards
-        document.querySelectorAll('.card-hover').forEach(card => {
-            card.addEventListener('click', function() {
-                const button = this.querySelector('button');
-                if (button) {
-                    // You can add navigation logic here
-                    console.log('Card clicked:', this.querySelector('h3').textContent);
-                }
-            });
-        });
-
-        // Add click handlers to sidebar buttons
-        document.querySelectorAll('.card-hover button').forEach(button => {
-            button.addEventListener('click', function(e) {
-                e.stopPropagation();
-                // You can add navigation logic here
-                console.log('Button clicked:', this.textContent);
-            });
-        });
+        if (mobileMenuBtn) {
+            mobileMenuBtn.addEventListener('click', openMobileSidebar);
+        }
+        if (closeMobileSidebar) {
+            closeMobileSidebar.addEventListener('click', closeMobileSidebarFunc);
+        }
+        if (mobileSidebarOverlay) {
+            mobileSidebarOverlay.addEventListener('click', closeMobileSidebarFunc);
+        }
     </script>
 </body>
 </html>

@@ -41,11 +41,93 @@ $current_page = 'system';
     <title>System Configuration - Head Teacher Portal</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <!-- jQuery (required for Select2) -->
+    <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
+    
+    <!-- Select2 CSS and JS -->
+    <link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
+    <script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
+    
     <script src="https://unpkg.com/maplibre-gl@3.6.2/dist/maplibre-gl.js"></script>
     <link href="https://unpkg.com/maplibre-gl@3.6.2/dist/maplibre-gl.css" rel="stylesheet" />
     <script src="https://unpkg.com/@mapbox/mapbox-gl-geocoder@4.7.4/dist/mapbox-gl-geocoder.min.js"></script>
     <link rel="stylesheet" href="https://unpkg.com/@mapbox/mapbox-gl-geocoder@4.7.4/dist/mapbox-gl-geocoder.css" type="text/css" />
     <link rel="stylesheet" href="../../assets/css/system.css">
+    
+    <!-- Custom Select2 Styling -->
+    <style>
+        /* Select2 custom styling to match Tailwind */
+        .select2-container--default .select2-selection--single {
+            height: 48px !important;
+            border: 1px solid #d1d5db !important;
+            border-radius: 0.5rem !important;
+            padding: 0.75rem 1rem !important;
+            display: flex !important;
+            align-items: center !important;
+        }
+        
+        .select2-container--default .select2-selection--single .select2-selection__rendered {
+            line-height: 1.5 !important;
+            padding-left: 0 !important;
+            color: #111827 !important;
+        }
+        
+        .select2-container--default .select2-selection--single .select2-selection__arrow {
+            height: 46px !important;
+            right: 10px !important;
+        }
+        
+        .select2-container--default.select2-container--focus .select2-selection--single {
+            border-color: #058643 !important;
+            box-shadow: 0 0 0 3px rgba(5, 134, 67, 0.1) !important;
+        }
+        
+        .select2-dropdown {
+            border: 1px solid #d1d5db !important;
+            border-radius: 0.5rem !important;
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1) !important;
+        }
+        
+        .select2-search--dropdown .select2-search__field {
+            border: 1px solid #d1d5db !important;
+            border-radius: 0.375rem !important;
+            padding: 0.5rem !important;
+        }
+        
+        .select2-search--dropdown .select2-search__field:focus {
+            border-color: #058643 !important;
+            outline: none !important;
+            box-shadow: 0 0 0 3px rgba(5, 134, 67, 0.1) !important;
+        }
+        
+        .select2-results__option {
+            padding: 0.75rem 1rem !important;
+        }
+        
+        .select2-results__option--highlighted {
+            background-color: #058643 !important;
+            color: white !important;
+        }
+        
+        .select2-container--default .select2-results__option--selected {
+            background-color: #e6f4ed !important;
+            color: #058643 !important;
+        }
+        
+        .select2-container {
+            width: 100% !important;
+        }
+        
+        /* Custom button styling */
+        #saveSessionBtn {
+            background-color: #058643 !important;
+        }
+        
+        #saveSessionBtn:not(:disabled):hover {
+            background-color: #046835 !important;
+        }
+    </style>
 </head>
 <body class="bg-gray-100">
     <!-- Main Container -->
@@ -164,6 +246,30 @@ $current_page = 'system';
                             <p class="text-lg font-medium mb-2">No partnered schools found</p>
                             <p class="text-sm text-gray-400">Start by adding your first partnered school to the system</p>
                         </div>
+                        
+                        <!-- Pagination -->
+                        <div id="partneredPagination" class="bg-white px-4 py-3 flex items-center justify-between border-t border-gray-200 sm:px-6">
+                            <div class="flex-1 flex justify-between sm:hidden">
+                                <button onclick="previousPartneredPage()" class="relative inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50">
+                                    Previous
+                                </button>
+                                <button onclick="nextPartneredPage()" class="ml-3 relative inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50">
+                                    Next
+                                </button>
+                            </div>
+                            <div class="hidden sm:flex-1 sm:flex sm:items-center sm:justify-between">
+                                <div>
+                                    <p class="text-sm text-gray-700">
+                                        Showing <span id="partneredStart" class="font-medium">0</span> to <span id="partneredEnd" class="font-medium">0</span> of <span id="partneredTotal" class="font-medium">0</span> results
+                                    </p>
+                                </div>
+                                <div>
+                                    <nav class="relative z-0 inline-flex rounded-md shadow-sm -space-x-px" aria-label="Pagination" id="partneredPaginationNav">
+                                        <!-- Pagination buttons will be inserted here -->
+                                    </nav>
+                                </div>
+                            </div>
+                        </div>
                     </div>
                 </div>
                 
@@ -220,6 +326,30 @@ $current_page = 'system';
                                 <p class="text-sm text-gray-400">Start by adding your first section to the system</p>
                             </div>
                         </div>
+                        
+                        <!-- Pagination -->
+                        <div id="sectionsPagination" class="bg-white px-4 py-3 flex items-center justify-between border-t border-gray-200 sm:px-6">
+                            <div class="flex-1 flex justify-between sm:hidden">
+                                <button onclick="previousSectionsPage()" class="relative inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50">
+                                    Previous
+                                </button>
+                                <button onclick="nextSectionsPage()" class="ml-3 relative inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50">
+                                    Next
+                                </button>
+                            </div>
+                            <div class="hidden sm:flex-1 sm:flex sm:items-center sm:justify-between">
+                                <div>
+                                    <p class="text-sm text-gray-700">
+                                        Showing <span id="sectionsStart" class="font-medium">0</span> to <span id="sectionsEnd" class="font-medium">0</span> of <span id="sectionsTotal" class="font-medium">0</span> results
+                                    </p>
+                                </div>
+                                <div>
+                                    <nav class="relative z-0 inline-flex rounded-md shadow-sm -space-x-px" aria-label="Pagination" id="sectionsPaginationNav">
+                                        <!-- Pagination buttons will be inserted here -->
+                                    </nav>
+                                </div>
+                            </div>
+                        </div>
                     </div>
                 </div>
                 
@@ -234,10 +364,121 @@ $current_page = 'system';
                 
                 <!-- System Settings Tab Content -->
                 <div id="system-settings" class="tab-content">
-                    <div class="bg-white rounded-lg shadow p-8 text-center">
-                        <i class="fas fa-cogs text-6xl text-gray-300 mb-4"></i>
-                        <h3 class="text-xl font-semibold text-gray-700 mb-2">System Settings</h3>
-                        <p class="text-gray-500">This feature is coming soon...</p>
+                    <div class="bg-white rounded-lg shadow p-6">
+                        <div class="mb-6">
+                            <h2 class="text-xl font-semibold text-gray-900 mb-2">
+                                <i class="fas fa-calendar-alt mr-2 text-green-600"></i>
+                                Academic Session Configuration
+                            </h2>
+                            <p class="text-gray-600">Select the active academic session for the current system operations.</p>
+                        </div>
+                        
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                            <!-- Academic Session Selector -->
+                            <div>
+                                <label for="academicSessionSelect" class="block text-sm font-medium text-gray-700 mb-2">
+                                    <i class="fas fa-calendar-alt mr-1 text-green-600"></i>
+                                    Active Academic Session
+                                </label>
+                                <select id="academicSessionSelect" class="w-full">
+                                    <option value="">Loading academic sessions...</option>
+                                </select>
+                                <p class="mt-2 text-sm text-gray-500">
+                                    The selected academic session will be used for attendance tracking, assignments, and other system operations.
+                                </p>
+                            </div>
+                            
+                            <!-- Current Active Session Display -->
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-2">
+                                    Current Status
+                                </label>
+                                <div class="bg-gray-50 rounded-lg p-4 border border-gray-200">
+                                    <div id="currentSessionDisplay" class="text-center text-gray-500">
+                                        <i class="fas fa-spinner fa-spin text-2xl mb-2"></i>
+                                        <p>Loading current session...</p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- Action Buttons -->
+                        <div class="mt-6 flex justify-end space-x-3">
+                            <button onclick="loadAcademicSessions()" 
+                                    class="px-4 py-2 border border-gray-300 rounded-md text-gray-700 hover:bg-gray-50">
+                                <i class="fas fa-sync-alt mr-2"></i>
+                                Refresh
+                            </button>
+                            <button onclick="saveActiveAcademicSession()" 
+                                    class="px-4 py-2 bg-green-600 text-white rounded-md disabled:opacity-50 disabled:cursor-not-allowed"
+                                    id="saveSessionBtn"
+                                    disabled>
+                                <i class="fas fa-save mr-2"></i>
+                                Save Active Session
+                            </button>
+                        </div>
+                    </div>
+                    
+                    <!-- Academic Sessions Table -->
+                    <div class="bg-white rounded-lg shadow mt-6 overflow-hidden">
+                        <div class="px-6 py-4 border-b border-gray-200">
+                            <h3 class="text-lg font-medium text-gray-900">
+                                <i class="fas fa-list mr-2 text-green-600"></i>
+                                All Academic Sessions
+                            </h3>
+                        </div>
+                        <div class="overflow-x-auto">
+                            <table class="min-w-full divide-y divide-gray-200">
+                                <thead class="bg-gray-50">
+                                    <tr>
+                                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                            School Year
+                                        </th>
+                                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                            Semester
+                                        </th>
+                                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                            Status
+                                        </th>
+                                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                            Created
+                                        </th>
+                                    </tr>
+                                </thead>
+                                <tbody id="academicSessionsTableBody" class="bg-white divide-y divide-gray-200">
+                                    <tr>
+                                        <td colspan="4" class="px-6 py-8 text-center text-gray-500">
+                                            <i class="fas fa-spinner fa-spin text-2xl mb-2"></i>
+                                            <p>Loading academic sessions...</p>
+                                        </td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                        
+                        <!-- Pagination -->
+                        <div id="academicPagination" class="bg-white px-4 py-3 flex items-center justify-between border-t border-gray-200 sm:px-6">
+                            <div class="flex-1 flex justify-between sm:hidden">
+                                <button onclick="previousAcademicPage()" class="relative inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50">
+                                    Previous
+                                </button>
+                                <button onclick="nextAcademicPage()" class="ml-3 relative inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50">
+                                    Next
+                                </button>
+                            </div>
+                            <div class="hidden sm:flex-1 sm:flex sm:items-center sm:justify-between">
+                                <div>
+                                    <p class="text-sm text-gray-700">
+                                        Showing <span id="academicStart" class="font-medium">0</span> to <span id="academicEnd" class="font-medium">0</span> of <span id="academicTotal" class="font-medium">0</span> results
+                                    </p>
+                                </div>
+                                <div>
+                                    <nav class="relative z-0 inline-flex rounded-md shadow-sm -space-x-px" aria-label="Pagination" id="academicPaginationNav">
+                                        <!-- Pagination buttons will be inserted here -->
+                                    </nav>
+                                </div>
+                            </div>
+                        </div>
                     </div>
                 </div>
             </main>
