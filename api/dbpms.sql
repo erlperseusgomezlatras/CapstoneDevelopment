@@ -3,7 +3,7 @@
 -- https://www.phpmyadmin.net/
 --
 -- Host: localhost
--- Generation Time: Jan 21, 2026 at 04:04 PM
+-- Generation Time: Jan 22, 2026 at 02:58 PM
 -- Server version: 10.4.17-MariaDB
 -- PHP Version: 7.2.34
 
@@ -196,7 +196,6 @@ CREATE TABLE `modules` (
 
 CREATE TABLE `partnered_schools` (
   `id` int(11) NOT NULL,
-  `school_id_code` varchar(50) NOT NULL,
   `name` varchar(255) NOT NULL,
   `address` varchar(255) DEFAULT NULL,
   `latitude` decimal(10,8) DEFAULT NULL,
@@ -209,8 +208,8 @@ CREATE TABLE `partnered_schools` (
 -- Dumping data for table `partnered_schools`
 --
 
-INSERT INTO `partnered_schools` (`id`, `school_id_code`, `name`, `address`, `latitude`, `longitude`, `geofencing_radius`, `isActive`) VALUES
-(1, '2222', 'Misamis Oriental General Comprehensive High School', 'Misamis Oriental General Comprehensive High School, Don Apolinar Velez Street, Barangay 16, Poblacion, Cagayan de Oro, Northern Mindanao, 9000, Philippines', '8.48051027', '124.64937087', 80, 1);
+INSERT INTO `partnered_schools` (`id`, `name`, `address`, `latitude`, `longitude`, `geofencing_radius`, `isActive`) VALUES
+(1, 'Misamis Oriental General Comprehensive High School', 'Misamis Oriental General Comprehensive High School, Don Apolinar Velez Street, Barangay 16, Poblacion, Cagayan de Oro, Northern Mindanao, 9000, Philippines', '8.48325080', '124.64726280', 80, 1);
 
 -- --------------------------------------------------------
 
