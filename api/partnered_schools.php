@@ -11,7 +11,7 @@ class PartneredSchools {
         
         try {
             // Validate required fields
-            $required_fields = ['school_id_code', 'name', 'address', 'latitude', 'longitude'];
+            $required_fields = ['name', 'address', 'latitude', 'longitude'];
             $errors = [];
             
             foreach ($required_fields as $field) {
@@ -34,14 +34,6 @@ class PartneredSchools {
                 $errors['geofencing_radius'] = 'Geofence radius must be between 10 and 1000 meters';
             }
             
-            // Check if school ID code already exists
-            $check_sql = "SELECT id FROM partnered_schools WHERE school_id_code = ?";
-            $stmt = $conn->prepare($check_sql);
-            $stmt->execute([$data['school_id_code']]);
-            if ($stmt->fetch(PDO::FETCH_ASSOC)) {
-                $errors['school_id_code'] = 'School ID Code already exists';
-            }
-            
             // Check if school name already exists
             $check_name_sql = "SELECT id FROM partnered_schools WHERE name = ?";
             $stmt = $conn->prepare($check_name_sql);
@@ -59,14 +51,13 @@ class PartneredSchools {
             }
             
             // Insert partnered school
-            $sql = "INSERT INTO partnered_schools (school_id_code, name, address, latitude, longitude, geofencing_radius) 
-                    VALUES (?, ?, ?, ?, ?, ?)";
+            $sql = "INSERT INTO partnered_schools (name, address, latitude, longitude, geofencing_radius) 
+                    VALUES (?, ?, ?, ?, ?)";
             
             $stmt = $conn->prepare($sql);
             $geofencing_radius = !empty($data['geofencing_radius']) ? $data['geofencing_radius'] : 80;
             
             $result = $stmt->execute([
-                $data['school_id_code'], 
                 $data['name'], 
                 $data['address'], 
                 $data['latitude'], 
@@ -108,9 +99,9 @@ class PartneredSchools {
             
             // Add search condition
             if (!empty($search)) {
-                $sql .= " AND (school_id_code LIKE ? OR name LIKE ? OR address LIKE ?)";
+                $sql .= " AND (name LIKE ? OR address LIKE ?)";
                 $search_param = "%$search%";
-                $params = array_merge($params, array_fill(0, 3, $search_param));
+                $params = array_merge($params, array_fill(0, 2, $search_param));
             }
             
             $sql .= " ORDER BY name";
@@ -140,7 +131,7 @@ class PartneredSchools {
         
         try {
             // Validate required fields
-            $required_fields = ['id', 'school_id_code', 'name', 'address', 'latitude', 'longitude'];
+            $required_fields = ['id', 'name', 'address', 'latitude', 'longitude'];
             $errors = [];
             
             foreach ($required_fields as $field) {
@@ -171,14 +162,6 @@ class PartneredSchools {
                 $errors['id'] = 'Partnered school not found';
             }
             
-            // Check if school ID code already exists (excluding current)
-            $check_code_sql = "SELECT id FROM partnered_schools WHERE school_id_code = ? AND id != ?";
-            $stmt = $conn->prepare($check_code_sql);
-            $stmt->execute([$data['school_id_code'], $data['id']]);
-            if ($stmt->fetch(PDO::FETCH_ASSOC)) {
-                $errors['school_id_code'] = 'School ID Code already exists';
-            }
-            
             // Check if school name already exists (excluding current)
             $check_name_sql = "SELECT id FROM partnered_schools WHERE name = ? AND id != ?";
             $stmt = $conn->prepare($check_name_sql);
@@ -196,13 +179,12 @@ class PartneredSchools {
             }
             
             // Update partnered school
-            $sql = "UPDATE partnered_schools SET school_id_code = ?, name = ?, address = ?, latitude = ?, longitude = ?, geofencing_radius = ? WHERE id = ?";
+            $sql = "UPDATE partnered_schools SET name = ?, address = ?, latitude = ?, longitude = ?, geofencing_radius = ? WHERE id = ?";
             
             $stmt = $conn->prepare($sql);
             $geofencing_radius = !empty($data['geofencing_radius']) ? $data['geofencing_radius'] : 80;
             
             $result = $stmt->execute([
-                $data['school_id_code'], 
                 $data['name'], 
                 $data['address'], 
                 $data['latitude'], 

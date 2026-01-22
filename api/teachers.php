@@ -431,7 +431,7 @@ class Teachers {
         }
         
         try {
-            $sql = "SELECT ps.id, ps.name, ps.school_id_code 
+            $sql = "SELECT ps.id, ps.name 
                     FROM partnered_schools ps 
                     INNER JOIN sections s ON s.school_id = ps.id 
                     WHERE s.id = ?";
@@ -532,7 +532,7 @@ class Teachers {
         
         try {
             $sql = "SELECT s.id, s.section_name, s.school_id,
-                           ps.school_id_code, ps.name as school_name
+                           ps.name as school_name
                     FROM sections s
                     LEFT JOIN partnered_schools ps ON s.school_id = ps.id
                     ORDER BY s.section_name";
@@ -677,7 +677,7 @@ class Teachers {
         include "connection.php";
         
         try {
-            $sql = "SELECT id, school_id_code, name FROM partnered_schools WHERE isActive = 1 ORDER BY name";
+            $sql = "SELECT id, name FROM partnered_schools WHERE isActive = 1 ORDER BY name";
             $stmt = $conn->prepare($sql);
             $stmt->execute();
             $schools = $stmt->fetchAll(PDO::FETCH_ASSOC);

@@ -53,9 +53,14 @@ document.addEventListener('DOMContentLoaded', function () {
 
     // Form submission for partnered schools
     document.getElementById('partneredSchoolForm').addEventListener('submit', function (e) {
-        e.preventDefault();
+        e.preventDefault(); // Prevent browser default validation
         savePartneredSchool();
     });
+
+    // Prevent browser default validation messages
+    document.getElementById('partneredSchoolForm').addEventListener('invalid', function(e) {
+        e.preventDefault(); // Prevent default validation bubble
+    }, true);
 
     // Form submission for sections
     document.getElementById('sectionForm').addEventListener('submit', function (e) {
@@ -174,19 +179,42 @@ function switchTab(tabName) {
     event.target.classList.remove('text-gray-500');
 }
 
-// Search address function
+// Show loading state on address field
+function showAddressLoading(message = 'Detecting address...') {
+    const addressField = document.getElementById('address');
+    addressField.value = message;
+    addressField.classList.add('animate-pulse', 'bg-yellow-50', 'border-yellow-300');
+    addressField.classList.remove('bg-gray-50');
+}
+
+// Hide loading state on address field
+function hideAddressLoading() {
+    const addressField = document.getElementById('address');
+    addressField.classList.remove('animate-pulse', 'bg-yellow-50', 'border-yellow-300');
+    addressField.classList.add('bg-gray-50');
+}
+
+// Search address function with school search capability
 async function searchAddress() {
     const address = document.getElementById('mapSearchInput').value.trim();
     if (!address) {
-        showNotification('Please enter an address to search', 'error');
+        showNotification('Please enter a school name or address to search', 'error');
         return;
     }
 
-    showNotification('Searching for address...', 'info');
+    showAddressLoading('Searching location...');
+    showNotification('Searching for school/address...', 'info');
 
     try {
-        // Use server-side proxy to avoid CORS issues
-        const response = await fetch(window.APP_CONFIG.API_BASE_URL + 'geocode.php?address=' + encodeURIComponent(address));
+        // Determine if this is likely a school search
+        const schoolKeywords = ['school', 'university', 'college', 'academy', 'institute', 'elementary', 'high school', 'primary', 'secondary'];
+        const isLikelySchool = schoolKeywords.some(keyword => 
+            address.toLowerCase().includes(keyword)
+        ) || address.length < 30; // Short queries are likely school names
+
+        // Use school search for likely school queries or general address search otherwise
+        const searchType = isLikelySchool ? 'school' : 'address';
+        const response = await fetch(window.APP_CONFIG.API_BASE_URL + `geocode.php?address=${encodeURIComponent(address)}&type=${searchType}`);
 
         if (!response.ok) {
             throw new Error(`HTTP error! status: ${response.status}`);
@@ -200,7 +228,82 @@ async function searchAddress() {
 
             if (!isNaN(lat) && !isNaN(lng)) {
                 setMapLocation(lat, lng);
-                showNotification('Address found and located on map', 'success');
+                
+                // Show appropriate success message
+                if (data.is_school || searchType === 'school') {
+                    showNotification('School found and located on map', 'success');
+                    
+                    // Auto-populate school name field if it's empty or if this is a school search
+                    const schoolNameField = document.getElementById('schoolName');
+                    const currentSchoolName = schoolNameField.value.trim();
+                    
+                    if (!currentSchoolName || searchType === 'school') {
+                        // Extract school name from display_name (remove address details)
+                        let schoolName = data.display_name;
+                        if (schoolName.includes(',')) {
+                            schoolName = schoolName.split(',')[0].trim();
+                        }
+                        schoolNameField.value = schoolName;
+                    }
+                } else {
+                    showNotification('Address found and located on map', 'success');
+                }
+
+                // Update address field with the found address
+                if (data.display_name) {
+                    document.getElementById('address').value = data.display_name;
+                }
+            } else {
+                showNotification('Invalid coordinates received', 'error');
+                hideAddressLoading();
+            }
+        } else {
+            showNotification(data.message || 'Location not found. Try: 1) More specific school name, 2) Add "school" after name, 3) Complete address', 'error');
+            hideAddressLoading();
+        }
+    } catch (error) {
+        console.error('Geocoding error:', error);
+        showNotification('Search failed. You can click on map to set location manually.', 'error');
+        hideAddressLoading();
+    } finally {
+        hideAddressLoading();
+    }
+}
+
+// Dedicated school search function
+async function searchSchool() {
+    const schoolName = document.getElementById('mapSearchInput').value.trim();
+    if (!schoolName) {
+        showNotification('Please enter a school name to search', 'error');
+        return;
+    }
+
+    showNotification('Searching for school in Philippines...', 'info');
+
+    try {
+        const response = await fetch(window.APP_CONFIG.API_BASE_URL + `geocode.php?address=${encodeURIComponent(schoolName)}&type=school`);
+
+        if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
+        }
+
+        const data = await response.json();
+
+        if (data.success) {
+            const lat = parseFloat(data.lat);
+            const lng = parseFloat(data.lng);
+
+            if (!isNaN(lat) && !isNaN(lng)) {
+                setMapLocation(lat, lng);
+                showNotification('School found and located on map', 'success');
+
+                // Auto-populate school name field
+                const schoolNameField = document.getElementById('schoolName');
+                let schoolName = data.display_name;
+                if (schoolName.includes(',')) {
+                    schoolName = schoolName.split(',')[0].trim();
+                }
+                schoolNameField.value = schoolName;
 
                 // Update address field with the found address
                 if (data.display_name) {
@@ -210,11 +313,11 @@ async function searchAddress() {
                 showNotification('Invalid coordinates received', 'error');
             }
         } else {
-            showNotification(data.message || 'Address not found. Try: 1) More specific address, 2) City name only, 3) Click on map directly', 'error');
+            showNotification(data.message || 'School not found. Try: 1) Complete school name, 2) Add "school" after name, 3) Try city name only', 'error');
         }
     } catch (error) {
-        console.error('Geocoding error:', error);
-        showNotification('Search failed. You can click on map to set location manually.', 'error');
+        console.error('School search error:', error);
+        showNotification('School search failed. You can click on map to set location manually.', 'error');
     }
 }
 
@@ -291,7 +394,7 @@ async function geocodeAddress(address) {
         console.log('Geocoding address:', address);
 
         // Use our server-side proxy to avoid CORS issues
-        const response = await fetch(window.APP_CONFIG.API_BASE_URL + 'geocode.php?address=' + encodeURIComponent(address));
+        const response = await fetch(window.APP_CONFIG.API_BASE_URL + `geocode.php?address=${encodeURIComponent(address)}&type=address`);
 
         console.log('API Response status:', response.status);
         const data = await response.json();
@@ -322,7 +425,7 @@ async function reverseGeocode(lat, lng) {
         console.log('Reverse geocoding coordinates:', lat, lng);
 
         // Use our server-side proxy to avoid CORS issues
-        const response = await fetch(window.APP_CONFIG.API_BASE_URL + 'geocode.php?lat=' + encodeURIComponent(lat) + '&lng=' + encodeURIComponent(lng));
+        const response = await fetch(window.APP_CONFIG.API_BASE_URL + `geocode.php?lat=${encodeURIComponent(lat)}&lng=${encodeURIComponent(lng)}`);
 
         if (!response.ok) {
             throw new Error(`HTTP error! status: ${response.status}`);
@@ -343,6 +446,9 @@ async function reverseGeocode(lat, lng) {
         console.error('Reverse geocoding error:', error);
         // Don't show error for reverse geocoding as it's not critical
         console.log('Could not fetch address for coordinates');
+    } finally {
+        // Always hide loading indicator
+        hideAddressLoading();
     }
 }
 
@@ -353,6 +459,11 @@ function setMapLocation(lat, lng, updateAddress = true) {
     // Update input fields
     document.getElementById('latitude').value = lat;
     document.getElementById('longitude').value = lng;
+
+    // Show loading when updating address from map click
+    if (updateAddress) {
+        showAddressLoading('Detecting address from map...');
+    }
 
     // Remove existing marker and layers
     if (marker) {
@@ -424,6 +535,9 @@ function setMapLocation(lat, lng, updateAddress = true) {
     // Handle marker drag events
     marker.on('dragend', function (e) {
         const newLngLat = e.target.getLngLat();
+
+        // Show loading when marker is dragged
+        showAddressLoading('Detecting address from new location...');
 
         // Update input fields
         document.getElementById('latitude').value = newLngLat.lat;
@@ -598,8 +712,7 @@ function filterPartneredSchools() {
     // Filter by search term
     if (searchTerm) {
         filteredSchools = filteredSchools.filter(school => {
-            return school.school_id_code.toLowerCase().includes(searchTerm) ||
-                school.name.toLowerCase().includes(searchTerm) ||
+            return school.name.toLowerCase().includes(searchTerm) ||
                 school.address.toLowerCase().includes(searchTerm) ||
                 school.latitude.toString().includes(searchTerm) ||
                 school.longitude.toString().includes(searchTerm) ||
@@ -709,9 +822,6 @@ function renderPartneredSchoolsTable() {
     tableBody.innerHTML = paginatedSchools.map(school => `
         <tr>
             <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
-                ${school.school_id_code}
-            </td>
-            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
                 ${school.name}
             </td>
             <td class="px-6 py-4 text-sm text-gray-900">
@@ -780,7 +890,6 @@ function openEditModal(school) {
     document.getElementById('modalTitle').textContent = 'Edit Partnered School';
 
     // Fill form with school data
-    document.getElementById('schoolIdCode').value = school.school_id_code;
     document.getElementById('schoolName').value = school.name;
     document.getElementById('address').value = school.address;
     document.getElementById('latitude').value = school.latitude;
@@ -824,19 +933,13 @@ function validateForm() {
     clearValidationErrors();
     let isValid = true;
 
-    const schoolIdCode = document.getElementById('schoolIdCode').value.trim();
     const schoolName = document.getElementById('schoolName').value.trim();
     const address = document.getElementById('address').value.trim();
     const latitude = document.getElementById('latitude').value;
     const longitude = document.getElementById('longitude').value;
 
-    if (!schoolIdCode) {
-        document.getElementById('schoolIdCodeError').textContent = 'School ID Code is required';
-        isValid = false;
-    }
-
     if (!schoolName) {
-        document.getElementById('schoolNameError').textContent = 'School Name is required';
+        document.getElementById('schoolNameError').textContent = 'School name is required';
         isValid = false;
     }
 
@@ -866,7 +969,6 @@ async function savePartneredSchool() {
 
     try {
         const formData = {
-            school_id_code: document.getElementById('schoolIdCode').value.trim(),
             name: document.getElementById('schoolName').value.trim(),
             address: document.getElementById('address').value.trim(),
             latitude: parseFloat(document.getElementById('latitude').value),
@@ -1011,8 +1113,7 @@ function filterSections() {
     if (searchTerm) {
         filteredSectionsData = filteredSectionsData.filter(section => {
             return section.section_name.toLowerCase().includes(searchTerm) ||
-                (section.school_name && section.school_name.toLowerCase().includes(searchTerm)) ||
-                (section.school_id_code && section.school_id_code.toLowerCase().includes(searchTerm));
+                (section.school_name && section.school_name.toLowerCase().includes(searchTerm));
         });
     }
 
@@ -1053,9 +1154,6 @@ function renderSectionsTable() {
             </td>
             <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
                 ${section.school_name || '<span class="text-gray-400 italic">No school assigned</span>'}
-            </td>
-            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                ${section.school_id_code || '<span class="text-gray-400 italic">-</span>'}
             </td>
             <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
                 <div class="dropdown" id="section-dropdown-${section.id}">
@@ -1187,7 +1285,7 @@ async function loadPartneredSchoolsForSectionDropdown(selectedSchoolId = null) {
             result.data.forEach(school => {
                 const option = document.createElement('option');
                 option.value = school.id;
-                option.textContent = `${school.school_id_code} - ${school.name}`;
+                option.textContent = `${school.name}`;
                 if (selectedSchoolId && school.id == selectedSchoolId) {
                     option.selected = true;
                 }

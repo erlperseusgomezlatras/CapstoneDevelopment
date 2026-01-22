@@ -217,9 +217,6 @@ $current_page = 'system';
                                 <thead class="bg-gray-50">
                                     <tr>
                                         <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                            School ID Code
-                                        </th>
-                                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                                             School Name
                                         </th>
                                         <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
@@ -306,9 +303,7 @@ $current_page = 'system';
                                         <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                                             Assigned Partnered School
                                         </th>
-                                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                            School ID Code
-                                        </th>
+                                       
                                         <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                                             Actions
                                         </th>
@@ -494,39 +489,39 @@ $current_page = 'system';
                 </div>
                 
                 <form id="partneredSchoolForm" class="p-6">
-                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                        <div>
-                            <label class="block text-sm font-medium text-gray-700 mb-1">School ID Code *</label>
-                            <input type="text" id="schoolIdCode" name="school_id_code" required
-                                   class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500">
-                            <span class="text-xs text-red-500" id="schoolIdCodeError"></span>
-                        </div>
-                        
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">                
                         <div>
                             <label class="block text-sm font-medium text-gray-700 mb-1">School Name *</label>
                             <input type="text" id="schoolName" name="name" required
-                                   class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500">
+                                   class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500"
+                                   placeholder="School Name will be automatically set when you search for a school">
                             <span class="text-xs text-red-500" id="schoolNameError"></span>
                         </div>
                         
-                        <div class="md:col-span-2">
-                            <label class="block text-sm font-medium text-gray-700 mb-1">Address *</label>
-                            <textarea id="address" name="address" rows="3" required
-                                      class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500"></textarea>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">Address</label>
+                            <input type="text" id="address" name="address" readonly
+                                   class="w-full px-3 py-2 border border-gray-300 rounded-md bg-gray-50 text-gray-600 cursor-not-allowed focus:outline-none focus:ring-2 focus:ring-green-500"
+                                   placeholder="Address will be automatically set when you search or click on the map">
+                            <span class="text-xs text-gray-500 mt-1">💡 Use the search bar above or click on the map to set the location</span>
                             <span class="text-xs text-red-500" id="addressError"></span>
                         </div>
                         
                         <div>
                             <label class="block text-sm font-medium text-gray-700 mb-1">Latitude *</label>
-                            <input type="number" id="latitude" name="latitude" step="any" required
-                                   class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500">
-                            <span class="text-xs text-gray-500" id="latitudeError"></span>
+                            <input type="number" id="latitude" name="latitude" step="any" readonly
+                                   class="w-full px-3 py-2 border border-gray-300 rounded-md bg-gray-50 text-gray-600 cursor-not-allowed focus:outline-none focus:ring-2 focus:ring-green-500"
+                                   placeholder="Coordinates will be automatically set when you search or click on the map">
+                            <span class="text-xs text-gray-500 mt-1">📍 Use the search bar or click on the map to set coordinates</span>
+                            <span class="text-xs text-red-500" id="latitudeError"></span>
                         </div>
                         
                         <div>
                             <label class="block text-sm font-medium text-gray-700 mb-1">Longitude *</label>
-                            <input type="number" id="longitude" name="longitude" step="any" required
-                                   class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500">
+                            <input type="number" id="longitude" name="longitude" step="any" readonly
+                                   class="w-full px-3 py-2 border border-gray-300 rounded-md bg-gray-50 text-gray-600 cursor-not-allowed focus:outline-none focus:ring-2 focus:ring-green-500"
+                                   placeholder="Coordinates will be automatically set when you search or click on the map">
+                            <span class="text-xs text-gray-500 mt-1">📍 Use the search bar or click on the map to set coordinates</span>
                             <span class="text-xs text-red-500" id="longitudeError"></span>
                         </div>
                         
@@ -545,12 +540,12 @@ $current_page = 'system';
                         <!-- Search input for geocoding -->
                         <div class="mb-3">
                             <div class="relative">
-                                <input type="text" id="mapSearchInput" placeholder="Search for address..." 
-                                       class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500 pr-10"
+                                <input type="text" id="mapSearchInput" placeholder="Search for any school in Philippines..." 
+                                       class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500 pr-20"
                                        onkeypress="if(event.key === 'Enter') searchAddress()">
-                                <button onclick="searchAddress()" 
-                                        class="absolute right-2 top-2 text-gray-500 hover:text-gray-700">
-                                    <i class="fas fa-search"></i>
+                                <button type="button" onclick="searchAddress()" 
+                                        class="absolute right-2 top-2 text-gray-500 hover:text-gray-700 px-3 py-1 text-sm font-medium bg-gray-100 rounded-md hover:bg-gray-200 transition-colors">
+                                    <i class="fas fa-search mr-1"></i>Search
                                 </button>
                             </div>
                         </div>

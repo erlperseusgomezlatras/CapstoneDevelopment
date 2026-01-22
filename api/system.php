@@ -149,21 +149,13 @@ class System {
         
         try {
             // Validate required fields
-            $required_fields = ['school_id_code', 'name', 'address', 'latitude', 'longitude'];
+            $required_fields = ['name', 'address', 'latitude', 'longitude'];
             $errors = [];
             
             foreach ($required_fields as $field) {
                 if (empty($data[$field])) {
                     $errors[$field] = ucfirst(str_replace('_', ' ', $field)) . ' is required';
                 }
-            }
-            
-            // Check if school ID code already exists
-            $check_sql = "SELECT school_id_code FROM partnered_schools WHERE school_id_code = ?";
-            $stmt = $conn->prepare($check_sql);
-            $stmt->execute([$data['school_id_code']]);
-            if ($stmt->fetch(PDO::FETCH_ASSOC)) {
-                $errors['school_id_code'] = 'School ID code already exists';
             }
             
             if (!empty($errors)) {
@@ -175,15 +167,14 @@ class System {
             }
             
             // Insert partnered school
-            $sql = "INSERT INTO partnered_schools (school_id_code, name, address, latitude, longitude, geofencing_radius, isActive) 
-                    VALUES (?, ?, ?, ?, ?, ?, ?)";
+            $sql = "INSERT INTO partnered_schools (name, address, latitude, longitude, geofencing_radius, isActive) 
+                    VALUES (?, ?, ?, ?, ?, ?)";
             
             $stmt = $conn->prepare($sql);
             $geofencing_radius = isset($data['geofencing_radius']) ? $data['geofencing_radius'] : 80;
             $isActive = isset($data['isActive']) ? $data['isActive'] : 1;
             
             $result = $stmt->execute([
-                $data['school_id_code'],
                 $data['name'],
                 $data['address'],
                 $data['latitude'],
@@ -226,9 +217,9 @@ class System {
             
             // Add search conditions
             if (!empty($search)) {
-                $sql .= " AND (school_id_code LIKE ? OR name LIKE ? OR address LIKE ?)";
+                $sql .= " AND (name LIKE ? OR address LIKE ?)";
                 $search_param = "%$search%";
-                $params = array_merge($params, [$search_param, $search_param, $search_param]);
+                $params = array_merge($params, [$search_param, $search_param]);
             }
             
             // Add status filter
@@ -264,21 +255,13 @@ class System {
         
         try {
             // Validate required fields
-            $required_fields = ['id', 'school_id_code', 'name', 'address', 'latitude', 'longitude'];
+            $required_fields = ['id', 'name', 'address', 'latitude', 'longitude'];
             $errors = [];
             
             foreach ($required_fields as $field) {
                 if (empty($data[$field])) {
                     $errors[$field] = ucfirst(str_replace('_', ' ', $field)) . ' is required';
                 }
-            }
-            
-            // Check if school ID code already exists (excluding current school)
-            $check_sql = "SELECT school_id_code FROM partnered_schools WHERE school_id_code = ? AND id != ?";
-            $stmt = $conn->prepare($check_sql);
-            $stmt->execute([$data['school_id_code'], $data['id']]);
-            if ($stmt->fetch(PDO::FETCH_ASSOC)) {
-                $errors['school_id_code'] = 'School ID code already exists';
             }
             
             if (!empty($errors)) {
@@ -291,14 +274,13 @@ class System {
             
             // Update partnered school
             $sql = "UPDATE partnered_schools 
-                    SET school_id_code = ?, name = ?, address = ?, latitude = ?, longitude = ?, geofencing_radius = ?
+                    SET name = ?, address = ?, latitude = ?, longitude = ?, geofencing_radius = ?
                     WHERE id = ?";
             
             $stmt = $conn->prepare($sql);
             $geofencing_radius = isset($data['geofencing_radius']) ? $data['geofencing_radius'] : 80;
             
             $result = $stmt->execute([
-                $data['school_id_code'],
                 $data['name'],
                 $data['address'],
                 $data['latitude'],
@@ -384,7 +366,7 @@ class System {
         include "connection.php";
         
         try {
-            $sql = "SELECT id, school_id_code, name FROM partnered_schools WHERE isActive = 1 ORDER BY name";
+            $sql = "SELECT id, name FROM partnered_schools WHERE isActive = 1 ORDER BY name";
             $stmt = $conn->prepare($sql);
             $stmt->execute();
             $schools = $stmt->fetchAll(PDO::FETCH_ASSOC);
@@ -476,7 +458,7 @@ class System {
         
         try {
             $sql = "SELECT s.id, s.section_name, s.school_id,
-                           ps.school_id_code, ps.name as school_name
+                           ps.name as school_name
                     FROM sections s
                     LEFT JOIN partnered_schools ps ON s.school_id = ps.id
                     ORDER BY s.section_name";
