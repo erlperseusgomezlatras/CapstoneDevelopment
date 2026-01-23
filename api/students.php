@@ -550,6 +550,24 @@ class Students {
                 ]);
             }
             
+            // Check if 8 hours have passed since time in
+            $time_in = new DateTime($existing_attendance['attendance_timeIn']);
+            $current_time = new DateTime();
+            $time_diff = $current_time->diff($time_in);
+            $hours_diff = $time_diff->h + ($time_diff->days * 24);
+            
+            if ($hours_diff < 8) {
+                // Calculate exact time out time (8 hours after time in)
+                $time_out_time = clone $time_in;
+                $time_out_time->add(new DateInterval('PT8H'));
+                $formatted_time_out = $time_out_time->format('g:i A');
+                
+                return json_encode([
+                    'success' => false,
+                    'message' => "You can time out at {$formatted_time_out}. Please wait until then."
+                ]);
+            }
+            
             // Update time out
             $update_sql = "UPDATE attendance SET attendance_timeOut = CURTIME() WHERE id = ?";
             $stmt = $conn->prepare($update_sql);

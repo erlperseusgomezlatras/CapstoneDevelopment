@@ -778,16 +778,68 @@ function showTimeInButton() {
 function showTimeOutButton(timeIn) {
     const attendanceButton = document.getElementById('attendanceButton');
     const formattedTimeIn = formatTimeTo12Hour(timeIn);
-    attendanceButton.innerHTML = `
+    
+    // Calculate remaining time until 8 hours have passed
+    const timeInDate = new Date();
+    const [hours, minutes, seconds] = timeIn.split(':');
+    timeInDate.setHours(parseInt(hours), parseInt(minutes), parseInt(seconds), 0);
+    
+    const currentTime = new Date();
+    const hoursDiff = (currentTime - timeInDate) / (1000 * 60 * 60);
+    
+    let buttonHtml = `
         <div class="mb-2 p-2 bg-green-50 border border-green-200 rounded text-sm">
             <i class="fas fa-clock text-green-600 mr-1"></i>
             Time In: ${formattedTimeIn}
         </div>
-        <button onclick="markTimeOut('${studentSchoolId}')" class="w-full px-4 py-3 bg-orange-600 text-white rounded-md hover:bg-orange-700 font-medium">
-            <i class="fas fa-sign-out-alt mr-2"></i>
-            Time Out
-        </button>
     `;
+    
+    if (hoursDiff < 8) {
+        // Calculate exact time out time (8 hours after time in)
+        const timeOutTime = new Date(timeInDate);
+        timeOutTime.setHours(timeOutTime.getHours() + 8);
+        const formattedTimeOut = formatTimeTo12Hour(timeOutTime.toTimeString().split(' ')[0]);
+        
+        // Calculate remaining duration
+        const remainingTotalMinutes = Math.ceil((8 - hoursDiff) * 60);
+        const remainingHours = Math.floor(remainingTotalMinutes / 60);
+        const remainingMinutes = remainingTotalMinutes % 60;
+        let durationText = '';
+        if (remainingHours > 0) {
+            durationText = `~${remainingHours}h ${remainingMinutes}m`;
+        } else {
+            durationText = `~${remainingMinutes}m`;
+        }
+        
+        let timeMessage = `You can time out at ${formattedTimeOut}. `;
+        
+        buttonHtml += `
+            <div class="mb-2 p-2 bg-yellow-50 border border-yellow-200 rounded text-sm text-yellow-800">
+                <div class="flex justify-between items-center">
+                    <div class="flex items-center">
+                        <i class="fas fa-hourglass-half mr-1"></i>
+                        <span>${timeMessage}</span>
+                    </div>
+                    <div class="text-xs bg-yellow-100 px-2 py-1 rounded text-yellow-700 font-medium">
+                        ${durationText}
+                    </div>
+                </div>
+            </div>
+            <button disabled class="w-full px-4 py-3 bg-gray-400 text-white rounded-md cursor-not-allowed font-medium">
+                <i class="fas fa-sign-out-alt mr-2"></i>
+                Time Out (Not Available Yet)
+            </button>
+        `;
+    } else {
+        buttonHtml += `
+            <button onclick="markTimeOut('${studentSchoolId}')" class="w-full px-4 py-3 bg-orange-600 text-white rounded-md hover:bg-orange-700 font-medium">
+                <i class="fas fa-sign-out-alt mr-2"></i>
+                Time Out
+            </button>
+        `;
+    }
+    
+    attendanceButton.innerHTML = buttonHtml;
 }
 
 // Show completed attendance
@@ -822,6 +874,54 @@ function markTimeOut(studentSchoolId) {
         return;
     }
 
+    // Check if 8 hours have passed since time in
+    fetch(window.APP_CONFIG.API_BASE_URL + 'students.php', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/x-www-form-urlencoded',
+        },
+        body: new URLSearchParams({
+            operation: 'check_attendance_status',
+            json: JSON.stringify({
+                student_id: studentSchoolId
+            })
+        })
+    })
+    .then(response => response.json())
+    .then(statusData => {
+        if (statusData.success && statusData.data.has_time_in && !statusData.data.has_time_out) {
+            const timeIn = new Date();
+            const [hours, minutes, seconds] = statusData.data.time_in.split(':');
+            timeIn.setHours(parseInt(hours), parseInt(minutes), parseInt(seconds), 0);
+            
+            const currentTime = new Date();
+            const hoursDiff = (currentTime - timeIn) / (1000 * 60 * 60);
+            
+            if (hoursDiff < 8) {
+                // Calculate exact time out time (8 hours after time in)
+                const timeOutTime = new Date(timeIn);
+                timeOutTime.setHours(timeOutTime.getHours() + 8);
+                const formattedTimeOut = formatTimeTo12Hour(timeOutTime.toTimeString().split(' ')[0]);
+                
+                let timeMessage = `You can time out at ${formattedTimeOut}. Please wait until then.`;
+                
+                showNotification(timeMessage, 'warning');
+                return;
+            }
+        }
+        
+        // If validation passes, proceed with time out
+        proceedWithTimeOut(studentSchoolId);
+    })
+    .catch(error => {
+        console.error('Error checking attendance status:', error);
+        // If status check fails, still proceed with time out (server will validate)
+        proceedWithTimeOut(studentSchoolId);
+    });
+}
+
+// Proceed with time out after validation
+function proceedWithTimeOut(studentSchoolId) {
     // Show loading state
     const attendanceButton = document.getElementById('attendanceButton');
     attendanceButton.innerHTML = `
