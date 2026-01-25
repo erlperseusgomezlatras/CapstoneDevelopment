@@ -47,7 +47,7 @@ $teacher_name = $userData['firstname'] ?? 'Teacher';
         <?php require_once '../sidebar.php'; ?>
         
         <!-- Main Content -->
-        <main class="flex-1 overflow-y-auto">
+        <div class="flex-1 flex flex-col overflow-hidden md:ml-72">
             <!-- Top Header -->
             <header class="bg-white shadow-sm border-b border-gray-200">
                 <div class="px-6 py-4">

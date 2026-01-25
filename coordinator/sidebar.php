@@ -13,7 +13,7 @@ $base_url = "http://localhost/CapstoneDevelopment";
 ?>
 
 <!-- Desktop Sidebar -->
-<aside class="hidden md:flex md:flex-col md:w-72 md:bg-[#004d23] md:border-r md:border-gray-200">
+<aside class="hidden md:flex md:flex-col md:w-72 md:bg-[#004d23] md:border-r md:border-gray-200 md:fixed md:h-screen md:z-30">
     <div class="flex flex-col h-full">
         <!-- Sidebar Header -->
         <div class="p-6">

@@ -52,7 +52,7 @@ error_log("Coordinator section_id: $coordinator_section_id");
         <?php require_once '../sidebar.php'; ?>
         
         <!-- Main Content -->
-        <main class="flex-1 overflow-y-auto">
+        <main class="flex-1 overflow-y-auto md:ml-72">
             <!-- Top Header -->
             <header class="bg-white shadow-sm border-b border-gray-200">
                 <div class="px-6 py-4">

@@ -52,7 +52,7 @@ $current_page = 'teachers';
         <?php require_once '../sidebar.php'; ?>
 
         <!-- Main Content -->
-        <div class="flex-1 flex flex-col overflow-hidden">
+        <div class="flex-1 flex flex-col overflow-hidden md:ml-72">
             <!-- Mobile Header -->
             <header class="bg-white shadow-sm border-b border-gray-200 md:hidden">
                 <div class="px-4 sm:px-6 lg:px-8">

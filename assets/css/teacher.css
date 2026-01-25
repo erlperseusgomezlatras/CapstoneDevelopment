@@ -17,6 +17,37 @@
             color: rgb(255, 255, 255);
             border-left: 4px solid rgb(255, 255, 255);
         }
+        
+        /* Sticky sidebar fixes */
+        @media (min-width: 768px) {
+            .md\:fixed {
+                position: fixed;
+                top: 0;
+                left: 0;
+                height: 100vh;
+                overflow-y: auto;
+            }
+            
+            /* Ensure sidebar content doesn't overflow */
+            .md\:h-screen .flex-col {
+                height: 100%;
+            }
+            
+            /* Hide scrollbar for sidebar but keep functionality */
+            .md\:h-screen::-webkit-scrollbar {
+                width: 4px;
+            }
+            .md\:h-screen::-webkit-scrollbar-track {
+                background: transparent;
+            }
+            .md\:h-screen::-webkit-scrollbar-thumb {
+                background: rgba(255, 255, 255, 0.2);
+                border-radius: 2px;
+            }
+            .md\:h-screen::-webkit-scrollbar-thumb:hover {
+                background: rgba(255, 255, 255, 0.3);
+            }
+        }
         .modal {
             display: none;
             position: fixed;

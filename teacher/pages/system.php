@@ -136,7 +136,7 @@ $current_page = 'system';
         <?php require_once '../sidebar.php'; ?>
         
         <!-- Main Content -->
-        <div class="flex-1 flex flex-col overflow-hidden">
+        <div class="flex-1 flex flex-col overflow-hidden md:ml-72">
             <!-- Top Header -->
             <header class="bg-white shadow-sm border-b border-gray-200">
                 <div class="px-4 sm:px-6 lg:px-8 py-4">
@@ -164,7 +164,8 @@ $current_page = 'system';
                 <!-- Tabs Navigation -->
                 <div class="bg-white rounded-lg shadow mb-6">
                     <div class="border-b border-gray-200">
-                        <nav class="flex -mb-px">
+                        <!-- Desktop Tabs -->
+                        <nav class="hidden md:flex -mb-px">
                             <button onclick="switchTab('partnered-schools')" 
                                     class="tab-button active px-6 py-3 text-sm font-medium text-green-700 hover:text-green-800 focus:outline-none focus:text-green-800">
                                 <i class="fas fa-school mr-2"></i>
@@ -185,6 +186,45 @@ $current_page = 'system';
                                 <i class="fas fa-cogs mr-2"></i>
                                 System Settings
                             </button>
+                        </nav>
+                        
+                        <!-- Mobile Tabs -->
+                        <nav class="flex md:hidden -mb-px">
+                            <div class="flex flex-1 overflow-x-auto">
+                                <button onclick="switchTab('partnered-schools')" 
+                                        class="mobile-tab-button active flex-shrink-0 px-4 py-3 text-sm font-medium text-green-700 hover:text-green-800 focus:outline-none focus:text-green-800 border-b-2 border-green-700">
+                                    <i class="fas fa-school mr-1"></i>
+                                    <span class="hidden sm:inline">Partnered Schools</span>
+                                    <span class="sm:hidden">Schools</span>
+                                </button>
+                                <button onclick="switchTab('sections')" 
+                                        class="mobile-tab-button flex-shrink-0 px-4 py-3 text-sm font-medium text-gray-500 hover:text-gray-700 focus:outline-none focus:text-gray-700 border-b-2 border-transparent">
+                                    <i class="fas fa-users mr-1"></i>
+                                    <span class="hidden sm:inline">Sections</span>
+                                    <span class="sm:hidden">Sections</span>
+                                </button>
+                                <button onclick="switchTab('email-domains')" 
+                                        class="mobile-tab-button flex-shrink-0 px-4 py-3 text-sm font-medium text-gray-500 hover:text-gray-700 focus:outline-none focus:text-gray-700 border-b-2 border-transparent">
+                                    <i class="fas fa-envelope mr-1"></i>
+                                    <span class="hidden sm:inline">Email Domains</span>
+                                    <span class="sm:hidden">Email</span>
+                                </button>
+                            </div>
+                            
+                            <!-- Mobile More Tabs Dropdown -->
+                            <div class="relative">
+                                <button onclick="toggleMobileTabDropdown()" 
+                                        class="mobile-tab-dropdown-btn flex-shrink-0 px-4 py-3 text-sm font-medium text-gray-500 hover:text-gray-700 focus:outline-none focus:text-gray-700 border-b-2 border-transparent">
+                                    <i class="fas fa-ellipsis-v"></i>
+                                </button>
+                                <div id="mobileTabDropdown" class="hidden absolute right-0 top-full mt-1 w-48 bg-white border border-gray-200 rounded-md shadow-lg z-50">
+                                    <button onclick="switchTabFromDropdown('system-settings')" 
+                                            class="mobile-dropdown-tab w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 flex items-center">
+                                        <i class="fas fa-cogs mr-2"></i>
+                                        System Settings
+                                    </button>
+                                </div>
+                            </div>
                         </nav>
                     </div>
                 </div>

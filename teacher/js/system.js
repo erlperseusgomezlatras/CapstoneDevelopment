@@ -165,19 +165,108 @@ function switchTab(tabName) {
         content.classList.remove('active');
     });
 
-    // Remove active class from all tab buttons
+    // Remove active class from all desktop tab buttons
     document.querySelectorAll('.tab-button').forEach(button => {
         button.classList.remove('active', 'text-green-700');
         button.classList.add('text-gray-500');
     });
 
+    // Remove active class from all mobile tab buttons
+    document.querySelectorAll('.mobile-tab-button').forEach(button => {
+        button.classList.remove('active', 'text-green-700', 'border-green-700');
+        button.classList.add('text-gray-500', 'border-transparent');
+    });
+
     // Show selected tab content
     document.getElementById(tabName).classList.add('active');
 
-    // Add active class to clicked tab button
-    event.target.classList.add('active', 'text-green-700');
-    event.target.classList.remove('text-gray-500');
+    // Add active class to clicked tab button (desktop or mobile)
+    if (event.target) {
+        event.target.classList.add('active', 'text-green-700');
+        event.target.classList.remove('text-gray-500');
+        
+        // For mobile tabs, also update border
+        if (event.target.classList.contains('mobile-tab-button')) {
+            event.target.classList.add('border-green-700');
+            event.target.classList.remove('border-transparent');
+        }
+    }
+    
+    // Initialize academic sessions if switching to system-settings
+    if (tabName === 'system-settings') {
+        setTimeout(() => {
+            loadAcademicSessions();
+        }, 100);
+    }
+    
+    // Close mobile dropdown if open
+    closeMobileTabDropdown();
 }
+
+// Mobile tab dropdown functions
+function toggleMobileTabDropdown() {
+    const dropdown = document.getElementById('mobileTabDropdown');
+    dropdown.classList.toggle('hidden');
+}
+
+function closeMobileTabDropdown() {
+    const dropdown = document.getElementById('mobileTabDropdown');
+    if (!dropdown.classList.contains('hidden')) {
+        dropdown.classList.add('hidden');
+    }
+}
+
+function switchTabFromDropdown(tabName) {
+    // Hide all tab contents
+    document.querySelectorAll('.tab-content').forEach(content => {
+        content.classList.remove('active');
+    });
+
+    // Remove active class from all desktop tab buttons
+    document.querySelectorAll('.tab-button').forEach(button => {
+        button.classList.remove('active', 'text-green-700');
+        button.classList.add('text-gray-500');
+    });
+
+    // Remove active class from all mobile tab buttons
+    document.querySelectorAll('.mobile-tab-button').forEach(button => {
+        button.classList.remove('active', 'text-green-700', 'border-green-700');
+        button.classList.add('text-gray-500', 'border-transparent');
+    });
+
+    // Show selected tab content
+    document.getElementById(tabName).classList.add('active');
+    
+    // For dropdown tabs, we don't highlight a mobile tab button since it's in dropdown
+    // But we do highlight the corresponding desktop tab if it exists
+    const desktopTab = document.querySelector(`.tab-button[onclick="switchTab('${tabName}')"]`);
+    if (desktopTab) {
+        desktopTab.classList.add('active', 'text-green-700');
+        desktopTab.classList.remove('text-gray-500');
+    }
+    
+    // Initialize academic sessions if switching to system-settings
+    if (tabName === 'system-settings') {
+        setTimeout(() => {
+            loadAcademicSessions();
+        }, 100);
+    }
+    
+    // Close dropdown
+    closeMobileTabDropdown();
+}
+
+// Close mobile dropdown when clicking outside
+document.addEventListener('click', function(event) {
+    const dropdown = document.getElementById('mobileTabDropdown');
+    const dropdownBtn = document.querySelector('.mobile-tab-dropdown-btn');
+    
+    if (dropdown && !dropdown.classList.contains('hidden') && 
+        !dropdown.contains(event.target) && 
+        !dropdownBtn.contains(event.target)) {
+        closeMobileTabDropdown();
+    }
+});
 
 // Show loading state on address field
 function showAddressLoading(message = 'Detecting address...') {
