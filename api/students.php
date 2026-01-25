@@ -829,6 +829,21 @@ class Students {
         $student_id = $data['student_id'];
         
         try {
+            // Get active academic session
+            $session_sql = "SELECT academic_session_id FROM academic_sessions WHERE is_Active = 1 LIMIT 1";
+            $session_stmt = $conn->prepare($session_sql);
+            $session_stmt->execute();
+            $active_session = $session_stmt->fetch(PDO::FETCH_ASSOC);
+            
+            if (!$active_session) {
+                return json_encode([
+                    'success' => false,
+                    'message' => 'No active academic session found. Please contact your coordinator.'
+                ]);
+            }
+            
+            $session_id = $active_session['academic_session_id'];
+            
             $current_date = date('Y-m-d');
             $current_day = date('w', strtotime($current_date)); // 0 = Sunday, 5 = Friday
             $current_year = date('Y', strtotime($current_date));
@@ -837,11 +852,12 @@ class Students {
             $is_friday = ($current_day == 5);
             
             if ($is_friday) {
-                // Check if student already submitted today (Friday)
-                $check_sql = "SELECT id, week FROM journal WHERE student_id = ? AND DATE(createdAt) = ?";
+                // Check if student already submitted today (Friday) in current session
+                $check_sql = "SELECT id, week FROM journal WHERE student_id = ? AND DATE(createdAt) = ? AND session_id = ?";
                 $check_stmt = $conn->prepare($check_sql);
                 $check_stmt->bindParam(1, $student_id);
                 $check_stmt->bindParam(2, $current_date);
+                $check_stmt->bindParam(3, $session_id);
                 $check_stmt->execute();
                 $today_journal = $check_stmt->fetch(PDO::FETCH_ASSOC);
                 
@@ -854,10 +870,11 @@ class Students {
                         'message' => 'Already submitted for this Friday'
                     ]);
                 } else {
-                    // Check if student has any previous journals to determine current week
-                    $latest_sql = "SELECT MAX(CAST(week AS UNSIGNED)) as latest_week FROM journal WHERE student_id = ?";
+                    // Check if student has any previous journals in current session to determine current week
+                    $latest_sql = "SELECT MAX(CAST(week AS UNSIGNED)) as latest_week FROM journal WHERE student_id = ? AND session_id = ?";
                     $latest_stmt = $conn->prepare($latest_sql);
                     $latest_stmt->bindParam(1, $student_id);
+                    $latest_stmt->bindParam(2, $session_id);
                     $latest_stmt->execute();
                     $latest_result = $latest_stmt->fetch(PDO::FETCH_ASSOC);
                     
@@ -872,10 +889,11 @@ class Students {
                     ]);
                 }
             } else {
-                // Not Friday, get the latest week for display purposes
-                $latest_sql = "SELECT MAX(CAST(week AS UNSIGNED)) as latest_week FROM journal WHERE student_id = ?";
+                // Not Friday, get the latest week for display purposes in current session
+                $latest_sql = "SELECT MAX(CAST(week AS UNSIGNED)) as latest_week FROM journal WHERE student_id = ? AND session_id = ?";
                 $latest_stmt = $conn->prepare($latest_sql);
                 $latest_stmt->bindParam(1, $student_id);
+                $latest_stmt->bindParam(2, $session_id);
                 $latest_stmt->execute();
                 $latest_result = $latest_stmt->fetch(PDO::FETCH_ASSOC);
                 
@@ -913,14 +931,30 @@ class Students {
         $words_inspire = $data['words_inspire'] ?? [];
         $words_affirmation = $data['words_affirmation'] ?? [];
         
-        $conn->beginTransaction();
-        
         try {
-            // Check if journal entry already exists for this week
-            $check_sql = "SELECT id FROM journal WHERE student_id = ? AND week = ?";
+            // Get active academic session
+            $session_sql = "SELECT academic_session_id FROM academic_sessions WHERE is_Active = 1 LIMIT 1";
+            $session_stmt = $conn->prepare($session_sql);
+            $session_stmt->execute();
+            $active_session = $session_stmt->fetch(PDO::FETCH_ASSOC);
+            
+            if (!$active_session) {
+                return json_encode([
+                    'success' => false,
+                    'message' => 'No active academic session found. Please contact your coordinator.'
+                ]);
+            }
+            
+            $session_id = $active_session['academic_session_id'];
+            
+            $conn->beginTransaction();
+            
+            // Check if journal entry already exists for this week and session
+            $check_sql = "SELECT id FROM journal WHERE student_id = ? AND week = ? AND session_id = ?";
             $check_stmt = $conn->prepare($check_sql);
             $check_stmt->bindParam(1, $student_id);
             $check_stmt->bindParam(2, $week);
+            $check_stmt->bindParam(3, $session_id);
             $check_stmt->execute();
             $existing_row = $check_stmt->fetch(PDO::FETCH_ASSOC);
             
@@ -942,8 +976,8 @@ class Students {
                 $conn->query("DELETE FROM words_affirmation WHERE journal_id = $journal_id");
                 
             } else {
-                // Insert new journal
-                $sql = "INSERT INTO journal (student_id, week, grateful, proud_of, look_forward, felt_this_week) VALUES (?, ?, ?, ?, ?, ?)";
+                // Insert new journal with session_id
+                $sql = "INSERT INTO journal (student_id, week, grateful, proud_of, look_forward, felt_this_week, session_id) VALUES (?, ?, ?, ?, ?, ?, ?)";
                 $stmt = $conn->prepare($sql);
                 $stmt->bindParam(1, $student_id);
                 $stmt->bindParam(2, $week);
@@ -951,6 +985,7 @@ class Students {
                 $stmt->bindParam(4, $proud_of);
                 $stmt->bindParam(5, $look_forward);
                 $stmt->bindParam(6, $felt_this_week);
+                $stmt->bindParam(7, $session_id);
                 $stmt->execute();
                 
                 $journal_id = $conn->lastInsertId();

@@ -3,7 +3,7 @@
 -- https://www.phpmyadmin.net/
 --
 -- Host: localhost
--- Generation Time: Jan 25, 2026 at 12:25 AM
+-- Generation Time: Jan 25, 2026 at 04:45 PM
 -- Server version: 10.4.17-MariaDB
 -- PHP Version: 7.2.34
 
@@ -154,6 +154,7 @@ INSERT INTO `attendance` (`id`, `student_id`, `attendance_date`, `attendance_tim
 CREATE TABLE `journal` (
   `id` int(11) NOT NULL,
   `student_id` varchar(50) NOT NULL,
+  `session_id` int(11) NOT NULL,
   `week` varchar(20) NOT NULL,
   `grateful` text NOT NULL,
   `proud_of` text NOT NULL,
@@ -444,7 +445,8 @@ ALTER TABLE `attendance`
 --
 ALTER TABLE `journal`
   ADD PRIMARY KEY (`id`),
-  ADD KEY `fk_journal_student` (`student_id`);
+  ADD KEY `fk_journal_student` (`student_id`),
+  ADD KEY `fk_journal_academic_session` (`session_id`);
 
 --
 -- Indexes for table `level_permissions`
@@ -661,6 +663,7 @@ ALTER TABLE `attendance`
 -- Constraints for table `journal`
 --
 ALTER TABLE `journal`
+  ADD CONSTRAINT `fk_journal_academic_session` FOREIGN KEY (`session_id`) REFERENCES `academic_sessions` (`academic_session_id`) ON DELETE CASCADE ON UPDATE CASCADE,
   ADD CONSTRAINT `fk_journal_student` FOREIGN KEY (`student_id`) REFERENCES `users` (`school_id`) ON DELETE CASCADE ON UPDATE CASCADE;
 
 --
