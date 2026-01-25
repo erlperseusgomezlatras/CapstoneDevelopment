@@ -41,6 +41,47 @@ function switchTab(tabName) {
     if (activeNavItem) {
         activeNavItem.classList.add('active');
     }
+    
+    // Load tab-specific content
+    if (tabName === 'journal') {
+        loadJournalComponent();
+    }
+}
+
+// Load journal component
+function loadJournalComponent() {
+    const journalContent = document.getElementById('journalContent');
+    if (!journalContent) return;
+    
+    // Show loading state
+    journalContent.innerHTML = `
+        <div class="bg-white rounded-lg shadow p-8 text-center">
+            <div class="spinner mx-auto mb-4"></div>
+            <p class="text-gray-600">Loading journal...</p>
+        </div>
+    `;
+    
+    // Load the journal component
+    fetch('components/journal.php')
+        .then(response => response.text())
+        .then(html => {
+            journalContent.innerHTML = html;
+            
+            // Initialize journal functionality
+            if (typeof JournalManager !== 'undefined') {
+                new JournalManager();
+            }
+        })
+        .catch(error => {
+            console.error('Error loading journal component:', error);
+            journalContent.innerHTML = `
+                <div class="bg-white rounded-lg shadow p-8 text-center">
+                    <i class="fas fa-exclamation-triangle text-6xl text-red-300 mb-4"></i>
+                    <h3 class="text-xl font-semibold text-gray-700 mb-2">Error Loading Journal</h3>
+                    <p class="text-gray-500">Unable to load the journal component. Please try again.</p>
+                </div>
+            `;
+        });
 }
 
 // Logout Modal

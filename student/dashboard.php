@@ -47,6 +47,7 @@ $student_school_id = $userData['school_id'] ?? '';
     <script src="https://unpkg.com/maplibre-gl@3.6.2/dist/maplibre-gl.js"></script>
     <link href="https://unpkg.com/maplibre-gl@3.6.2/dist/maplibre-gl.css" rel="stylesheet" />
     <link rel="stylesheet" href="../assets/css/student.css">
+    <link rel="stylesheet" href="../assets/css/journal.css">
 </head>
 <body>
     <div class="min-h-screen bg-gray-100">
@@ -115,10 +116,12 @@ $student_school_id = $userData['school_id'] ?? '';
 
             <!-- Journal Tab Content -->
             <div id="journal" class="tab-content">
-                <div class="bg-white rounded-lg shadow p-8 text-center">
-                    <i class="fas fa-book text-6xl text-gray-300 mb-4"></i>
-                    <h3 class="text-xl font-semibold text-gray-700 mb-2">Journal</h3>
-                    <p class="text-gray-500">This feature is coming soon...</p>
+                <div id="journalContent">
+                    <!-- Journal component will be loaded here -->
+                    <div class="bg-white rounded-lg shadow p-8 text-center">
+                        <div class="spinner mx-auto mb-4"></div>
+                        <p class="text-gray-600">Loading journal...</p>
+                    </div>
                 </div>
             </div>
 
@@ -161,6 +164,7 @@ $student_school_id = $userData['school_id'] ?? '';
     <script src="../assets/js/config.js"></script>
     <script src="https://unpkg.com/maplibre-gl@3.6.2/dist/maplibre-gl.js"></script>
     <script src="js/attendance.js"></script>
+    <script src="js/journal.js"></script>
     <script src="js/dashboard.js"></script>
 </body>
 </html>

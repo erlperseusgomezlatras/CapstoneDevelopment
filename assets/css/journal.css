@@ -1,0 +1,380 @@
+.journal-template {
+    /* background: linear-gradient(135deg, #10b981 0%, #059669 50%, #047857 100%); */
+    min-height: 100vh;
+    padding: 1rem;
+}
+
+.journal-container {
+    background: white;
+    border-radius: 20px;
+    box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+    padding: 1.5rem;
+    max-width: 1200px;
+    margin: 0 auto;
+}
+
+.journal-header {
+    text-align: center;
+    margin-bottom: 2rem;
+    padding-bottom: 1rem;
+    border-bottom: 3px solid #10b981;
+}
+
+.journal-title {
+    font-size: 1.75rem;
+    font-weight: bold;
+    color: #10b981;
+    margin-bottom: 1rem;
+}
+
+.journal-info {
+    display: flex;
+    justify-content: space-between;
+    margin-bottom: 2rem;
+}
+
+.journal-info input {
+    background: #f8f9fa;
+    border: 2px solid #e9ecef;
+    border-radius: 10px;
+    padding: 0.5rem;
+    font-size: 0.9rem;
+    transition: all 0.3s ease;
+}
+
+.journal-info input:focus {
+    outline: none;
+    border-color: #10b981;
+    box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.1);
+}
+
+.journal-content {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1rem;
+}
+
+.journal-section {
+    background: #f8f9fa;
+    border-radius: 15px;
+    padding: 1rem;
+    transition: all 0.3s ease;
+}
+
+.journal-section:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 10px 20px rgba(0,0,0,0.1);
+}
+
+.section-title {
+    font-weight: bold;
+    color: #495057;
+    margin-bottom: 0.75rem;
+    font-size: 0.95rem;
+}
+
+.grateful-list {
+    background: white;
+    border-radius: 10px;
+    padding: 0.75rem;
+    min-height: 120px;
+    border: 2px solid #e9ecef;
+    transition: all 0.3s ease;
+}
+
+.grateful-list:focus {
+    outline: none;
+    border-color: #10b981;
+    box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.1);
+}
+
+.inspire-words {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+    margin-bottom: 1rem;
+}
+
+.inspire-word-input {
+    background: white;
+    border: 2px solid #e9ecef;
+    border-radius: 25px;
+    padding: 0.5rem 0.75rem;
+    font-size: 0.85rem;
+    transition: all 0.3s ease;
+}
+
+.inspire-word-input:focus {
+    outline: none;
+    border-color: #10b981;
+    box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.1);
+}
+
+.add-inspire-btn {
+    background: white;
+    border: 2px dashed #10b981;
+    color: #10b981;
+    border-radius: 25px;
+    padding: 0.5rem 0.75rem;
+    font-size: 0.8rem;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 100%;
+}
+
+.add-inspire-btn:hover {
+    background: #10b981;
+    color: white;
+    border-style: solid;
+}
+
+.affirmation-textarea {
+    background: white;
+    border-radius: 10px;
+    padding: 0.75rem;
+    min-height: 100px;
+    border: 2px solid #e9ecef;
+    resize: vertical;
+    transition: all 0.3s ease;
+}
+
+.affirmation-words {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+    margin-bottom: 1rem;
+}
+
+.affirmation-word-input {
+    background: white;
+    border: 2px solid #e9ecef;
+    border-radius: 25px;
+    padding: 0.5rem 0.75rem;
+    font-size: 0.85rem;
+    transition: all 0.3s ease;
+}
+
+.affirmation-word-input:focus {
+    outline: none;
+    border-color: #10b981;
+    box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.1);
+}
+
+.add-affirmation-btn {
+    background: white;
+    border: 2px dashed #10b981;
+    color: #10b981;
+    border-radius: 25px;
+    padding: 0.5rem 0.75rem;
+    font-size: 0.8rem;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 100%;
+}
+
+.add-affirmation-btn:hover {
+    background: #10b981;
+    color: white;
+    border-style: solid;
+}
+
+.affirmation-textarea:focus {
+    outline: none;
+    border-color: #10b981;
+    box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.1);
+}
+
+.feeling-scale {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-top: 1rem;
+}
+
+.feeling-circle {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    background: #e9ecef;
+    border: 3px solid transparent;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    position: relative;
+}
+
+.feeling-circle:hover {
+    transform: scale(1.1);
+}
+
+.feeling-circle.selected {
+    border-color: #10b981;
+    background: #10b981;
+    box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.2);
+}
+
+.feeling-label {
+    font-size: 0.75rem;
+    text-align: center;
+    margin-top: 0.5rem;
+    color: #6c757d;
+}
+
+.look-forward-input {
+    background: white;
+    border: 2px solid #e9ecef;
+    border-radius: 25px;
+    padding: 0.75rem;
+    font-size: 0.9rem;
+    transition: all 0.3s ease;
+}
+
+.look-forward-input:focus {
+    outline: none;
+    border-color: #10b981;
+    box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.1);
+}
+
+.save-btn {
+    background: linear-gradient(135deg, #10b981 0%, #059669 50%, #047857 100%);
+    color: white;
+    border: none;
+    border-radius: 25px;
+    padding: 0.75rem 1.5rem;
+    font-size: 1rem;
+    font-weight: bold;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    margin-top: 1.5rem;
+    margin-bottom: 5rem;
+    width: 100%;
+}
+
+.save-btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 10px 20px rgba(16, 185, 129, 0.3);
+}
+
+.save-btn:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+    transform: none;
+}
+
+@media (max-width: 768px) {
+    .journal-template {
+        padding: 0.5rem;
+    }
+    
+    .journal-container {
+        padding: 1rem;
+        border-radius: 15px;
+    }
+    
+    .journal-content {
+        grid-template-columns: 1fr;
+        gap: 0.75rem;
+    }
+    
+    .journal-info {
+        flex-direction: column;
+        gap: 0.75rem;
+        margin-bottom: 1rem;
+    }
+    
+    .journal-header {
+        margin-bottom: 1rem;
+        padding-bottom: 0.75rem;
+    }
+    
+    .journal-title {
+        font-size: 1.5rem;
+        margin-bottom: 0.5rem;
+    }
+    
+    .journal-section {
+        padding: 0.75rem;
+    }
+    
+    .section-title {
+        font-size: 0.85rem;
+        margin-bottom: 0.5rem;
+    }
+    
+    .grateful-list, .affirmation-textarea {
+        padding: 0.5rem;
+        min-height: 100px;
+        font-size: 0.85rem;
+    }
+    
+    .journal-info input, .look-forward-input {
+        padding: 0.4rem;
+        font-size: 0.8rem;
+    }
+    
+    .inspire-word-input, .affirmation-word-input {
+        padding: 0.4rem 0.6rem;
+        font-size: 0.75rem;
+    }
+    
+    .add-inspire-btn, .add-affirmation-btn {
+        padding: 0.4rem 0.6rem;
+        font-size: 0.7rem;
+    }
+    
+    .save-btn {
+        padding: 0.6rem 1rem;
+        font-size: 0.9rem;
+        margin-top: 1rem;
+        margin-bottom: 5rem;
+    }
+    
+    .feeling-circle {
+        width: 30px;
+        height: 30px;
+    }
+    
+    .feeling-label {
+        font-size: 0.65rem;
+    }
+}
+
+@media (max-width: 480px) {
+    .journal-template {
+        padding: 0.25rem;
+    }
+    
+    .journal-container {
+        padding: 0.75rem;
+    }
+    
+    .journal-title {
+        font-size: 1.25rem;
+    }
+    
+    .section-title {
+        font-size: 0.8rem;
+    }
+    
+    .grateful-list, .affirmation-textarea {
+        min-height: 80px;
+        font-size: 0.8rem;
+    }
+    
+    .feeling-circle {
+        width: 25px;
+        height: 25px;
+    }
+    
+    .feeling-label {
+        font-size: 0.6rem;
+        margin-top: 0.25rem;
+    }
+}

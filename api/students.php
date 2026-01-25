@@ -820,6 +820,270 @@ class Students {
 
         return $R * $c; // Distance in meters
     }
+
+    // Get current week for student journal
+    function getCurrentWeek($json) {
+        include "connection.php";
+        
+        $data = json_decode($json, true);
+        $student_id = $data['student_id'];
+        
+        try {
+            $current_date = date('Y-m-d');
+            $current_day = date('w', strtotime($current_date)); // 0 = Sunday, 5 = Friday
+            $current_year = date('Y', strtotime($current_date));
+            
+            // Check if today is Friday (submission day)
+            $is_friday = ($current_day == 5);
+            
+            if ($is_friday) {
+                // Check if student already submitted today (Friday)
+                $check_sql = "SELECT id, week FROM journal WHERE student_id = ? AND DATE(createdAt) = ?";
+                $check_stmt = $conn->prepare($check_sql);
+                $check_stmt->bindParam(1, $student_id);
+                $check_stmt->bindParam(2, $current_date);
+                $check_stmt->execute();
+                $today_journal = $check_stmt->fetch(PDO::FETCH_ASSOC);
+                
+                if ($today_journal) {
+                    // Already submitted today, show next week
+                    return json_encode([
+                        'success' => true,
+                        'week' => (int)$today_journal['week'] + 1,
+                        'already_submitted' => true,
+                        'message' => 'Already submitted for this Friday'
+                    ]);
+                } else {
+                    // Check if student has any previous journals to determine current week
+                    $latest_sql = "SELECT MAX(CAST(week AS UNSIGNED)) as latest_week FROM journal WHERE student_id = ?";
+                    $latest_stmt = $conn->prepare($latest_sql);
+                    $latest_stmt->bindParam(1, $student_id);
+                    $latest_stmt->execute();
+                    $latest_result = $latest_stmt->fetch(PDO::FETCH_ASSOC);
+                    
+                    $latest_week = $latest_result['latest_week'] ? (int)$latest_result['latest_week'] : 0;
+                    $current_week = $latest_week + 1;
+                    
+                    return json_encode([
+                        'success' => true,
+                        'week' => $current_week,
+                        'already_submitted' => false,
+                        'message' => 'Ready for Friday submission'
+                    ]);
+                }
+            } else {
+                // Not Friday, get the latest week for display purposes
+                $latest_sql = "SELECT MAX(CAST(week AS UNSIGNED)) as latest_week FROM journal WHERE student_id = ?";
+                $latest_stmt = $conn->prepare($latest_sql);
+                $latest_stmt->bindParam(1, $student_id);
+                $latest_stmt->execute();
+                $latest_result = $latest_stmt->fetch(PDO::FETCH_ASSOC);
+                
+                $latest_week = $latest_result['latest_week'] ? (int)$latest_result['latest_week'] : 0;
+                $next_week = $latest_week + 1;
+                
+                return json_encode([
+                    'success' => true,
+                    'week' => $next_week,
+                    'already_submitted' => false,
+                    'message' => 'Not submission day'
+                ]);
+            }
+            
+        } catch(Exception $e) {
+            return json_encode([
+                'success' => false,
+                'message' => 'Database error: ' . $e->getMessage()
+            ]);
+        }
+    }
+
+    // Save journal entry
+    function saveJournal($json) {
+        include "connection.php";
+        
+        $data = json_decode($json, true);
+        
+        $student_id = $data['student_id'];
+        $week = $data['week'];
+        $grateful = $data['grateful'];
+        $proud_of = $data['proud_of'];
+        $look_forward = $data['look_forward'];
+        $felt_this_week = $data['felt_this_week'];
+        $words_inspire = $data['words_inspire'] ?? [];
+        $words_affirmation = $data['words_affirmation'] ?? [];
+        
+        $conn->beginTransaction();
+        
+        try {
+            // Check if journal entry already exists for this week
+            $check_sql = "SELECT id FROM journal WHERE student_id = ? AND week = ?";
+            $check_stmt = $conn->prepare($check_sql);
+            $check_stmt->bindParam(1, $student_id);
+            $check_stmt->bindParam(2, $week);
+            $check_stmt->execute();
+            $existing_row = $check_stmt->fetch(PDO::FETCH_ASSOC);
+            
+            if ($existing_row) {
+                // Update existing journal
+                $journal_id = $existing_row['id'];
+                
+                $sql = "UPDATE journal SET grateful = ?, proud_of = ?, look_forward = ?, felt_this_week = ? WHERE id = ?";
+                $stmt = $conn->prepare($sql);
+                $stmt->bindParam(1, $grateful);
+                $stmt->bindParam(2, $proud_of);
+                $stmt->bindParam(3, $look_forward);
+                $stmt->bindParam(4, $felt_this_week);
+                $stmt->bindParam(5, $journal_id);
+                $stmt->execute();
+                
+                // Delete existing words_inspire and words_affirmation
+                $conn->query("DELETE FROM words_inspire WHERE journal_id = $journal_id");
+                $conn->query("DELETE FROM words_affirmation WHERE journal_id = $journal_id");
+                
+            } else {
+                // Insert new journal
+                $sql = "INSERT INTO journal (student_id, week, grateful, proud_of, look_forward, felt_this_week) VALUES (?, ?, ?, ?, ?, ?)";
+                $stmt = $conn->prepare($sql);
+                $stmt->bindParam(1, $student_id);
+                $stmt->bindParam(2, $week);
+                $stmt->bindParam(3, $grateful);
+                $stmt->bindParam(4, $proud_of);
+                $stmt->bindParam(5, $look_forward);
+                $stmt->bindParam(6, $felt_this_week);
+                $stmt->execute();
+                
+                $journal_id = $conn->lastInsertId();
+            }
+            
+            // Insert words_inspire
+            if (!empty($words_inspire)) {
+                $inspire_sql = "INSERT INTO words_inspire (journal_id, inspire_words) VALUES (?, ?)";
+                $inspire_stmt = $conn->prepare($inspire_sql);
+                
+                foreach ($words_inspire as $word) {
+                    if (!empty(trim($word))) {
+                        $inspire_stmt->bindParam(1, $journal_id);
+                        $inspire_stmt->bindParam(2, $word);
+                        $inspire_stmt->execute();
+                    }
+                }
+            }
+            
+            // Insert words_affirmation
+            if (!empty($words_affirmation)) {
+                if (is_array($words_affirmation)) {
+                    // Handle array of affirmations
+                    $affirmation_sql = "INSERT INTO words_affirmation (journal_id, affirmation_word) VALUES (?, ?)";
+                    $affirmation_stmt = $conn->prepare($affirmation_sql);
+                    
+                    foreach ($words_affirmation as $affirmation) {
+                        if (!empty(trim($affirmation))) {
+                            $affirmation_stmt->bindParam(1, $journal_id);
+                            $affirmation_stmt->bindParam(2, $affirmation);
+                            $affirmation_stmt->execute();
+                        }
+                    }
+                } else {
+                    // Handle string (legacy support)
+                    $affirmation_lines = array_filter(array_map('trim', explode("\n", $words_affirmation)));
+                    
+                    if (!empty($affirmation_lines)) {
+                        $affirmation_sql = "INSERT INTO words_affirmation (journal_id, affirmation_word) VALUES (?, ?)";
+                        $affirmation_stmt = $conn->prepare($affirmation_sql);
+                        
+                        foreach ($affirmation_lines as $line) {
+                            if (!empty($line)) {
+                                $affirmation_stmt->bindParam(1, $journal_id);
+                                $affirmation_stmt->bindParam(2, $line);
+                                $affirmation_stmt->execute();
+                            }
+                        }
+                    }
+                }
+            }
+            
+            $conn->commit();
+            
+            return json_encode([
+                'success' => true,
+                'message' => 'Journal saved successfully'
+            ]);
+            
+        } catch(Exception $e) {
+            $conn->rollBack();
+            return json_encode([
+                'success' => false,
+                'message' => 'Database error: ' . $e->getMessage()
+            ]);
+        }
+    }
+
+    // Get journal entry
+    function getJournal($json) {
+        include "connection.php";
+        
+        $data = json_decode($json, true);
+        $student_id = $data['student_id'];
+        $week = $data['week'];
+        
+        try {
+            // Get journal entry
+            $sql = "SELECT * FROM journal WHERE student_id = ? AND week = ?";
+            $stmt = $conn->prepare($sql);
+            $stmt->bind_param("ss", $student_id, $week);
+            $stmt->execute();
+            $result = $stmt->get_result();
+            
+            if ($result->num_rows === 0) {
+                return json_encode([
+                    'success' => true,
+                    'journal' => null
+                ]);
+            }
+            
+            $journal = $result->fetch_assoc();
+            $journal_id = $journal['id'];
+            
+            // Get words_inspire
+            $inspire_sql = "SELECT inspire_words FROM words_inspire WHERE journal_id = ?";
+            $inspire_stmt = $conn->prepare($inspire_sql);
+            $inspire_stmt->bind_param("i", $journal_id);
+            $inspire_stmt->execute();
+            $inspire_result = $inspire_stmt->get_result();
+            
+            $words_inspire = [];
+            while ($row = $inspire_result->fetch_assoc()) {
+                $words_inspire[] = $row;
+            }
+            
+            // Get words_affirmation
+            $affirmation_sql = "SELECT affirmation_word FROM words_affirmation WHERE journal_id = ?";
+            $affirmation_stmt = $conn->prepare($affirmation_sql);
+            $affirmation_stmt->bind_param("i", $journal_id);
+            $affirmation_stmt->execute();
+            $affirmation_result = $affirmation_stmt->get_result();
+            
+            $words_affirmation = [];
+            while ($row = $affirmation_result->fetch_assoc()) {
+                $words_affirmation[] = $row;
+            }
+            
+            $journal['words_inspire'] = $words_inspire;
+            $journal['words_affirmation'] = $words_affirmation;
+            
+            return json_encode([
+                'success' => true,
+                'journal' => $journal
+            ]);
+            
+        } catch(Exception $e) {
+            return json_encode([
+                'success' => false,
+                'message' => 'Database error: ' . $e->getMessage()
+            ]);
+        }
+    }
 }
 
 $operation = isset($_POST["operation"]) ? $_POST["operation"] : "0";
@@ -874,6 +1138,18 @@ switch ($operation) {
         
     case 'get_sections':
         echo $students->getSections($json);
+        break;
+        
+    case 'get_current_week':
+        echo $students->getCurrentWeek($json);
+        break;
+        
+    case 'save_journal':
+        echo $students->saveJournal($json);
+        break;
+        
+    case 'get_journal':
+        echo $students->getJournal($json);
         break;
         
     default:
