@@ -3,7 +3,7 @@
 -- https://www.phpmyadmin.net/
 --
 -- Host: localhost
--- Generation Time: Jan 22, 2026 at 02:58 PM
+-- Generation Time: Jan 25, 2026 at 12:25 AM
 -- Server version: 10.4.17-MariaDB
 -- PHP Version: 7.2.34
 
@@ -133,15 +133,17 @@ CREATE TABLE `attendance` (
   `attendance_date` date NOT NULL,
   `attendance_timeIn` time NOT NULL,
   `attendance_timeOut` time DEFAULT NULL,
-  `session_id` int(11) NOT NULL
+  `session_id` int(11) NOT NULL,
+  `hours_rendered` decimal(5,2) DEFAULT 0.00
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 --
 -- Dumping data for table `attendance`
 --
 
-INSERT INTO `attendance` (`id`, `student_id`, `attendance_date`, `attendance_timeIn`, `attendance_timeOut`, `session_id`) VALUES
-(3, 'STU-2026-5287', '2026-01-21', '21:09:32', '22:30:18', 2);
+INSERT INTO `attendance` (`id`, `student_id`, `attendance_date`, `attendance_timeIn`, `attendance_timeOut`, `session_id`, `hours_rendered`) VALUES
+(3, 'STU-2026-5287', '2026-01-21', '21:09:32', '22:30:18', 2, '1.35'),
+(4, 'STU-2026-5287', '2026-01-23', '08:53:20', NULL, 2, '0.00');
 
 -- --------------------------------------------------------
 
@@ -201,6 +203,7 @@ CREATE TABLE `partnered_schools` (
   `latitude` decimal(10,8) DEFAULT NULL,
   `longitude` decimal(11,8) DEFAULT NULL,
   `geofencing_radius` int(11) DEFAULT NULL,
+  `school_type` enum('Public','Private') NOT NULL DEFAULT 'Public',
   `isActive` tinyint(1) DEFAULT 1
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
@@ -208,8 +211,8 @@ CREATE TABLE `partnered_schools` (
 -- Dumping data for table `partnered_schools`
 --
 
-INSERT INTO `partnered_schools` (`id`, `name`, `address`, `latitude`, `longitude`, `geofencing_radius`, `isActive`) VALUES
-(1, 'Misamis Oriental General Comprehensive High School', 'Misamis Oriental General Comprehensive High School, Don Apolinar Velez Street, Barangay 16, Poblacion, Cagayan de Oro, Northern Mindanao, 9000, Philippines', '8.48325080', '124.64726280', 80, 1);
+INSERT INTO `partnered_schools` (`id`, `name`, `address`, `latitude`, `longitude`, `geofencing_radius`, `school_type`, `isActive`) VALUES
+(1, 'Misamis Oriental General Comprehensive High School', 'Misamis Oriental General Comprehensive High School, Don Apolinar Velez Street, Barangay 16, Poblacion, Cagayan de Oro, Northern Mindanao, 9000, Philippines', '8.48325080', '124.64726280', 80, 'Public', 1);
 
 -- --------------------------------------------------------
 
@@ -232,8 +235,17 @@ CREATE TABLE `practicum_checklist` (
 CREATE TABLE `practicum_subjects` (
   `id` int(11) NOT NULL,
   `subject_name` varchar(255) NOT NULL,
-  `subject_rendered` varchar(255) DEFAULT NULL
+  `subject_rendered` varchar(255) DEFAULT NULL,
+  `total_hours_required` int(11) DEFAULT 360,
+  `shift_hours_required` int(11) DEFAULT 180
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+--
+-- Dumping data for table `practicum_subjects`
+--
+
+INSERT INTO `practicum_subjects` (`id`, `subject_name`, `subject_rendered`, `total_hours_required`, `shift_hours_required`) VALUES
+(1, 'Intern Subject', NULL, 360, 180);
 
 -- --------------------------------------------------------
 
@@ -545,7 +557,7 @@ ALTER TABLE `assignments`
 -- AUTO_INCREMENT for table `attendance`
 --
 ALTER TABLE `attendance`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=4;
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=5;
 
 --
 -- AUTO_INCREMENT for table `journal`
@@ -581,7 +593,7 @@ ALTER TABLE `practicum_checklist`
 -- AUTO_INCREMENT for table `practicum_subjects`
 --
 ALTER TABLE `practicum_subjects`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT;
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=2;
 
 --
 -- AUTO_INCREMENT for table `school_years`

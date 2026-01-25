@@ -599,24 +599,61 @@ class Coordinators {
         }
     }
     
-    // Approve student
+    // Approve student (only if student belongs to coordinator's section)
     function approveStudent($json) {
         include "connection.php";
         
         $data = json_decode($json, true);
         $school_id = isset($data['school_id']) ? $data['school_id'] : '';
+        $coordinator_id = isset($data['coordinator_id']) ? $data['coordinator_id'] : '';
         
-        if (empty($school_id)) {
+        if (empty($school_id) || empty($coordinator_id)) {
             return json_encode([
                 'success' => false,
-                'message' => 'Student ID is required'
+                'message' => 'Student ID and Coordinator ID are required'
             ]);
         }
         
         try {
-            $sql = "UPDATE users SET approval_status = 'approved' WHERE school_id = ? AND level_id = 4";
+            // Get coordinator's section_id
+            $coordinator_sql = "SELECT section_id FROM users WHERE school_id = ? AND level_id = 3";
+            $coordinator_stmt = $conn->prepare($coordinator_sql);
+            $coordinator_stmt->execute([$coordinator_id]);
+            $coordinator = $coordinator_stmt->fetch(PDO::FETCH_ASSOC);
+            
+            if (!$coordinator || empty($coordinator['section_id'])) {
+                return json_encode([
+                    'success' => false,
+                    'message' => 'Coordinator not found or no section assigned'
+                ]);
+            }
+            
+            $coordinator_section_id = $coordinator['section_id'];
+            
+            // Verify student belongs to coordinator's section
+            $verify_sql = "SELECT section_id FROM users WHERE school_id = ? AND level_id = 4";
+            $verify_stmt = $conn->prepare($verify_sql);
+            $verify_stmt->execute([$school_id]);
+            $student = $verify_stmt->fetch(PDO::FETCH_ASSOC);
+            
+            if (!$student) {
+                return json_encode([
+                    'success' => false,
+                    'message' => 'Student not found'
+                ]);
+            }
+            
+            if ($student['section_id'] != $coordinator_section_id) {
+                return json_encode([
+                    'success' => false,
+                    'message' => 'You can only approve students from your assigned section'
+                ]);
+            }
+            
+            // Approve the student
+            $sql = "UPDATE users SET isApproved = 1 WHERE school_id = ? AND level_id = 4 AND section_id = ?";
             $stmt = $conn->prepare($sql);
-            $result = $stmt->execute([$school_id]);
+            $result = $stmt->execute([$school_id, $coordinator_section_id]);
             
             if ($result) {
                 return json_encode([
@@ -638,24 +675,61 @@ class Coordinators {
         }
     }
     
-    // Decline student
+    // Decline student (only if student belongs to coordinator's section)
     function declineStudent($json) {
         include "connection.php";
         
         $data = json_decode($json, true);
         $school_id = isset($data['school_id']) ? $data['school_id'] : '';
+        $coordinator_id = isset($data['coordinator_id']) ? $data['coordinator_id'] : '';
         
-        if (empty($school_id)) {
+        if (empty($school_id) || empty($coordinator_id)) {
             return json_encode([
                 'success' => false,
-                'message' => 'Student ID is required'
+                'message' => 'Student ID and Coordinator ID are required'
             ]);
         }
         
         try {
-            $sql = "UPDATE users SET approval_status = 'declined' WHERE school_id = ? AND level_id = 4";
+            // Get coordinator's section_id
+            $coordinator_sql = "SELECT section_id FROM users WHERE school_id = ? AND level_id = 3";
+            $coordinator_stmt = $conn->prepare($coordinator_sql);
+            $coordinator_stmt->execute([$coordinator_id]);
+            $coordinator = $coordinator_stmt->fetch(PDO::FETCH_ASSOC);
+            
+            if (!$coordinator || empty($coordinator['section_id'])) {
+                return json_encode([
+                    'success' => false,
+                    'message' => 'Coordinator not found or no section assigned'
+                ]);
+            }
+            
+            $coordinator_section_id = $coordinator['section_id'];
+            
+            // Verify student belongs to coordinator's section
+            $verify_sql = "SELECT section_id FROM users WHERE school_id = ? AND level_id = 4";
+            $verify_stmt = $conn->prepare($verify_sql);
+            $verify_stmt->execute([$school_id]);
+            $student = $verify_stmt->fetch(PDO::FETCH_ASSOC);
+            
+            if (!$student) {
+                return json_encode([
+                    'success' => false,
+                    'message' => 'Student not found'
+                ]);
+            }
+            
+            if ($student['section_id'] != $coordinator_section_id) {
+                return json_encode([
+                    'success' => false,
+                    'message' => 'You can only decline students from your assigned section'
+                ]);
+            }
+            
+            // Decline the student
+            $sql = "UPDATE users SET isApproved = 0 WHERE school_id = ? AND level_id = 4 AND section_id = ?";
             $stmt = $conn->prepare($sql);
-            $result = $stmt->execute([$school_id]);
+            $result = $stmt->execute([$school_id, $coordinator_section_id]);
             
             if ($result) {
                 return json_encode([

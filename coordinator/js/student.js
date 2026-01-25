@@ -1,11 +1,81 @@
 // Coordinator Student Management JavaScript
 let currentTab = 'pending';
+let pendingAction = null;
 
 // Load data on page load
 document.addEventListener('DOMContentLoaded', function() {
     loadStats();
     loadStudents('pending');
+    
+    // Initialize modal event listeners
+    initializeModal();
 });
+
+// Initialize modal event listeners
+function initializeModal() {
+    const modal = document.getElementById('confirmModal');
+    const closeBtn = document.getElementById('closeConfirmModal');
+    const cancelBtn = document.getElementById('confirmModalCancel');
+    const confirmBtn = document.getElementById('confirmModalConfirm');
+    
+    // Close modal when clicking X or Cancel
+    if (closeBtn) {
+        closeBtn.addEventListener('click', closeConfirmModal);
+    }
+    if (cancelBtn) {
+        cancelBtn.addEventListener('click', closeConfirmModal);
+    }
+    
+    // Execute action when clicking Confirm
+    if (confirmBtn) {
+        confirmBtn.addEventListener('click', executePendingAction);
+    }
+    
+    // Close modal when clicking outside
+    modal.addEventListener('click', function(e) {
+        if (e.target === modal) {
+            closeConfirmModal();
+        }
+    });
+}
+
+// Show confirmation modal
+function showConfirmModal(title, message, confirmText, confirmClass, onConfirm) {
+    const modal = document.getElementById('confirmModal');
+    const titleEl = document.getElementById('confirmModalTitle');
+    const messageEl = document.getElementById('confirmModalMessage');
+    const confirmBtn = document.getElementById('confirmModalConfirm');
+    
+    titleEl.textContent = title;
+    messageEl.textContent = message;
+    confirmBtn.textContent = confirmText;
+    
+    // Remove all classes and add the new one
+    confirmBtn.className = 'px-4 py-2 rounded-md focus:outline-none focus:ring-2 ' + confirmClass;
+    
+    // Store the action to execute
+    pendingAction = onConfirm;
+    
+    // Show modal
+    modal.classList.remove('hidden');
+    modal.classList.add('flex');
+}
+
+// Close confirmation modal
+function closeConfirmModal() {
+    const modal = document.getElementById('confirmModal');
+    modal.classList.add('hidden');
+    modal.classList.remove('flex');
+    pendingAction = null;
+}
+
+// Execute pending action
+function executePendingAction() {
+    if (pendingAction) {
+        pendingAction();
+        closeConfirmModal();
+    }
+}
 
 // Load student statistics for coordinator's section
 function loadStats() {
@@ -230,14 +300,28 @@ function showNotification(message, type) {
 
 // Approve student
 function approveStudent(schoolId) {
-    if (!confirm('Approve this student?')) return;
-    
+    showConfirmModal(
+        'Approve Student',
+        'Are you sure you want to approve this student?',
+        'Approve',
+        'bg-green-600 text-white hover:bg-green-700 focus:ring-green-500',
+        function() {
+            performApproveStudent(schoolId);
+        }
+    );
+}
+
+// Perform the actual approve action
+function performApproveStudent(schoolId) {
     fetch(window.APP_CONFIG.API_BASE_URL + 'coordinator.php', {
         method: 'POST',
         headers: {
             'Content-Type': 'application/x-www-form-urlencoded',
         },
-        body: `operation=approve&json=${encodeURIComponent(JSON.stringify({school_id: schoolId}))}`
+        body: `operation=approve&json=${encodeURIComponent(JSON.stringify({
+            school_id: schoolId,
+            coordinator_id: coordinatorId
+        }))}`
     })
     .then(response => response.json())
     .then(data => {
@@ -257,14 +341,28 @@ function approveStudent(schoolId) {
 
 // Decline student
 function declineStudent(schoolId) {
-    if (!confirm('Decline this student?')) return;
-    
+    showConfirmModal(
+        'Decline Student',
+        'Are you sure you want to decline this student?',
+        'Decline',
+        'bg-red-600 text-white hover:bg-red-700 focus:ring-red-500',
+        function() {
+            performDeclineStudent(schoolId);
+        }
+    );
+}
+
+// Perform the actual decline action
+function performDeclineStudent(schoolId) {
     fetch(window.APP_CONFIG.API_BASE_URL + 'coordinator.php', {
         method: 'POST',
         headers: {
             'Content-Type': 'application/x-www-form-urlencoded',
         },
-        body: `operation=decline&json=${encodeURIComponent(JSON.stringify({school_id: schoolId}))}`
+        body: `operation=decline&json=${encodeURIComponent(JSON.stringify({
+            school_id: schoolId,
+            coordinator_id: coordinatorId
+        }))}`
     })
     .then(response => response.json())
     .then(data => {

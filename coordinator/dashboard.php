@@ -116,94 +116,65 @@ $current_page = 'dashboard';
                         </p>
                     </div>
 
-                    <!-- Dashboard Cards -->
-                    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
-                        <div class="card-hover bg-white p-6 rounded-lg shadow cursor-pointer" onclick="loadStudents()">
-                            <div class="w-12 h-12 bg-blue-100 rounded-lg flex items-center justify-center mb-4">
-                                <i class="fas fa-user-graduate text-blue-600 text-xl"></i>
+                    <!-- Recent Activity Section -->
+                    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
+                        <!-- Recent Student Registration Approval Request -->
+                        <div class="bg-white rounded-lg shadow">
+                            <div class="px-6 py-4 border-b border-gray-200">
+                                <h3 class="text-lg font-semibold text-gray-900 flex items-center">
+                                    <i class="fas fa-user-check text-yellow-500 mr-2"></i>
+                                    Recent Student Registration Requests
+                                </h3>
+                                <p class="text-sm text-gray-600 mt-1">Pending approval requests in your section</p>
                             </div>
-                            <h3 class="text-lg font-semibold text-gray-900 mb-2">Student Management</h3>
-                            <p class="text-gray-600 text-sm mb-4">View and manage students in your assigned sections</p>
-                            <button class="w-full px-4 py-2 border border-gray-300 rounded-md text-sm font-medium text-gray-700 bg-white hover:bg-gray-50">
-                                Manage Students
-                            </button>
+                            <div class="p-6">
+                                <div id="recent-registrations" class="space-y-2">
+                                    <div class="text-center py-4 text-gray-500">
+                                        <i class="fas fa-spinner fa-spin"></i>
+                                        <p class="mt-2">Loading...</p>
+                                    </div>
+                                </div>
+                            </div>
                         </div>
 
-                        <div class="card-hover bg-white p-6 rounded-lg shadow cursor-pointer" onclick="loadAttendance()">
-                            <div class="w-12 h-12 bg-green-100 rounded-lg flex items-center justify-center mb-4">
-                                <i class="fas fa-clock text-green-600 text-xl"></i>
+                        <!-- Latest Attendance Logs (Realtime) -->
+                        <div class="bg-white rounded-lg shadow">
+                            <div class="px-6 py-4 border-b border-gray-200">
+                                <h3 class="text-lg font-semibold text-gray-900 flex items-center">
+                                    <i class="fas fa-clock text-green-500 mr-2"></i>
+                                    Latest Attendance Logs
+                                    <span class="ml-2 text-xs bg-green-100 text-green-800 px-2 py-1 rounded-full">Live</span>
+                                </h3>
+                                <p class="text-sm text-gray-600 mt-1">Today's attendance activities in your section</p>
                             </div>
-                            <h3 class="text-lg font-semibold text-gray-900 mb-2">Attendance Monitoring</h3>
-                            <p class="text-gray-600 text-sm mb-4">Verify attendance accuracy and completeness</p>
-                            <button class="w-full px-4 py-2 border border-gray-300 rounded-md text-sm font-medium text-gray-700 bg-white hover:bg-gray-50">
-                                View Attendance
-                            </button>
-                        </div>
-
-                        <div class="card-hover bg-white p-6 rounded-lg shadow cursor-pointer" onclick="loadJournals()">
-                            <div class="w-12 h-12 bg-purple-100 rounded-lg flex items-center justify-center mb-4">
-                                <i class="fas fa-book text-purple-600 text-xl"></i>
+                            <div class="p-6">
+                                <div id="attendance-logs" class="space-y-2">
+                                    <div class="text-center py-4 text-gray-500">
+                                        <i class="fas fa-spinner fa-spin"></i>
+                                        <p class="mt-2">Loading...</p>
+                                    </div>
+                                </div>
                             </div>
-                            <h3 class="text-lg font-semibold text-gray-900 mb-2">Journal Review</h3>
-                            <p class="text-gray-600 text-sm mb-4">Review and approve practicum journal submissions</p>
-                            <button class="w-full px-4 py-2 border border-gray-300 rounded-md text-sm font-medium text-gray-700 bg-white hover:bg-gray-50">
-                                Review Journals
-                            </button>
-                        </div>
-
-                        <div class="card-hover bg-white p-6 rounded-lg shadow cursor-pointer" onclick="loadChecklist()">
-                            <div class="w-12 h-12 bg-orange-100 rounded-lg flex items-center justify-center mb-4">
-                                <i class="fas fa-tasks text-orange-600 text-xl"></i>
-                            </div>
-                            <h3 class="text-lg font-semibold text-gray-900 mb-2">Practicum Checklist</h3>
-                            <p class="text-gray-600 text-sm mb-4">Track practicum checklist completion</p>
-                            <button class="w-full px-4 py-2 border border-gray-300 rounded-md text-sm font-medium text-gray-700 bg-white hover:bg-gray-50">
-                                View Checklists
-                            </button>
-                        </div>
-
-                        <div class="card-hover bg-white p-6 rounded-lg shadow cursor-pointer" onclick="loadReports()">
-                            <div class="w-12 h-12 bg-teal-100 rounded-lg flex items-center justify-center mb-4">
-                                <i class="fas fa-chart-line text-teal-600 text-xl"></i>
-                            </div>
-                            <h3 class="text-lg font-semibold text-gray-900 mb-2">Reports</h3>
-                            <p class="text-gray-600 text-sm mb-4">Generate compliance and progress reports</p>
-                            <button class="w-full px-4 py-2 border border-gray-300 rounded-md text-sm font-medium text-gray-700 bg-white hover:bg-gray-50">
-                                View Reports
-                            </button>
-                        </div>
-
-                        <div class="card-hover bg-white p-6 rounded-lg shadow cursor-pointer" onclick="loadSchoolInfo()">
-                            <div class="w-12 h-12 bg-indigo-100 rounded-lg flex items-center justify-center mb-4">
-                                <i class="fas fa-school text-indigo-600 text-xl"></i>
-                            </div>
-                            <h3 class="text-lg font-semibold text-gray-900 mb-2">Partnered School</h3>
-                            <p class="text-gray-600 text-sm mb-4">View assigned partnered school information</p>
-                            <button class="w-full px-4 py-2 border border-gray-300 rounded-md text-sm font-medium text-gray-700 bg-white hover:bg-gray-50">
-                                School Details
-                            </button>
                         </div>
                     </div>
 
-                    <!-- Quick Stats -->
-                    <div class="bg-white p-6 rounded-lg shadow">
-                        <h3 class="text-xl font-semibold text-gray-900 mb-6">Coordinator Overview</h3>
-                        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-                            <div class="text-center">
-                                <div class="text-3xl font-bold text-blue-600 mb-2" id="totalStudents">-</div>
-                                <div class="text-gray-600">Total Students</div>
-                            </div>
-                            <div class="text-center">
-                                <div class="text-3xl font-bold text-green-600 mb-2" id="totalSections">-</div>
-                                <div class="text-gray-600">Assigned Sections</div>
-                            </div>
-                            <div class="text-center">
-                                <div class="text-3xl font-bold text-purple-600 mb-2" id="attendanceToday">-</div>
-                                <div class="text-gray-600">Today's Attendance</div>
-                            </div>
-                            <div class="text-center">
-                                <div class="text-3xl font-bold text-orange-600 mb-2" id="pendingJournals">-</div>
-                                <div class="text-gray-600">Pending Journals</div>
+                    <!-- Section Student Attendance Overview -->
+                    <div class="bg-white rounded-lg shadow">
+                        <div class="px-6 py-4 border-b border-gray-200">
+                            <h3 class="text-lg font-semibold text-gray-900 flex items-center">
+                                <i class="fas fa-users text-blue-500 mr-2"></i>
+                                Your Section Student Attendance Overview
+                            </h3>
+                            <p class="text-sm text-gray-600 mt-1">
+                                <span id="current-session">2025-2026</span> OJT Students - Day 1
+                            </p>
+                        </div>
+                        <div class="p-6">
+                            <div id="section-overview" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                                <div class="text-center py-8 text-gray-500 col-span-full">
+                                    <i class="fas fa-spinner fa-spin"></i>
+                                    <p class="mt-2">Loading section data...</p>
+                                </div>
                             </div>
                         </div>
                     </div>
@@ -211,6 +182,24 @@ $current_page = 'dashboard';
             </main>
         </div>
     </div>
+
+    <!-- Section Details Modal -->
+    <div id="sectionDetailsModal" class="hidden fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50 flex justify-center items-center">
+        <div class="relative p-5 border w-11/12 md:w-2/3 lg:w-1/2 xl:w-2/5 shadow-lg rounded-lg bg-white mx-4 my-8">
+            <div class="flex justify-between items-center pb-3 border-b border-gray-200 mb-4">
+                <h3 id="sectionModalTitle" class="text-xl font-semibold text-gray-900"></h3>
+                <button id="closeModalBtn" class="text-gray-400 hover:text-gray-600 focus:outline-none">
+                    <i class="fas fa-times text-2xl"></i>
+                </button>
+            </div>
+            <div id="sectionModalBody" class="max-h-[70vh] overflow-y-auto pr-2">
+                <!-- Content will be dynamically loaded here -->
+            </div>
+        </div>
+    </div>
+
+    <!-- Include dashboard.js -->
+    <script src="../teacher/js/dashboard.js"></script>
 
     <script>
         // Mobile sidebar functionality
@@ -229,78 +218,15 @@ $current_page = 'dashboard';
             document.body.style.overflow = 'auto';
         }
 
-        mobileMenuBtn.addEventListener('click', openMobileSidebar);
-        closeMobileSidebar.addEventListener('click', closeMobileSidebarFunc);
-        mobileSidebarOverlay.addEventListener('click', closeMobileSidebarFunc);
-
-        // Load dashboard statistics
-        function loadDashboardStats() {
-            const coordinatorId = '<?php echo $coordinator_id; ?>';
-            
-            fetch('<?php 
-                $base_url = dirname(dirname($_SERVER['SCRIPT_NAME']));
-                if ($base_url == '/') $base_url = '';
-                $base_url = 'http://' . $_SERVER['HTTP_HOST'] . $base_url;
-                echo $base_url; 
-            ?>/api/coordinator.php', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/x-www-form-urlencoded',
-                },
-                body: new URLSearchParams({
-                    operation: 'get_dashboard_stats',
-                    json: JSON.stringify({ coordinator_id: coordinatorId })
-                })
-            })
-            .then(response => response.json())
-            .then(result => {
-                if (result.success) {
-                    const data = result.data;
-                    document.getElementById('totalStudents').textContent = data.total_students;
-                    document.getElementById('totalSections').textContent = data.total_sections;
-                    document.getElementById('attendanceToday').textContent = data.attendance_today;
-                    document.getElementById('pendingJournals').textContent = data.pending_journals;
-                } else {
-                    console.error('Failed to load stats:', result.message);
-                }
-            })
-            .catch(error => {
-                console.error('Error loading stats:', error);
-            });
+        if (mobileMenuBtn) {
+            mobileMenuBtn.addEventListener('click', openMobileSidebar);
         }
-
-        // Navigation functions
-        <?php 
-            $base_url = dirname(dirname($_SERVER['SCRIPT_NAME']));
-            if ($base_url == '/') $base_url = '';
-            $base_url = 'http://' . $_SERVER['HTTP_HOST'] . $base_url;
-        ?>
-        function loadStudents() {
-            window.location.href = '<?php echo $base_url; ?>/coordinator/pages/student.php';
+        if (closeMobileSidebar) {
+            closeMobileSidebar.addEventListener('click', closeMobileSidebarFunc);
         }
-
-        function loadAttendance() {
-            window.location.href = '<?php echo $base_url; ?>/coordinator/attendance.php';
+        if (mobileSidebarOverlay) {
+            mobileSidebarOverlay.addEventListener('click', closeMobileSidebarFunc);
         }
-
-        function loadJournals() {
-            window.location.href = '<?php echo $base_url; ?>/coordinator/journals.php';
-        }
-
-        function loadReports() {
-            window.location.href = '<?php echo $base_url; ?>/coordinator/reports.php';
-        }
-
-        function loadChecklist() {
-            window.location.href = '<?php echo $base_url; ?>/coordinator/checklist.php';
-        }
-
-        function loadSchoolInfo() {
-            window.location.href = '<?php echo $base_url; ?>/coordinator/school.php';
-        }
-
-        // Load stats on page load
-        document.addEventListener('DOMContentLoaded', loadDashboardStats);
     </script>
 </body>
 </html>

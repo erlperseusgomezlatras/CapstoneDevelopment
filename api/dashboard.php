@@ -82,28 +82,73 @@ class Dashboard {
         }
     }
     
-    // Get latest attendance logs (realtime)
+    // Get latest attendance logs (realtime, dynamic based on user level)
     function getLatestAttendanceLogs($json) {
         include "connection.php";
         
+        // Get user data from session or cookie to determine user level and ID
+        $user_id = $_SESSION['user_id'] ?? null;
+        $user_role = $_SESSION['user_role'] ?? null;
+        
+        if (!$user_id && isset($_COOKIE['userData'])) {
+            $userData = json_decode($_COOKIE['userData'], true);
+            $user_id = $userData['school_id'] ?? null;
+            $user_role = $userData['level'] ?? null;
+        }
+        
         try {
-            // Get latest attendance logs for today (last 20)
-            $sql = "SELECT a.student_id, a.attendance_date, a.attendance_timeIn, a.attendance_timeOut,
-                           u.firstname, u.lastname, s.section_name
-                    FROM attendance a
-                    INNER JOIN users u ON a.student_id = u.school_id
-                    LEFT JOIN sections s ON u.section_id = s.id
-                    WHERE a.attendance_date = CURDATE()
-                    ORDER BY a.attendance_timeIn DESC, a.attendance_timeOut DESC
-                    LIMIT 20";
+            // Dynamic query based on user level
+            if ($user_role === 'Coordinator') {
+                // Get coordinator's section_id from users table
+                $section_sql = "SELECT section_id FROM users WHERE school_id = ? AND level_id = 3";
+                $section_stmt = $conn->prepare($section_sql);
+                $section_stmt->execute([$user_id]);
+                $coordinator = $section_stmt->fetch(PDO::FETCH_ASSOC);
+                
+                if (!$coordinator || empty($coordinator['section_id'])) {
+                    return json_encode([
+                        'success' => true,
+                        'data' => [],
+                        'user_level' => $user_role,
+                        'message' => 'No section assigned to coordinator'
+                    ]);
+                }
+                
+                $section_id = $coordinator['section_id'];
+                
+                // Get latest attendance logs for coordinator's section only
+                $sql = "SELECT a.student_id, a.attendance_date, a.attendance_timeIn, a.attendance_timeOut,
+                               u.firstname, u.lastname, s.section_name
+                        FROM attendance a
+                        INNER JOIN users u ON a.student_id = u.school_id
+                        LEFT JOIN sections s ON u.section_id = s.id
+                        WHERE a.attendance_date = CURDATE() AND u.section_id = ?
+                        ORDER BY a.attendance_timeIn DESC, a.attendance_timeOut DESC
+                        LIMIT 20";
+                
+                $stmt = $conn->prepare($sql);
+                $stmt->execute([$section_id]);
+            } else {
+                // Get latest attendance logs for all sections (Head Teacher)
+                $sql = "SELECT a.student_id, a.attendance_date, a.attendance_timeIn, a.attendance_timeOut,
+                               u.firstname, u.lastname, s.section_name
+                        FROM attendance a
+                        INNER JOIN users u ON a.student_id = u.school_id
+                        LEFT JOIN sections s ON u.section_id = s.id
+                        WHERE a.attendance_date = CURDATE()
+                        ORDER BY a.attendance_timeIn DESC, a.attendance_timeOut DESC
+                        LIMIT 20";
+                
+                $stmt = $conn->prepare($sql);
+                $stmt->execute();
+            }
             
-            $stmt = $conn->prepare($sql);
-            $stmt->execute();
             $logs = $stmt->fetchAll(PDO::FETCH_ASSOC);
             
             return json_encode([
                 'success' => true,
-                'data' => $logs
+                'data' => $logs,
+                'user_level' => $user_role
             ]);
             
         } catch(PDOException $e) {
@@ -114,9 +159,19 @@ class Dashboard {
         }
     }
     
-    // Get section attendance overview
+    // Get section attendance overview (dynamic based on user level)
     function getSectionAttendanceOverview($json) {
         include "connection.php";
+        
+        // Get user data from session or cookie to determine user level and ID
+        $user_id = $_SESSION['user_id'] ?? null;
+        $user_role = $_SESSION['user_role'] ?? null;
+        
+        if (!$user_id && isset($_COOKIE['userData'])) {
+            $userData = json_decode($_COOKIE['userData'], true);
+            $user_id = $userData['school_id'] ?? null;
+            $user_role = $userData['level'] ?? null;
+        }
         
         try {
             // Get active academic session
@@ -134,26 +189,64 @@ class Dashboard {
             
             $session_id = $active_session['academic_session_id'];
             
-            // Get sections with student counts and attendance for today
-            $sql = "SELECT s.id as section_id, s.section_name,
-                           COUNT(DISTINCT u.school_id) as total_students,
-                           COUNT(DISTINCT CASE WHEN a.student_id IS NOT NULL THEN u.school_id END) as present_students
-                    FROM sections s
-                    LEFT JOIN users u ON s.id = u.section_id AND u.level_id = 4 AND u.isApproved = 1
-                    LEFT JOIN attendance a ON u.school_id = a.student_id 
-                                          AND a.attendance_date = CURDATE() 
-                                          AND a.session_id = ?
-                    WHERE s.id IS NOT NULL
-                    GROUP BY s.id, s.section_name
-                    ORDER BY s.section_name";
+            // Dynamic query based on user level
+            if ($user_role === 'Coordinator') {
+                // Get coordinator's section_id from users table
+                $section_sql = "SELECT section_id FROM users WHERE school_id = ? AND level_id = 3";
+                $section_stmt = $conn->prepare($section_sql);
+                $section_stmt->execute([$user_id]);
+                $coordinator = $section_stmt->fetch(PDO::FETCH_ASSOC);
+                
+                if (!$coordinator || empty($coordinator['section_id'])) {
+                    return json_encode([
+                        'success' => true,
+                        'data' => [],
+                        'user_level' => $user_role,
+                        'message' => 'No section assigned to coordinator'
+                    ]);
+                }
+                
+                $section_id = $coordinator['section_id'];
+                
+                // Get only the coordinator's assigned section
+                $sql = "SELECT s.id as section_id, s.section_name,
+                               COUNT(DISTINCT u.school_id) as total_students,
+                               COUNT(DISTINCT CASE WHEN a.student_id IS NOT NULL THEN u.school_id END) as present_students
+                        FROM sections s
+                        LEFT JOIN users u ON s.id = u.section_id AND u.level_id = 4 AND u.isApproved = 1
+                        LEFT JOIN attendance a ON u.school_id = a.student_id 
+                                              AND a.attendance_date = CURDATE() 
+                                              AND a.session_id = ?
+                        WHERE s.id = ?
+                        GROUP BY s.id, s.section_name
+                        ORDER BY s.section_name";
+                
+                $stmt = $conn->prepare($sql);
+                $stmt->execute([$session_id, $section_id]);
+            } else {
+                // Get all sections for Head Teacher
+                $sql = "SELECT s.id as section_id, s.section_name,
+                               COUNT(DISTINCT u.school_id) as total_students,
+                               COUNT(DISTINCT CASE WHEN a.student_id IS NOT NULL THEN u.school_id END) as present_students
+                        FROM sections s
+                        LEFT JOIN users u ON s.id = u.section_id AND u.level_id = 4 AND u.isApproved = 1
+                        LEFT JOIN attendance a ON u.school_id = a.student_id 
+                                              AND a.attendance_date = CURDATE() 
+                                              AND a.session_id = ?
+                        WHERE s.id IS NOT NULL
+                        GROUP BY s.id, s.section_name
+                        ORDER BY s.section_name";
+                
+                $stmt = $conn->prepare($sql);
+                $stmt->execute([$session_id]);
+            }
             
-            $stmt = $conn->prepare($sql);
-            $stmt->execute([$session_id]);
             $sections = $stmt->fetchAll(PDO::FETCH_ASSOC);
             
             return json_encode([
                 'success' => true,
-                'data' => $sections
+                'data' => $sections,
+                'user_level' => $user_role
             ]);
             
         } catch(PDOException $e) {

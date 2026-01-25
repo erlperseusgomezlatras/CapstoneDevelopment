@@ -149,6 +149,29 @@ error_log("Coordinator section_id: $coordinator_section_id");
         </main>
     </div>
     
+    <!-- Confirmation Modal -->
+    <div id="confirmModal" class="hidden fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50 flex justify-center items-center">
+        <div class="relative p-5 border w-11/12 md:w-1/2 lg:w-1/3 shadow-lg rounded-lg bg-white mx-4 my-8">
+            <div class="flex justify-between items-center pb-3 border-b border-gray-200 mb-4">
+                <h3 id="confirmModalTitle" class="text-xl font-semibold text-gray-900"></h3>
+                <button id="closeConfirmModal" class="text-gray-400 hover:text-gray-600 focus:outline-none">
+                    <i class="fas fa-times text-2xl"></i>
+                </button>
+            </div>
+            <div id="confirmModalBody" class="mb-6">
+                <p id="confirmModalMessage" class="text-gray-700"></p>
+            </div>
+            <div class="flex justify-end space-x-3">
+                <button id="confirmModalCancel" class="px-4 py-2 bg-gray-300 text-gray-700 rounded-md hover:bg-gray-400 focus:outline-none focus:ring-2 focus:ring-gray-500">
+                    Cancel
+                </button>
+                <button id="confirmModalConfirm" class="px-4 py-2 rounded-md focus:outline-none focus:ring-2">
+                    Confirm
+                </button>
+            </div>
+        </div>
+    </div>
+    
     <!-- Global JavaScript Variables -->
     <script>
         const coordinatorId = '<?php echo $userData['school_id']; ?>';
