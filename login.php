@@ -43,6 +43,78 @@ function generateCaptcha() {
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <link rel="stylesheet" href="assets/css/login.css">
     <script src="assets/js/config.js"></script>
+    
+    <!-- jQuery (required for Select2) -->
+    <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
+    
+    <!-- Select2 CSS and JS -->
+    <link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
+    <script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
+    
+    <!-- Custom Select2 Styling -->
+    <style>
+        /* Select2 custom styling to match Tailwind */
+        .select2-container--default .select2-selection--single {
+            height: 48px !important;
+            border: 1px solid #d1d5db !important;
+            border-radius: 0.5rem !important;
+            padding: 0.75rem 1rem !important;
+            display: flex !important;
+            align-items: center !important;
+        }
+        
+        .select2-container--default .select2-selection--single .select2-selection__rendered {
+            line-height: 1.5 !important;
+            padding-left: 0 !important;
+            color: #111827 !important;
+        }
+        
+        .select2-container--default .select2-selection--single .select2-selection__arrow {
+            height: 46px !important;
+            right: 10px !important;
+        }
+        
+        .select2-container--default.select2-container--focus .select2-selection--single {
+            border-color: #058643 !important;
+            box-shadow: 0 0 0 3px rgba(5, 134, 67, 0.1) !important;
+        }
+        
+        .select2-dropdown {
+            border: 1px solid #d1d5db !important;
+            border-radius: 0.5rem !important;
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1) !important;
+        }
+        
+        .select2-search--dropdown .select2-search__field {
+            border: 1px solid #d1d5db !important;
+            border-radius: 0.375rem !important;
+            padding: 0.5rem !important;
+        }
+        
+        .select2-search--dropdown .select2-search__field:focus {
+            border-color: #058643 !important;
+            outline: none !important;
+            box-shadow: 0 0 0 3px rgba(5, 134, 67, 0.1) !important;
+        }
+        
+        .select2-results__option {
+            padding: 0.75rem 1rem !important;
+        }
+        
+        .select2-results__option--highlighted {
+            background-color: #058643 !important;
+            color: white !important;
+        }
+        
+        .select2-container--default .select2-results__option--selected {
+            background-color: #e6f4ed !important;
+            color: #058643 !important;
+        }
+        
+        .select2-container {
+            width: 100% !important;
+        }
+    </style>
 </head>
 <body>
 
@@ -160,6 +232,13 @@ function generateCaptcha() {
                     <div class="form-group">
                         <label for="schoolId">School ID *</label>
                         <input type="text" id="schoolId" name="schoolId" required placeholder="Enter your School ID">
+                    </div>
+
+                    <div class="form-group">
+                        <label for="section">Section *</label>
+                        <select id="section" name="section" required>
+                            <option value="">Select Section</option>
+                        </select>
                     </div>
 
                     <div class="form-group">
@@ -296,6 +375,7 @@ function showStep(step) {
             break;
         case 'registration':
             registrationStep.style.display = 'block';
+            loadSections(); // Load sections when registration step is shown
             break;
         case 'pending':
             pendingStep.style.display = 'block';
@@ -476,14 +556,51 @@ async function verifyEmail() {
     }
 }
 
+// Load sections for registration dropdown
+async function loadSections() {
+    try {
+        const formData = new FormData();
+        formData.append('operation', 'get_sections');
+        formData.append('json', JSON.stringify({}));
+        
+        const response = await fetch(`${API_URL}/teachers.php`, {
+            method: 'POST',
+            body: formData
+        });
+        
+        const result = await response.json();
+        
+        if (result.success) {
+            const select = document.getElementById('section');
+            if (select) {
+                select.innerHTML = '<option value="">Select Section</option>' +
+                    result.data.map(section => 
+                        `<option value="${section.id}">${section.section_name}</option>`
+                    ).join('');
+                
+                // Initialize Select2
+                $(select).select2({
+                    placeholder: 'Select Section',
+                    allowClear: false,
+                    width: '100%'
+                });
+            }
+        }
+    } catch (error) {
+        console.error('Error loading sections:', error);
+    }
+}
+
 // Create account
 async function createAccount() {
     const firstname = firstnameInput.value.trim();
     const lastname = lastnameInput.value.trim();
     const password = regPasswordInput.value.trim();
+    const sectionSelect = document.getElementById('section');
+    const section = sectionSelect ? $(sectionSelect).val() : '';
     
-    if (!firstname || !lastname || !schoolIdInput.value.trim() || !password) {
-        showError('Please fill in all required fields');
+    if (!firstname || !lastname || !schoolIdInput.value.trim() || !password || !section) {
+        showError('Please fill in all required fields including section');
         return;
     }
     
@@ -503,6 +620,7 @@ async function createAccount() {
                 lastname: lastname,
                 middlename: middlenameInput.value.trim(),
                 schoolId: schoolIdInput.value.trim(),
+                section_id: section,
                 password: password
             })
         });

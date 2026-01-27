@@ -19,20 +19,21 @@ class Students {
         ];
         
         try {
-            // Base query for students
-            $sql = "SELECT school_id, firstname, lastname, email, isApproved 
-                    FROM users 
-                    WHERE level_id = 4";
+            // Base query for students with section information
+            $sql = "SELECT u.school_id, u.firstname, u.lastname, u.email, u.isApproved, u.section_id, s.section_name 
+                    FROM users u 
+                    LEFT JOIN sections s ON u.section_id = s.id
+                    WHERE u.level_id = 4";
             
             $params = [];
             
             // Add approval status filter
             if ($approval_status !== 'all' && isset($status_map[$approval_status])) {
-                $sql .= " AND isApproved = ?";
+                $sql .= " AND u.isApproved = ?";
                 $params[] = $status_map[$approval_status];
             }
             
-            $sql .= " ORDER BY school_id";
+            $sql .= " ORDER BY u.school_id";
             
             $stmt = $conn->prepare($sql);
             $stmt->execute($params);
@@ -66,20 +67,29 @@ class Students {
         
         try {
             // Check if student exists and is pending
-            $check_sql = "SELECT school_id FROM users WHERE school_id = ? AND level_id = 4 AND isApproved = 0";
+            $check_sql = "SELECT school_id, section_id FROM users WHERE school_id = ? AND level_id = 4 AND isApproved = 0";
             $stmt = $conn->prepare($check_sql);
             $stmt->execute([$data['school_id']]);
-            if (!$stmt->fetch(PDO::FETCH_ASSOC)) {
+            $student = $stmt->fetch(PDO::FETCH_ASSOC);
+            
+            if (!$student) {
                 return json_encode([
                     'success' => false,
                     'message' => 'Student not found or already processed'
                 ]);
             }
             
-            // Approve student
-            $sql = "UPDATE users SET isApproved = 1 WHERE school_id = ? AND level_id = 4";
-            $stmt = $conn->prepare($sql);
-            $result = $stmt->execute([$data['school_id']]);
+            // If section_id is provided, update it along with approval
+            if (isset($data['section_id']) && $data['section_id']) {
+                $sql = "UPDATE users SET isApproved = 1, section_id = ? WHERE school_id = ? AND level_id = 4";
+                $stmt = $conn->prepare($sql);
+                $result = $stmt->execute([$data['section_id'], $data['school_id']]);
+            } else {
+                // Just approve without changing section
+                $sql = "UPDATE users SET isApproved = 1 WHERE school_id = ? AND level_id = 4";
+                $stmt = $conn->prepare($sql);
+                $result = $stmt->execute([$data['school_id']]);
+            }
             
             if ($result) {
                 return json_encode([

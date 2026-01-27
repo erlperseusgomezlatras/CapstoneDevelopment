@@ -1368,17 +1368,28 @@ async function loadPartneredSchoolsForSectionDropdown(selectedSchoolId = null) {
         const result = await response.json();
 
         if (result.success) {
-            const select = document.getElementById('sectionSchoolId');
-            select.innerHTML = '<option value="">-- No Partnered School Assigned --</option>';
+            const select = $('#sectionSchoolId'); // Use jQuery for Select2
+            select.html('<option value="">-- No Partnered School Assigned --</option>');
 
             result.data.forEach(school => {
-                const option = document.createElement('option');
-                option.value = school.id;
-                option.textContent = `${school.name}`;
+                const option = $('<option></option>')
+                    .val(school.id)
+                    .text(`${school.name}`);
                 if (selectedSchoolId && school.id == selectedSchoolId) {
-                    option.selected = true;
+                    option.prop('selected', true);
                 }
-                select.appendChild(option);
+                select.append(option);
+            });
+
+            // Initialize or reinitialize Select2
+            if (select.hasClass('select2-hidden-accessible')) {
+                select.select2('destroy');
+            }
+
+            select.select2({
+                placeholder: '-- No Partnered School Assigned --',
+                allowClear: false,
+                width: '100%'
             });
         }
     } catch (error) {

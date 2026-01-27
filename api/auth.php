@@ -72,7 +72,7 @@ class Auth {
         $data = json_decode($json, true);
         
         try {
-            // Validate school ID is provided
+            // Validate required fields
             if (empty($data['schoolId'])) {
                 return json_encode([
                     'success' => false,
@@ -80,8 +80,15 @@ class Auth {
                 ]);
             }
             
-            $sql = "INSERT INTO users (school_id, level_id, firstname, lastname, middlename, email, password, isApproved) 
-                    VALUES (?, 4, ?, ?, ?, ?, ?, 0)";
+            if (empty($data['section_id'])) {
+                return json_encode([
+                    'success' => false,
+                    'message' => 'Section is required'
+                ]);
+            }
+            
+            $sql = "INSERT INTO users (school_id, level_id, firstname, lastname, middlename, email, password, section_id, isApproved) 
+                    VALUES (?, 4, ?, ?, ?, ?, ?, ?, 0)";
             $stmt = $conn->prepare($sql);
             $hashed_password = password_hash($data['password'], PASSWORD_DEFAULT);
             $result = $stmt->execute([
@@ -90,7 +97,8 @@ class Auth {
                 $data['lastname'],
                 $data['middlename'] ?? null,
                 $data['email'],
-                $hashed_password
+                $hashed_password,
+                $data['section_id']
             ]);
             
             if ($result) {

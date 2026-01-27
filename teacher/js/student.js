@@ -80,6 +80,7 @@ function createStudentTable(students, approvalStatus) {
                         <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Student ID</th>
                         <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Name</th>
                         <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Email</th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Section</th>
                         <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
                         <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
                     </tr>
@@ -93,6 +94,9 @@ function createStudentTable(students, approvalStatus) {
                 <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">${escapeHtml(student.school_id)}</td>
                 <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">${escapeHtml(student.firstname + ' ' + student.lastname)}</td>
                 <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">${escapeHtml(student.email)}</td>
+                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                    ${student.section_name ? escapeHtml(student.section_name) : '<span class="text-yellow-600 italic">No section assigned</span>'}
+                </td>
                 <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${getStatusText(approvalStatus)}</td>
                 <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
                     ${getActionButtons(student, approvalStatus)}
@@ -144,14 +148,29 @@ function createEmptyState(approvalStatus) {
 // Get action buttons based on status
 function getActionButtons(student, approvalStatus) {
     if (approvalStatus === 'pending') {
-        return `
-            <button onclick="approveStudent('${escapeHtml(student.school_id)}')" class="text-green-600 hover:text-green-900 mr-3">
-                <i class="fas fa-check"></i> Approve
-            </button>
-            <button onclick="declineStudent('${escapeHtml(student.school_id)}')" class="text-red-600 hover:text-red-900">
-                <i class="fas fa-times"></i> Decline
-            </button>
-        `;
+        const hasSection = student.section_id && student.section_id !== '0' && student.section_name;
+        
+        if (hasSection) {
+            // Student has section - direct approve
+            return `
+                <button onclick="approveStudent('${escapeHtml(student.school_id)}')" class="text-green-600 hover:text-green-900 mr-3">
+                    <i class="fas fa-check"></i> Approve
+                </button>
+                <button onclick="declineStudent('${escapeHtml(student.school_id)}')" class="text-red-600 hover:text-red-900">
+                    <i class="fas fa-times"></i> Decline
+                </button>
+            `;
+        } else {
+            // Student has no section - approve with assignment
+            return `
+                <button onclick="approveWithSection('${escapeHtml(student.school_id)}')" class="text-blue-600 hover:text-blue-900 mr-3">
+                    <i class="fas fa-user-plus"></i> Assign & Approve
+                </button>
+                <button onclick="declineStudent('${escapeHtml(student.school_id)}')" class="text-red-600 hover:text-red-900">
+                    <i class="fas fa-times"></i> Decline
+                </button>
+            `;
+        }
     } else if (approvalStatus === 'approved') {
         return '<span class="text-green-600"><i class="fas fa-check-circle"></i> Approved</span>';
     } else if (approvalStatus === 'declined') {
@@ -221,21 +240,87 @@ function showNotification(message, type) {
     }, 3000);
 }
 
-// Approve student
-function approveStudent(schoolId) {
-    if (!confirm('Approve this student?')) return;
+// Approve student with section assignment
+function approveWithSection(schoolId) {
+    // Set the school ID in the modal
+    document.getElementById('modalSchoolId').value = schoolId;
+    
+    // Load sections for the dropdown
+    loadSectionsForModal();
+    
+    // Show the modal
+    document.getElementById('sectionModal').classList.remove('hidden');
+}
+
+// Load sections for modal dropdown
+function loadSectionsForModal() {
+    fetch(window.APP_CONFIG.API_BASE_URL + 'students.php', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/x-www-form-urlencoded',
+        },
+        body: 'operation=get_sections&json={}'
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success && data.data) {
+            const select = $('#sectionSelect'); // Use jQuery for Select2
+            select.html('<option value="">Select Section</option>' +
+                data.data.map(section => 
+                    `<option value="${section.id}">${section.section_name}</option>`
+                ).join(''));
+            
+            // Initialize or reinitialize Select2
+            if (select.hasClass('select2-hidden-accessible')) {
+                select.select2('destroy');
+            }
+            
+            select.select2({
+                placeholder: 'Select Section',
+                allowClear: false,
+                width: '100%'
+            });
+        }
+    })
+    .catch(error => {
+        console.error('Error loading sections:', error);
+        showNotification('Error loading sections', 'error');
+    });
+}
+
+// Close section modal
+function closeSectionModal() {
+    document.getElementById('sectionModal').classList.add('hidden');
+    document.getElementById('sectionForm').reset();
+}
+
+// Submit section assignment and approval
+function approveWithSectionSubmit(event) {
+    event.preventDefault();
+    
+    const schoolId = document.getElementById('modalSchoolId').value;
+    const sectionId = $('#sectionSelect').val(); // Use jQuery to get Select2 value
+    
+    if (!sectionId) {
+        showNotification('Please select a section', 'error');
+        return;
+    }
     
     fetch(window.APP_CONFIG.API_BASE_URL + 'students.php', {
         method: 'POST',
         headers: {
             'Content-Type': 'application/x-www-form-urlencoded',
         },
-        body: `operation=approve&json=${encodeURIComponent(JSON.stringify({school_id: schoolId}))}`
+        body: `operation=approve&json=${encodeURIComponent(JSON.stringify({
+            school_id: schoolId,
+            section_id: sectionId
+        }))}`
     })
     .then(response => response.json())
     .then(data => {
         if (data.success) {
-            showNotification('Student approved successfully', 'success');
+            showNotification('Student assigned to section and approved successfully', 'success');
+            closeSectionModal();
             loadStats();
             loadStudents(currentTab);
         } else {
@@ -248,58 +333,136 @@ function approveStudent(schoolId) {
     });
 }
 
+// Custom confirmation dialog
+function showConfirmationDialog(title, message, onConfirm) {
+    const dialog = document.getElementById('confirmationDialog');
+    const titleEl = document.getElementById('dialogTitle');
+    const messageEl = document.getElementById('dialogMessage');
+    const confirmBtn = document.getElementById('confirmButton');
+    const cancelBtn = document.getElementById('cancelButton');
+    
+    // Set dialog content
+    titleEl.textContent = title;
+    messageEl.textContent = message;
+    
+    // Show dialog
+    dialog.classList.remove('hidden');
+    
+    // Remove existing event listeners
+    const newConfirmBtn = confirmBtn.cloneNode(true);
+    const newCancelBtn = cancelBtn.cloneNode(true);
+    confirmBtn.parentNode.replaceChild(newConfirmBtn, confirmBtn);
+    cancelBtn.parentNode.replaceChild(newCancelBtn, cancelBtn);
+    
+    // Add event listeners
+    newConfirmBtn.addEventListener('click', function() {
+        dialog.classList.add('hidden');
+        onConfirm();
+    });
+    
+    newCancelBtn.addEventListener('click', function() {
+        dialog.classList.add('hidden');
+    });
+    
+    // Close dialog when clicking outside
+    dialog.addEventListener('click', function(e) {
+        if (e.target === dialog) {
+            dialog.classList.add('hidden');
+        }
+    });
+}
+
+// Approve student
+function approveStudent(schoolId) {
+    showConfirmationDialog(
+        'Approve Student',
+        'Are you sure you want to approve this student?',
+        function() {
+            fetch(window.APP_CONFIG.API_BASE_URL + 'students.php', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/x-www-form-urlencoded',
+                },
+                body: `operation=approve&json=${encodeURIComponent(JSON.stringify({school_id: schoolId}))}`
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    showNotification('Student approved successfully', 'success');
+                    loadStats();
+                    loadStudents(currentTab);
+                } else {
+                    showNotification(data.message || 'Failed to approve student', 'error');
+                }
+            })
+            .catch(error => {
+                console.error('Error approving student:', error);
+                showNotification('Error approving student', 'error');
+            });
+        }
+    );
+}
+
 // Decline student
 function declineStudent(schoolId) {
-    if (!confirm('Decline this student?')) return;
-    
-    fetch(window.APP_CONFIG.API_BASE_URL + 'students.php', {
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/x-www-form-urlencoded',
-        },
-        body: `operation=decline&json=${encodeURIComponent(JSON.stringify({school_id: schoolId}))}`
-    })
-    .then(response => response.json())
-    .then(data => {
-        if (data.success) {
-            showNotification('Student declined successfully', 'success');
-            loadStats();
-            loadStudents(currentTab);
-        } else {
-            showNotification(data.message || 'Failed to decline student', 'error');
+    showConfirmationDialog(
+        'Decline Student',
+        'Are you sure you want to decline this student?',
+        function() {
+            fetch(window.APP_CONFIG.API_BASE_URL + 'students.php', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/x-www-form-urlencoded',
+                },
+                body: `operation=decline&json=${encodeURIComponent(JSON.stringify({school_id: schoolId}))}`
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    showNotification('Student declined successfully', 'success');
+                    loadStats();
+                    loadStudents(currentTab);
+                } else {
+                    showNotification(data.message || 'Failed to decline student', 'error');
+                }
+            })
+            .catch(error => {
+                console.error('Error declining student:', error);
+                showNotification('Error declining student', 'error');
+            });
         }
-    })
-    .catch(error => {
-        console.error('Error declining student:', error);
-        showNotification('Error declining student', 'error');
-    });
+    );
 }
 
 // Delete student
 function deleteStudent(schoolId) {
-    if (!confirm('Delete this student record?')) return;
-    
-    fetch(window.APP_CONFIG.API_BASE_URL + 'students.php', {
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/x-www-form-urlencoded',
-        },
-        body: `operation=delete&json=${encodeURIComponent(JSON.stringify({school_id: schoolId}))}`
-    })
-    .then(response => response.json())
-    .then(data => {
-        if (data.success) {
-            showNotification('Student deleted successfully', 'success');
-            loadStats();
-            loadStudents(currentTab);
-        } else {
-            showNotification(data.message || 'Failed to delete student', 'error');
+    showConfirmationDialog(
+        'Delete Student',
+        'Are you sure you want to delete this student record? This action cannot be undone.',
+        function() {
+            fetch(window.APP_CONFIG.API_BASE_URL + 'students.php', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/x-www-form-urlencoded',
+                },
+                body: `operation=delete&json=${encodeURIComponent(JSON.stringify({school_id: schoolId}))}`
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    showNotification('Student deleted successfully', 'success');
+                    loadStats();
+                    loadStudents(currentTab);
+                } else {
+                    showNotification(data.message || 'Failed to delete student', 'error');
+                }
+            })
+            .catch(error => {
+                console.error('Error deleting student:', error);
+                showNotification('Error deleting student', 'error');
+            });
         }
-    })
-    .catch(error => {
-        console.error('Error deleting student:', error);
-        showNotification('Error deleting student', 'error');
-    });
+    );
 }
 
 // Refresh all data
