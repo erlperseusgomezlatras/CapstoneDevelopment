@@ -3,7 +3,7 @@
 -- https://www.phpmyadmin.net/
 --
 -- Host: localhost
--- Generation Time: Jan 25, 2026 at 04:45 PM
+-- Generation Time: Jan 29, 2026 at 02:04 PM
 -- Server version: 10.4.17-MariaDB
 -- PHP Version: 7.2.34
 
@@ -148,6 +148,62 @@ INSERT INTO `attendance` (`id`, `student_id`, `attendance_date`, `attendance_tim
 -- --------------------------------------------------------
 
 --
+-- Table structure for table `checklist`
+--
+
+CREATE TABLE `checklist` (
+  `id` int(11) NOT NULL,
+  `category_id` int(11) NOT NULL,
+  `type_id` int(11) DEFAULT NULL,
+  `checklist_criteria` varchar(255) NOT NULL,
+  `points` int(11) DEFAULT 0,
+  `created_at` timestamp NOT NULL DEFAULT current_timestamp()
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `checklist_category`
+--
+
+CREATE TABLE `checklist_category` (
+  `id` int(11) NOT NULL,
+  `category_name` varchar(255) NOT NULL,
+  `is_type` tinyint(1) DEFAULT 0,
+  `created_at` timestamp NOT NULL DEFAULT current_timestamp()
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `checklist_results`
+--
+
+CREATE TABLE `checklist_results` (
+  `id` int(11) NOT NULL,
+  `student_id` varchar(50) NOT NULL,
+  `checklist_id` int(11) NOT NULL,
+  `points_earned` int(11) NOT NULL,
+  `checked_by` varchar(50) NOT NULL,
+  `date_checked` date NOT NULL,
+  `created_at` timestamp NOT NULL DEFAULT current_timestamp()
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `checklist_type`
+--
+
+CREATE TABLE `checklist_type` (
+  `id` int(11) NOT NULL,
+  `type_name` varchar(100) NOT NULL,
+  `created_at` timestamp NOT NULL DEFAULT current_timestamp()
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+-- --------------------------------------------------------
+
+--
 -- Table structure for table `journal`
 --
 
@@ -162,6 +218,13 @@ CREATE TABLE `journal` (
   `felt_this_week` enum('Good','Lean toward Good','Middle/Neutral','Lean toward Not Good','Not Good') NOT NULL,
   `createdAt` datetime DEFAULT current_timestamp()
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+--
+-- Dumping data for table `journal`
+--
+
+INSERT INTO `journal` (`id`, `student_id`, `session_id`, `week`, `grateful`, `proud_of`, `look_forward`, `felt_this_week`, `createdAt`) VALUES
+(1, 'STU-2026-5287', 2, '1', 'for being disciplined', 'proud of being a disciplined person', 'to enhanced my coding skills', 'Good', '2026-01-23 23:48:27');
 
 -- --------------------------------------------------------
 
@@ -351,9 +414,11 @@ CREATE TABLE `users` (
 INSERT INTO `users` (`school_id`, `level_id`, `firstname`, `lastname`, `middlename`, `title`, `email`, `section_id`, `isActive`, `password`, `isApproved`, `created_at`) VALUES
 ('00000', 3, 'tests', 'test', '', NULL, 'test@phinmaed.com', 1, 1, '$2y$10$cevVZ2IPseOYik44S1UDxuRGnOZgOuokrS8ecXQvNIUtFnByyjd3G', NULL, NULL),
 ('11111', 2, 'earl', 'latras', '', NULL, 'earl@phinmaed.com', NULL, 1, '$2y$10$wkjwZfWjHHTUG0YQJ8kRiOTTMh5nV2g7Ms7FiDYbEb1gDuWjuse6m', NULL, NULL),
-('123123', 4, 'wow', 'wow', '', NULL, 'wow@phinmaed.com', NULL, 1, '$2y$10$X9tiPQ.sBGOf4T7QWad4YewhXOXnSleMm9ROoyNVDgnTYkhlYanKO', 0, NULL),
+('123123', 4, 'wow', 'wow', '', NULL, 'wow@phinmaed.com', 1, 1, '$2y$10$X9tiPQ.sBGOf4T7QWad4YewhXOXnSleMm9ROoyNVDgnTYkhlYanKO', 1, NULL),
 ('1231234', 4, 'qwe', 'qwe', 'qwe', NULL, 'qwe@phinmaed.com', 1, 1, '$2y$10$48WX71MMoAD8bLjwMRXPV.M4gBx1IQWKIOxtmo75rqbVjHAMU.Qrq', 1, '2026-01-21 23:01:53'),
-('STU-2026-2449', 4, 'Kevin', 'sht', '', NULL, 'kevin@phinmaed.com', NULL, 1, '$2y$10$aBu95YRxRYJCbPchVeDHn.BJkHX4MpaqKuPihLQSAy8w.FrxcxZWq', 0, '2026-01-21 15:57:15'),
+('13123123', 4, 'yun', 'yun', '', NULL, 'yun@phinmaed.com', NULL, 1, '$2y$10$PtYmAlVfQ6ef8yJRrVc3a.GTI/cS7EnEHBWq2Ga7a0YE.lc8JPifO', 0, NULL),
+('2222', 4, 'test', 'test', '', NULL, 'hello@phinmaed.com', 1, 1, '$2y$10$ykzrVSX9T9f.2XlRa4Zuh.3Y8VI8M/kLZ3hQumAxJzUFtWhCxgoSu', 1, NULL),
+('STU-2026-2449', 4, 'Kevin', 'sht', '', NULL, 'kevin@phinmaed.com', 1, 1, '$2y$10$aBu95YRxRYJCbPchVeDHn.BJkHX4MpaqKuPihLQSAy8w.FrxcxZWq', 1, '2026-01-21 15:57:15'),
 ('STU-2026-5287', 4, 'example', 'example', '', NULL, 'example@phinmaed.com', 1, 1, '$2y$10$A7OJ0Qu/xl3NmErKVE.6QevpL8HJ.Lvr69oo85zb9tH9opefO/EWe', 1, NULL);
 
 -- --------------------------------------------------------
@@ -390,6 +455,14 @@ CREATE TABLE `words_affirmation` (
   `createdAt` datetime DEFAULT current_timestamp()
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
+--
+-- Dumping data for table `words_affirmation`
+--
+
+INSERT INTO `words_affirmation` (`id`, `journal_id`, `affirmation_word`, `createdAt`) VALUES
+(1, 1, 'always prayalways prayalways prayalways prayalways prayalways prayalways prayalways prayalways prayalways prayalways prayalways prayalways prayalways prayalways prayalways prayalways prayalways prayalways prayalways prayalways prayalways prayalways prayalways prayalways prayalways prayalways prayalways prayalways prayalways prayalways prayalways prayalways prayalways prayalways prayalways prayalways prayalways prayalways prayalways prayalways prayalways prayalways prayalways prayalways prayalways prayalways prayalways prayalways prayalways prayalways prayalways prayalways prayalways prayalways prayalways prayalways prayalways prayalways prayalways prayalways prayalways prayalways prayalways prayalways pray', '2026-01-23 23:51:17'),
+(2, 1, 'always do good things', '2026-01-23 23:51:17');
+
 -- --------------------------------------------------------
 
 --
@@ -402,6 +475,14 @@ CREATE TABLE `words_inspire` (
   `inspire_words` text NOT NULL,
   `createdAt` datetime DEFAULT current_timestamp()
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+--
+-- Dumping data for table `words_inspire`
+--
+
+INSERT INTO `words_inspire` (`id`, `journal_id`, `inspire_words`, `createdAt`) VALUES
+(1, 1, 'be disciplinebe disciplinebe disciplinebe disciplinebe disciplinebe disciplinebe disciplinebe disciplinebe disciplinebe disciplinebe disciplinebe disciplinebe disciplinebe disciplinebe disciplinebe disciplinebe disciplinebe disciplinebe disciplinebe disciplinebe disciplinebe disciplinebe disciplinebe disciplinebe disciplinebe disciplinebe disciplinebe disciplinebe disciplinebe disciplinebe disciplinebe disciplinebe disciplinebe disciplinebe disciplinebe disciplinebe disciplinebe disciplinebe disciplinebe disciplinebe disciplinebe disciplinebe disciplinebe discipline', '2026-01-23 23:51:48'),
+(2, 1, 'be respectful', '2026-01-23 23:51:48');
 
 --
 -- Indexes for dumped tables
@@ -439,6 +520,35 @@ ALTER TABLE `attendance`
   ADD PRIMARY KEY (`id`),
   ADD KEY `fk_attendance_student` (`student_id`),
   ADD KEY `fk_attendance_session` (`session_id`);
+
+--
+-- Indexes for table `checklist`
+--
+ALTER TABLE `checklist`
+  ADD PRIMARY KEY (`id`),
+  ADD KEY `fk_checklist_category` (`category_id`),
+  ADD KEY `fk_checklist_type` (`type_id`);
+
+--
+-- Indexes for table `checklist_category`
+--
+ALTER TABLE `checklist_category`
+  ADD PRIMARY KEY (`id`);
+
+--
+-- Indexes for table `checklist_results`
+--
+ALTER TABLE `checklist_results`
+  ADD PRIMARY KEY (`id`),
+  ADD KEY `fk_result_student` (`student_id`),
+  ADD KEY `fk_result_checker` (`checked_by`),
+  ADD KEY `fk_result_checklist` (`checklist_id`);
+
+--
+-- Indexes for table `checklist_type`
+--
+ALTER TABLE `checklist_type`
+  ADD PRIMARY KEY (`id`);
 
 --
 -- Indexes for table `journal`
@@ -562,10 +672,34 @@ ALTER TABLE `attendance`
   MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=5;
 
 --
+-- AUTO_INCREMENT for table `checklist`
+--
+ALTER TABLE `checklist`
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT;
+
+--
+-- AUTO_INCREMENT for table `checklist_category`
+--
+ALTER TABLE `checklist_category`
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT;
+
+--
+-- AUTO_INCREMENT for table `checklist_results`
+--
+ALTER TABLE `checklist_results`
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT;
+
+--
+-- AUTO_INCREMENT for table `checklist_type`
+--
+ALTER TABLE `checklist_type`
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT;
+
+--
 -- AUTO_INCREMENT for table `journal`
 --
 ALTER TABLE `journal`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT;
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=2;
 
 --
 -- AUTO_INCREMENT for table `level_permissions`
@@ -625,13 +759,13 @@ ALTER TABLE `user_levels`
 -- AUTO_INCREMENT for table `words_affirmation`
 --
 ALTER TABLE `words_affirmation`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT;
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=3;
 
 --
 -- AUTO_INCREMENT for table `words_inspire`
 --
 ALTER TABLE `words_inspire`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT;
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=3;
 
 --
 -- Constraints for dumped tables
@@ -658,6 +792,21 @@ ALTER TABLE `assignments`
 ALTER TABLE `attendance`
   ADD CONSTRAINT `fk_attendance_session` FOREIGN KEY (`session_id`) REFERENCES `academic_sessions` (`academic_session_id`) ON DELETE CASCADE ON UPDATE CASCADE,
   ADD CONSTRAINT `fk_attendance_student` FOREIGN KEY (`student_id`) REFERENCES `users` (`school_id`) ON DELETE CASCADE ON UPDATE CASCADE;
+
+--
+-- Constraints for table `checklist`
+--
+ALTER TABLE `checklist`
+  ADD CONSTRAINT `fk_checklist_category` FOREIGN KEY (`category_id`) REFERENCES `checklist_category` (`id`) ON DELETE CASCADE,
+  ADD CONSTRAINT `fk_checklist_type` FOREIGN KEY (`type_id`) REFERENCES `checklist_type` (`id`) ON DELETE SET NULL;
+
+--
+-- Constraints for table `checklist_results`
+--
+ALTER TABLE `checklist_results`
+  ADD CONSTRAINT `fk_result_checker` FOREIGN KEY (`checked_by`) REFERENCES `users` (`school_id`) ON DELETE NO ACTION,
+  ADD CONSTRAINT `fk_result_checklist` FOREIGN KEY (`checklist_id`) REFERENCES `checklist` (`id`) ON DELETE CASCADE,
+  ADD CONSTRAINT `fk_result_student` FOREIGN KEY (`student_id`) REFERENCES `users` (`school_id`) ON DELETE CASCADE;
 
 --
 -- Constraints for table `journal`
