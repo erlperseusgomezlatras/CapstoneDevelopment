@@ -1,10 +1,11 @@
 $(document).ready(function() {
     // Load initial data
     loadSections();
+    loadAcademicSessions();
     loadPeriods();
     
     // Initialize Select2
-    $('#sectionFilter, #studentFilter, #periodFilter').select2({
+    $('#sectionFilter, #studentFilter, #sessionFilter, #periodFilter').select2({
         width: '100%'
     });
     
@@ -25,6 +26,57 @@ function setupEventListeners() {
             $('#studentFilter').empty().append('<option value="">Select Student</option>').prop('disabled', true);
             $('#studentFilter').trigger('change.select2');
         }
+    });
+    
+    // Academic session change event
+    $('#sessionFilter').on('change', function() {
+        const sessionId = $(this).val();
+        if (sessionId) {
+            loadPeriods(sessionId);
+        } else {
+            $('#periodFilter').empty().append('<option value="">Select Period</option>');
+            $('#periodFilter').trigger('change.select2');
+        }
+    });
+}
+
+// Load academic sessions
+function loadAcademicSessions() {
+    console.log('Loading academic sessions...');
+    const formData = new FormData();
+    formData.append('operation', 'getAcademicSessions');
+    formData.append('json', JSON.stringify({}));
+    
+    axios.post(`${window.APP_CONFIG.API_BASE_URL}coordinator.php`, formData)
+    .then(function(response) {
+        console.log('Academic sessions response:', response.data);
+        if (response.data.success) {
+            const select = $('#sessionFilter');
+            select.html('<option value="">Select Session</option>');
+            
+            response.data.data.forEach(session => {
+                const option = $('<option></option>')
+                    .val(session.academic_session_id)
+                    .text(`${session.school_year} - ${session.semester_name}${session.status_label}`);
+                select.append(option);
+            });
+            
+            // Auto-select the active session
+            const activeSession = response.data.data.find(session => session.status_label.includes('Active'));
+            if (activeSession) {
+                select.val(activeSession.academic_session_id);
+                console.log('Auto-selected active session:', activeSession.academic_session_id);
+            }
+            
+            select.trigger('change.select2');
+        } else {
+            console.error('Academic sessions API error:', response.data.message);
+            showAlert('Error loading academic sessions: ' + (response.data.message || 'Unknown error'), 'danger');
+        }
+    })
+    .catch(function(error) {
+        console.error('Error loading academic sessions:', error);
+        showAlert('Error loading academic sessions: ' + error.message, 'danger');
     });
 }
 
@@ -97,11 +149,18 @@ function getCurrentCoordinatorId() {
 }
 
 // Load periods
-function loadPeriods() {
-    console.log('Loading periods...');
+function loadPeriods(sessionId = null) {
+    console.log('Loading periods...', sessionId ? `for session ${sessionId}` : 'all periods');
+    
+    // If no sessionId provided, get the currently selected one
+    if (!sessionId) {
+        sessionId = $('#sessionFilter').val();
+    }
+    
+    // Load periods filtered by academic session if provided
     const formData = new FormData();
     formData.append('operation', 'getPeriods');
-    formData.append('json', JSON.stringify({}));
+    formData.append('json', sessionId ? { academic_session_id: sessionId } : {});
     
     axios.post(`${window.APP_CONFIG.API_BASE_URL}coordinator.php`, formData)
     .then(function(response) {
@@ -219,6 +278,7 @@ function displayChecklistItems() {
     }
     
     let currentCategory = '';
+    let currentType = '';
     
     currentChecklistData.forEach((item, index) => {
         console.log(`Processing item ${index}:`, item);
@@ -226,20 +286,39 @@ function displayChecklistItems() {
         // Add category header if it's a new category
         if (item.category_name !== currentCategory) {
             currentCategory = item.category_name;
+            currentType = ''; // Reset type when category changes
             const categoryId = item.category_name.replace(/\s+/g, '-'); // Replace spaces with dashes
             console.log('Creating new category:', currentCategory, 'with ID:', categoryId);
             container.append(`
                 <div class="mb-6">
                     <h4 class="text-lg font-semibold text-gray-800 mb-3">${item.category_name}</h4>
-                    <div class="space-y-3" id="category-${categoryId}">
+                    <div class="space-y-4" id="category-${categoryId}">
                     </div>
                 </div>
             `);
         }
         
-        const categoryId = item.category_name.replace(/\s+/g, '-');
-        const categoryContainer = $(`#category-${categoryId}`);
-        console.log('Category container found:', categoryContainer.length > 0);
+        // Add type header if it's a new type (and type exists)
+        const itemTypeName = item.type_name || 'General';
+        if (itemTypeName !== currentType) {
+            currentType = itemTypeName;
+            const categoryId = item.category_name.replace(/\s+/g, '-');
+            const typeId = itemTypeName.replace(/\s+/g, '-').toLowerCase();
+            console.log('Creating new type:', currentType, 'with ID:', typeId);
+            
+            // Add type subheader to the current category
+            $(`#category-${categoryId}`).append(`
+                <div class="ml-4 mb-3">
+                    <h5 class="text-md font-medium text-gray-600 border-l-4 border-blue-400 pl-3">${itemTypeName}</h5>
+                </div>
+                <div class="space-y-3 ml-4" id="type-${typeId}">
+                </div>
+            `);
+        }
+        
+        const typeId = (item.type_name || 'General').replace(/\s+/g, '-').toLowerCase();
+        const typeContainer = $(`#type-${typeId}`);
+        console.log('Type container found:', typeContainer.length > 0);
         
         // Check if this category uses rating score
         const isRatingScore = parseInt(item.is_ratingscore) === 1;
@@ -252,7 +331,7 @@ function displayChecklistItems() {
             const stars = Array.from({length: maxRating}, (_, i) => i + 1);
             console.log('Creating rating display with maxRating:', maxRating, 'stars:', stars, 'existingScore:', existingScore);
             
-            categoryContainer.append(`
+            typeContainer.append(`
                 <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between p-3 bg-gray-50 rounded-lg gap-3">
                     <div class="flex-1">
                         <label class="text-sm font-medium text-gray-700 block mb-2">${item.checklist_criteria}</label>
@@ -278,7 +357,7 @@ function displayChecklistItems() {
             // Checkbox display (original) - Mobile responsive with better layout
             const isChecked = item.points_earned > 0;
             console.log('Creating checkbox display for:', item.checklist_criteria, 'checked:', isChecked);
-            categoryContainer.append(`
+            typeContainer.append(`
                 <div class="flex items-center justify-between p-3 bg-gray-50 rounded-lg gap-3">
                     <label class="flex items-center cursor-pointer flex-1 gap-3">
                         <input type="checkbox" 

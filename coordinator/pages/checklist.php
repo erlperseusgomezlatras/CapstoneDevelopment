@@ -238,7 +238,7 @@ $coordinator_id = $userData['school_id'] ?? '';
                 
                 <!-- Filters Section -->
                 <div class="filter-card bg-white rounded-lg shadow-sm p-4 sm:p-6 mb-6">
-                    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
                         <div>
                             <label class="block text-sm font-medium text-gray-700 mb-2">Select Section</label>
                             <select id="sectionFilter" class="w-full px-3 py-2 sm:px-4 sm:py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent text-sm">
@@ -249,6 +249,12 @@ $coordinator_id = $userData['school_id'] ?? '';
                             <label class="block text-sm font-medium text-gray-700 mb-2">Select Student</label>
                             <select id="studentFilter" class="w-full px-3 py-2 sm:px-4 sm:py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent text-sm" disabled>
                                 <option value="">Select Student</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-2">Academic Session</label>
+                            <select id="sessionFilter" class="w-full px-3 py-2 sm:px-4 sm:py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent text-sm">
+                                <option value="">Select Session</option>
                             </select>
                         </div>
                         <div>

@@ -534,12 +534,27 @@ class Checklist {
             $stmt->execute();
             $checklistItems = $stmt->fetchAll(PDO::FETCH_ASSOC);
             
-            // Get existing results for this student and period
+            // Get active academic session
+            $session_sql = "SELECT academic_session_id FROM academic_sessions WHERE is_Active = 1 LIMIT 1";
+            $session_stmt = $conn->prepare($session_sql);
+            $session_stmt->execute();
+            $active_session = $session_stmt->fetch(PDO::FETCH_ASSOC);
+            
+            if (!$active_session) {
+                return json_encode([
+                    'success' => false,
+                    'message' => 'No active academic session found. Please contact your coordinator.'
+                ]);
+            }
+            
+            $session_id = $active_session['academic_session_id'];
+            
+            // Get existing results for this student, period, and session
             $query = "SELECT checklist_id, points_earned 
                      FROM checklist_results 
-                     WHERE student_id = ? AND period_id = ?";
+                     WHERE student_id = ? AND period_id = ? AND session_id = ?";
             $stmt = $conn->prepare($query);
-            $stmt->execute([$studentId, $periodId]);
+            $stmt->execute([$studentId, $periodId, $session_id]);
             $existingResults = $stmt->fetchAll(PDO::FETCH_KEY_PAIR);
             
             // Merge results
@@ -571,12 +586,27 @@ class Checklist {
             $results = $data['results'];
             $checkedBy = $data['checked_by'];
             
+            // Get active academic session
+            $session_sql = "SELECT academic_session_id FROM academic_sessions WHERE is_Active = 1 LIMIT 1";
+            $session_stmt = $conn->prepare($session_sql);
+            $session_stmt->execute();
+            $active_session = $session_stmt->fetch(PDO::FETCH_ASSOC);
+            
+            if (!$active_session) {
+                return json_encode([
+                    'success' => false,
+                    'message' => 'No active academic session found. Please contact your coordinator.'
+                ]);
+            }
+            
+            $session_id = $active_session['academic_session_id'];
+            
             $conn->beginTransaction();
             
-            // Insert new results (no week column needed)
+            // Insert new results with session_id
             $query = "INSERT INTO checklist_results 
-                     (student_id, checklist_id, period_id, points_earned, checked_by, date_checked) 
-                     VALUES (?, ?, ?, ?, ?, CURDATE())";
+                     (student_id, checklist_id, period_id, session_id, points_earned, checked_by, date_checked) 
+                     VALUES (?, ?, ?, ?, ?, ?, CURDATE())";
             $stmt = $conn->prepare($query);
             
             foreach ($results as $result) {
@@ -584,6 +614,7 @@ class Checklist {
                     $studentId,
                     $result['checklist_id'],
                     $periodId,
+                    $session_id,
                     $result['points_earned'],
                     $checkedBy
                 ]);

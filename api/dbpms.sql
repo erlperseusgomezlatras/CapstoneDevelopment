@@ -3,7 +3,7 @@
 -- https://www.phpmyadmin.net/
 --
 -- Host: localhost
--- Generation Time: Feb 02, 2026 at 06:52 AM
+-- Generation Time: Feb 02, 2026 at 02:34 PM
 -- Server version: 10.4.17-MariaDB
 -- PHP Version: 7.2.34
 
@@ -188,7 +188,7 @@ CREATE TABLE `checklist_category` (
 --
 
 INSERT INTO `checklist_category` (`id`, `category_name`, `is_type`, `created_at`, `is_ratingscore`) VALUES
-(1, 'Dress Code', 0, '2026-01-29 13:29:39', NULL),
+(1, 'Dress Code', 0, '2026-01-29 13:29:39', 1),
 (2, 'Kit', 1, '2026-01-29 13:29:57', NULL);
 
 -- --------------------------------------------------------
@@ -201,6 +201,7 @@ CREATE TABLE `checklist_results` (
   `id` int(11) NOT NULL,
   `student_id` varchar(50) NOT NULL,
   `checklist_id` int(11) NOT NULL,
+  `session_id` int(11) DEFAULT NULL,
   `period_id` int(11) DEFAULT NULL,
   `points_earned` int(11) NOT NULL,
   `checked_by` varchar(50) NOT NULL,
@@ -594,7 +595,8 @@ ALTER TABLE `checklist_results`
   ADD KEY `fk_result_student` (`student_id`),
   ADD KEY `fk_result_checker` (`checked_by`),
   ADD KEY `fk_result_checklist` (`checklist_id`),
-  ADD KEY `fk_checklist_results_period` (`period_id`);
+  ADD KEY `fk_checklist_results_period` (`period_id`),
+  ADD KEY `fk_result_session` (`session_id`);
 
 --
 -- Indexes for table `checklist_type`
@@ -873,6 +875,7 @@ ALTER TABLE `checklist_results`
   ADD CONSTRAINT `fk_checklist_results_period` FOREIGN KEY (`period_id`) REFERENCES `period` (`id`) ON DELETE SET NULL ON UPDATE CASCADE,
   ADD CONSTRAINT `fk_result_checker` FOREIGN KEY (`checked_by`) REFERENCES `users` (`school_id`) ON DELETE NO ACTION,
   ADD CONSTRAINT `fk_result_checklist` FOREIGN KEY (`checklist_id`) REFERENCES `checklist` (`id`) ON DELETE CASCADE,
+  ADD CONSTRAINT `fk_result_session` FOREIGN KEY (`session_id`) REFERENCES `academic_sessions` (`academic_session_id`) ON DELETE NO ACTION,
   ADD CONSTRAINT `fk_result_student` FOREIGN KEY (`student_id`) REFERENCES `users` (`school_id`) ON DELETE CASCADE;
 
 --

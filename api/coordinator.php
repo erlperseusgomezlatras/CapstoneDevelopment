@@ -871,14 +871,90 @@ class Coordinators {
         }
     }
     
+    // Get all academic sessions for dropdown
+    function getAcademicSessions($json) {
+        include "connection.php";
+        
+        try {
+            $query = "SELECT asess.academic_session_id, sy.school_year, s.semester_name,
+                            CASE WHEN asess.is_Active = 1 THEN ' (Active)' ELSE '' END as status_label
+                     FROM academic_sessions asess
+                     JOIN school_years sy ON asess.school_year_id = sy.school_year_id
+                     JOIN semesters s ON asess.semester_id = s.semester_id
+                     ORDER BY asess.is_Active DESC, sy.school_year DESC, s.semester_name";
+            $stmt = $conn->prepare($query);
+            $stmt->execute();
+            $sessions = $stmt->fetchAll(PDO::FETCH_ASSOC);
+            
+            return json_encode([
+                'success' => true,
+                'data' => $sessions
+            ]);
+            
+        } catch(PDOException $e) {
+            return json_encode([
+                'success' => false,
+                'message' => 'Database error: ' . $e->getMessage()
+            ]);
+        }
+    }
+    
+    // Get active academic session with period information
+    function getActiveAcademicSession($json) {
+        include "connection.php";
+        
+        try {
+            $query = "SELECT asess.academic_session_id, asess.school_year_id, asess.semester_id,
+                            sy.school_year, s.semester_name, p.id as period_id, p.period_name, p.period_weeks
+                     FROM academic_sessions asess
+                     JOIN school_years sy ON asess.school_year_id = sy.school_year_id
+                     JOIN semesters s ON asess.semester_id = s.semester_id
+                     LEFT JOIN period p ON asess.academic_session_id = p.academic_session_id
+                     WHERE asess.is_Active = 1
+                     LIMIT 1";
+            $stmt = $conn->prepare($query);
+            $stmt->execute();
+            $active_session = $stmt->fetch(PDO::FETCH_ASSOC);
+            
+            if (!$active_session) {
+                return json_encode([
+                    'success' => false,
+                    'message' => 'No active academic session found'
+                ]);
+            }
+            
+            return json_encode([
+                'success' => true,
+                'data' => $active_session
+            ]);
+            
+        } catch(PDOException $e) {
+            return json_encode([
+                'success' => false,
+                'message' => 'Database error: ' . $e->getMessage()
+            ]);
+        }
+    }
+    
     // Get periods for checklist
     function getPeriods($json) {
         include "connection.php";
         
         try {
-            $query = "SELECT id, period_name, period_weeks FROM period ORDER BY id";
-            $stmt = $conn->prepare($query);
-            $stmt->execute();
+            $data = json_decode($json, true);
+            $academicSessionId = isset($data['academic_session_id']) ? $data['academic_session_id'] : null;
+            
+            if ($academicSessionId) {
+                // Filter periods by academic session
+                $query = "SELECT id, period_name, period_weeks FROM period WHERE academic_session_id = ? ORDER BY id";
+                $stmt = $conn->prepare($query);
+                $stmt->execute([$academicSessionId]);
+            } else {
+                // Get all periods
+                $query = "SELECT id, period_name, period_weeks FROM period ORDER BY id";
+                $stmt = $conn->prepare($query);
+                $stmt->execute();
+            }
             
             $periods = $stmt->fetchAll(PDO::FETCH_ASSOC);
             
@@ -961,6 +1037,14 @@ switch ($operation) {
         
     case 'getPeriods':
         echo $coordinators->getPeriods($json);
+        break;
+        
+    case 'getActiveAcademicSession':
+        echo $coordinators->getActiveAcademicSession($json);
+        break;
+        
+    case 'getAcademicSessions':
+        echo $coordinators->getAcademicSessions($json);
         break;
         
     case 'delete':
