@@ -789,6 +789,111 @@ class Coordinators {
             ]);
         }
     }
+    
+    // Get coordinator's sections
+    function getCoordinatorSections($json) {
+        include "connection.php";
+        
+        $data = json_decode($json, true);
+        $coordinator_id = $data['coordinator_id'] ?? $_SESSION['coordinator_id'] ?? '';
+        
+        try {
+            // Get coordinator's section_id from users table
+            $section_sql = "SELECT section_id FROM users WHERE school_id = ? AND level_id = 3";
+            $stmt = $conn->prepare($section_sql);
+            $stmt->execute([$coordinator_id]);
+            $coordinator = $stmt->fetch(PDO::FETCH_ASSOC);
+            
+            if (!$coordinator || empty($coordinator['section_id'])) {
+                return json_encode([
+                    'success' => true,
+                    'sections' => []
+                ]);
+            }
+            
+            $section_id = $coordinator['section_id'];
+            
+            // Get section details
+            $sql = "SELECT id as section_id, section_name 
+                    FROM sections 
+                    WHERE id = ?";
+            $stmt = $conn->prepare($sql);
+            $stmt->execute([$section_id]);
+            $section = $stmt->fetch(PDO::FETCH_ASSOC);
+            
+            return json_encode([
+                'success' => true,
+                'sections' => $section ? [$section] : []
+            ]);
+            
+        } catch(PDOException $e) {
+            return json_encode([
+                'success' => false,
+                'message' => 'Database error: ' . $e->getMessage()
+            ]);
+        }
+    }
+    
+    // Get students in a specific section
+    function getSectionStudents($json) {
+        include "connection.php";
+        
+        $data = json_decode($json, true);
+        $section_id = $data['section_id'] ?? '';
+        
+        if (empty($section_id)) {
+            return json_encode([
+                'success' => false,
+                'message' => 'Section ID is required'
+            ]);
+        }
+        
+        try {
+            $sql = "SELECT u.school_id as student_id, u.firstname, u.lastname, u.middlename, s.section_name 
+                    FROM users u 
+                    JOIN sections s ON u.section_id = s.id 
+                    WHERE u.section_id = ? AND u.level_id = 4 AND u.isActive = 1
+                    ORDER BY u.lastname, u.firstname";
+            $stmt = $conn->prepare($sql);
+            $stmt->execute([$section_id]);
+            $students = $stmt->fetchAll(PDO::FETCH_ASSOC);
+            
+            return json_encode([
+                'success' => true,
+                'students' => $students
+            ]);
+            
+        } catch(PDOException $e) {
+            return json_encode([
+                'success' => false,
+                'message' => 'Database error: ' . $e->getMessage()
+            ]);
+        }
+    }
+    
+    // Get periods for checklist
+    function getPeriods($json) {
+        include "connection.php";
+        
+        try {
+            $query = "SELECT id, period_name, period_weeks FROM period ORDER BY id";
+            $stmt = $conn->prepare($query);
+            $stmt->execute();
+            
+            $periods = $stmt->fetchAll(PDO::FETCH_ASSOC);
+            
+            return json_encode([
+                'success' => true,
+                'data' => $periods
+            ]);
+            
+        } catch(PDOException $e) {
+            return json_encode([
+                'success' => false,
+                'message' => 'Database error: ' . $e->getMessage()
+            ]);
+        }
+    }
 }
 
 $operation = isset($_POST["operation"]) ? $_POST["operation"] : "0";
@@ -844,6 +949,18 @@ switch ($operation) {
         
     case 'decline':
         echo $coordinators->declineStudent($json);
+        break;
+        
+    case 'get_coordinator_sections':
+        echo $coordinators->getCoordinatorSections($json);
+        break;
+        
+    case 'get_section_students':
+        echo $coordinators->getSectionStudents($json);
+        break;
+        
+    case 'getPeriods':
+        echo $coordinators->getPeriods($json);
         break;
         
     case 'delete':
