@@ -790,6 +790,65 @@ class Coordinators {
         }
     }
     
+    // Get students in section with checklist results filtering based on session activity
+    function getSectionStudentsWithChecklistFilter($json) {
+        include "connection.php";
+        
+        try {
+            $data = json_decode($json, true);
+            $sectionId = $data['section_id'];
+            $sessionId = $data['session_id'];
+            
+            // Check if the session is active
+            $session_query = "SELECT is_Active FROM academic_sessions WHERE academic_session_id = ?";
+            $session_stmt = $conn->prepare($session_query);
+            $session_stmt->execute([$sessionId]);
+            $session = $session_stmt->fetch(PDO::FETCH_ASSOC);
+            
+            $is_active = $session && $session['is_Active'] == 1;
+            
+            if ($is_active) {
+                // Active session: show all students in the section
+                $query = "SELECT u.school_id as student_id, u.firstname, u.lastname, u.middlename 
+                         FROM users u 
+                         WHERE u.section_id = ? AND u.level_id = 4 
+                         ORDER BY u.lastname, u.firstname";
+                $stmt = $conn->prepare($query);
+                $stmt->execute([$sectionId]);
+            } else {
+                // Inactive session: show only students who have checklist results for this session
+                $query = "SELECT DISTINCT u.school_id as student_id, u.firstname, u.lastname, u.middlename 
+                         FROM users u 
+                         INNER JOIN checklist_results cr ON u.school_id = cr.student_id 
+                         WHERE u.section_id = ? 
+                         AND u.level_id = 4 
+                         AND cr.session_id = ?
+                         ORDER BY u.lastname, u.firstname";
+                $stmt = $conn->prepare($query);
+                $stmt->execute([$sectionId, $sessionId]);
+            }
+            
+            $students = $stmt->fetchAll(PDO::FETCH_ASSOC);
+            
+            return json_encode([
+                'success' => true,
+                'data' => [
+                    'students' => $students,
+                    'session_active' => $is_active,
+                    'message' => $is_active ? 
+                        'Active session - All students available for evaluation' : 
+                        'Inactive session - Only showing students with existing checklist results'
+                ]
+            ]);
+            
+        } catch(PDOException $e) {
+            return json_encode([
+                'success' => false,
+                'message' => 'Database error: ' . $e->getMessage()
+            ]);
+        }
+    }
+    
     // Get coordinator's sections
     function getCoordinatorSections($json) {
         include "connection.php";
@@ -1033,6 +1092,10 @@ switch ($operation) {
         
     case 'get_section_students':
         echo $coordinators->getSectionStudents($json);
+        break;
+        
+    case 'get_section_students_with_checklist_filter':
+        echo $coordinators->getSectionStudentsWithChecklistFilter($json);
         break;
         
     case 'getPeriods':

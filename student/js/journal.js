@@ -2,6 +2,8 @@
 class JournalManager {
     constructor() {
         this.currentWeek = 1;
+        this.periodId = null;
+        this.periodWeeks = null;
         this.alreadySubmitted = false;
         this.init();
     }
@@ -49,8 +51,15 @@ class JournalManager {
             
             if (result.success) {
                 this.currentWeek = result.week;
+                this.periodId = result.period_id;
+                this.periodWeeks = result.period_weeks;
                 this.alreadySubmitted = result.already_submitted || false;
-                document.getElementById('weekNumber').value = `Week ${this.currentWeek}`;
+                
+                // Update week display with period information
+                const weekDisplay = this.periodWeeks ? 
+                    `Week ${this.currentWeek} of ${this.periodWeeks}` : 
+                    `Week ${this.currentWeek}`;
+                document.getElementById('weekNumber').value = weekDisplay;
                 
                 if (result.already_submitted) {
                     // Show message that student already submitted for this week
@@ -403,6 +412,7 @@ class JournalManager {
         const journalData = {
             student_id: studentSchoolId,
             week: this.currentWeek.toString(),
+            period_id: this.periodId,
             grateful: formData.get('grateful') || '',
             proud_of: formData.get('proud_of') || '',
             look_forward: formData.get('look_forward') || '',
@@ -414,6 +424,12 @@ class JournalManager {
         // Validate required fields
         if (!journalData.grateful || !journalData.proud_of || !journalData.felt_this_week) {
             showNotification('Please fill in all required fields', 'error');
+            return;
+        }
+
+        // Validate period_id
+        if (!journalData.period_id) {
+            showNotification('Period information not available. Please refresh the page.', 'error');
             return;
         }
 
@@ -458,9 +474,16 @@ class JournalManager {
                 // Clear the form
                 this.clearForm();
                 
-                // Increment week immediately after successful save
-                this.currentWeek++;
-                document.getElementById('weekNumber').value = `Week ${this.currentWeek}`;
+                // Increment week immediately after successful save (but don't exceed period weeks)
+                if (this.periodWeeks && this.currentWeek < this.periodWeeks) {
+                    this.currentWeek++;
+                }
+                
+                // Update week display
+                const weekDisplay = this.periodWeeks ? 
+                    `Week ${this.currentWeek} of ${this.periodWeeks}` : 
+                    `Week ${this.currentWeek}`;
+                document.getElementById('weekNumber').value = weekDisplay;
                 
                 // Reset already submitted flag since we just saved and moved to next week
                 this.alreadySubmitted = false;
@@ -470,7 +493,11 @@ class JournalManager {
                 
                 // Show success message with next week info
                 setTimeout(() => {
-                    showNotification(`Ready for Week ${this.currentWeek} journal!`, 'info');
+                    if (this.periodWeeks && this.currentWeek <= this.periodWeeks) {
+                        showNotification(`Ready for Week ${this.currentWeek} journal!`, 'info');
+                    } else {
+                        showNotification('You have completed all weeks for this period!', 'success');
+                    }
                 }, 2000);
             } else {
                 showNotification(result.message || 'Failed to save journal', 'error');

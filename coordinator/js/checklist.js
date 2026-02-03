@@ -33,9 +33,20 @@ function setupEventListeners() {
         const sessionId = $(this).val();
         if (sessionId) {
             loadPeriods(sessionId);
+            // Reload students if a section is already selected
+            const sectionId = $('#sectionFilter').val();
+            if (sectionId) {
+                loadStudents(sectionId);
+            }
         } else {
             $('#periodFilter').empty().append('<option value="">Select Period</option>');
             $('#periodFilter').trigger('change.select2');
+            
+            // Reload students without session filter if a section is selected
+            const sectionId = $('#sectionFilter').val();
+            if (sectionId) {
+                loadStudents(sectionId);
+            }
         }
     });
 }
@@ -115,10 +126,45 @@ function loadSections() {
 
 // Load students in a section
 function loadStudents(sectionId) {
+    const sessionId = $('#sessionFilter').val();
+    
+    // If no session is selected, use the regular endpoint
+    if (!sessionId) {
+        const formData = new FormData();
+        formData.append('operation', 'get_section_students');
+        formData.append('json', JSON.stringify({
+            section_id: sectionId
+        }));
+        
+        axios.post(`${window.APP_CONFIG.API_BASE_URL}coordinator.php`, formData)
+        .then(function(response) {
+            if (response.data.success) {
+                const select = $('#studentFilter');
+                select.empty().append('<option value="">Select Student</option>').prop('disabled', false);
+                
+                response.data.students.forEach(student => {
+                    const option = $('<option></option>').val(student.student_id).text(`${student.lastname}, ${student.firstname} ${student.middlename || ''}`);
+                    select.append(option);
+                });
+                
+                select.trigger('change.select2');
+            } else {
+                showAlert('Error loading students', 'danger');
+            }
+        })
+        .catch(function(error) {
+            console.error('Error loading students:', error);
+            showAlert('Error loading students', 'danger');
+        });
+        return;
+    }
+    
+    // Use the new filtered endpoint when session is selected
     const formData = new FormData();
-    formData.append('operation', 'get_section_students');
+    formData.append('operation', 'get_section_students_with_checklist_filter');
     formData.append('json', JSON.stringify({
-        section_id: sectionId
+        section_id: sectionId,
+        session_id: sessionId
     }));
     
     axios.post(`${window.APP_CONFIG.API_BASE_URL}coordinator.php`, formData)
@@ -127,14 +173,29 @@ function loadStudents(sectionId) {
             const select = $('#studentFilter');
             select.empty().append('<option value="">Select Student</option>').prop('disabled', false);
             
-            response.data.students.forEach(student => {
+            const students = response.data.data.students;
+            const isSessionActive = response.data.data.session_active;
+            const message = response.data.data.message;
+            
+            // Show informational message about session status
+            if (message) {
+                showAlert(message, isSessionActive ? 'info' : 'warning');
+            }
+            
+            students.forEach(student => {
                 const option = $('<option></option>').val(student.student_id).text(`${student.lastname}, ${student.firstname} ${student.middlename || ''}`);
                 select.append(option);
             });
             
+            // If no students found for inactive session, show appropriate message
+            if (students.length === 0 && !isSessionActive) {
+                showAlert('No students found with checklist results for this inactive session', 'warning');
+                select.prop('disabled', true);
+            }
+            
             select.trigger('change.select2');
         } else {
-            showAlert('Error loading students', 'danger');
+            showAlert('Error loading students: ' + (response.data.message || 'Unknown error'), 'danger');
         }
     })
     .catch(function(error) {

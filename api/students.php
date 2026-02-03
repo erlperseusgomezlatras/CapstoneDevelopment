@@ -831,6 +831,83 @@ class Students {
         return $R * $c; // Distance in meters
     }
 
+    // Get student's current period information
+    function getStudentPeriodInfo($json) {
+        include "connection.php";
+        
+        $data = json_decode($json, true);
+        $student_id = $data['student_id'];
+        
+        try {
+            // Get practicum start date and calculate current period
+            $query = "SELECT ps.practicum_startDate, ps.id as practicum_id 
+                     FROM practicum_subjects ps 
+                     WHERE ps.practicum_startDate IS NOT NULL 
+                     ORDER BY ps.practicum_startDate DESC 
+                     LIMIT 1";
+            $stmt = $conn->prepare($query);
+            $stmt->execute();
+            $practicumInfo = $stmt->fetch(PDO::FETCH_ASSOC);
+            
+            if (!$practicumInfo) {
+                return json_encode([
+                    'success' => false,
+                    'message' => 'No practicum information found'
+                ]);
+            }
+            
+            $startDate = new DateTime($practicumInfo['practicum_startDate']);
+            $currentDate = new DateTime();
+            
+            // Calculate total weeks from start date
+            $weeksDiff = floor($currentDate->diff($startDate)->days / 7) + 1;
+            
+            // Get all periods to determine current period based on weeks
+            $periodQuery = "SELECT id, period_name, period_weeks FROM period ORDER BY id";
+            $periodStmt = $conn->prepare($periodQuery);
+            $periodStmt->execute();
+            $periods = $periodStmt->fetchAll(PDO::FETCH_ASSOC);
+            
+            $currentPeriod = null;
+            $currentWeekInPeriod = 0;
+            $accumulatedWeeks = 0;
+            
+            foreach ($periods as $period) {
+                $accumulatedWeeks += $period['period_weeks'];
+                if ($weeksDiff <= $accumulatedWeeks) {
+                    $currentPeriod = $period;
+                    $currentWeekInPeriod = $weeksDiff - ($accumulatedWeeks - $period['period_weeks']);
+                    break;
+                }
+            }
+            
+            // If beyond all periods, use the last period
+            if (!$currentPeriod && !empty($periods)) {
+                $lastPeriod = end($periods);
+                $currentPeriod = $lastPeriod;
+                $currentWeekInPeriod = min($weeksDiff - ($accumulatedWeeks - $lastPeriod['period_weeks']), $lastPeriod['period_weeks']);
+            }
+            
+            return json_encode([
+                'success' => true,
+                'data' => [
+                    'period_id' => $currentPeriod ? $currentPeriod['id'] : null,
+                    'period_name' => $currentPeriod ? $currentPeriod['period_name'] : null,
+                    'period_weeks' => $currentPeriod ? $currentPeriod['period_weeks'] : null,
+                    'current_week_in_period' => $currentWeekInPeriod,
+                    'total_weeks_from_start' => $weeksDiff,
+                    'practicum_start_date' => $practicumInfo['practicum_startDate']
+                ]
+            ]);
+            
+        } catch(PDOException $e) {
+            return json_encode([
+                'success' => false,
+                'message' => 'Database error: ' . $e->getMessage()
+            ]);
+        }
+    }
+
     // Get current week for student journal
     function getCurrentWeek($json) {
         include "connection.php";
@@ -854,65 +931,143 @@ class Students {
             
             $session_id = $active_session['academic_session_id'];
             
+            // Get student's current period information (calculate directly)
+            try {
+                // Get practicum start date and calculate current period
+                $query = "SELECT ps.practicum_startDate, ps.id as practicum_id 
+                         FROM practicum_subjects ps 
+                         WHERE ps.practicum_startDate IS NOT NULL 
+                         ORDER BY ps.practicum_startDate DESC 
+                         LIMIT 1";
+                $stmt = $conn->prepare($query);
+                $stmt->execute();
+                $practicumInfo = $stmt->fetch(PDO::FETCH_ASSOC);
+                
+                if (!$practicumInfo) {
+                    return json_encode([
+                        'success' => false,
+                        'message' => 'No practicum information found'
+                    ]);
+                }
+                
+                $startDate = new DateTime($practicumInfo['practicum_startDate']);
+                $currentDate = new DateTime();
+                
+                // Calculate total weeks from start date
+                $weeksDiff = floor($currentDate->diff($startDate)->days / 7) + 1;
+                
+                // Get all periods to determine current period based on weeks
+                $periodQuery = "SELECT id, period_name, period_weeks FROM period ORDER BY id";
+                $periodStmt = $conn->prepare($periodQuery);
+                $periodStmt->execute();
+                $periods = $periodStmt->fetchAll(PDO::FETCH_ASSOC);
+                
+                $currentPeriod = null;
+                $current_week_in_period = 0;
+                $accumulatedWeeks = 0;
+                
+                foreach ($periods as $period) {
+                    $accumulatedWeeks += $period['period_weeks'];
+                    if ($weeksDiff <= $accumulatedWeeks) {
+                        $currentPeriod = $period;
+                        $current_week_in_period = $weeksDiff - ($accumulatedWeeks - $period['period_weeks']);
+                        break;
+                    }
+                }
+                
+                // If beyond all periods, use the last period
+                if (!$currentPeriod && !empty($periods)) {
+                    $lastPeriod = end($periods);
+                    $currentPeriod = $lastPeriod;
+                    $current_week_in_period = min($weeksDiff - ($accumulatedWeeks - $lastPeriod['period_weeks']), $lastPeriod['period_weeks']);
+                }
+                
+                $period_id = $currentPeriod ? $currentPeriod['id'] : null;
+                $period_weeks = $currentPeriod ? $currentPeriod['period_weeks'] : null;
+                
+            } catch(PDOException $e) {
+                return json_encode([
+                    'success' => false,
+                    'message' => 'Database error: ' . $e->getMessage()
+                ]);
+            }
+            
             $current_date = date('Y-m-d');
             $current_day = date('w', strtotime($current_date)); // 0 = Sunday, 5 = Friday
-            $current_year = date('Y', strtotime($current_date));
             
             // Check if today is Friday (submission day)
             $is_friday = ($current_day == 5);
             
             if ($is_friday) {
-                // Check if student already submitted today (Friday) in current session
-                $check_sql = "SELECT id, week FROM journal WHERE student_id = ? AND DATE(createdAt) = ? AND session_id = ?";
+                // Check if student already submitted today (Friday) in current session and period
+                $check_sql = "SELECT id, week FROM journal WHERE student_id = ? AND DATE(createdAt) = ? AND session_id = ? AND period_id = ?";
                 $check_stmt = $conn->prepare($check_sql);
                 $check_stmt->bindParam(1, $student_id);
                 $check_stmt->bindParam(2, $current_date);
                 $check_stmt->bindParam(3, $session_id);
+                $check_stmt->bindParam(4, $period_id);
                 $check_stmt->execute();
                 $today_journal = $check_stmt->fetch(PDO::FETCH_ASSOC);
                 
                 if ($today_journal) {
-                    // Already submitted today, show next week
+                    // Already submitted today, show next week (if within period bounds)
+                    $next_week = min((int)$today_journal['week'] + 1, $period_weeks);
                     return json_encode([
                         'success' => true,
-                        'week' => (int)$today_journal['week'] + 1,
+                        'week' => $next_week,
+                        'period_id' => $period_id,
+                        'period_weeks' => $period_weeks,
                         'already_submitted' => true,
                         'message' => 'Already submitted for this Friday'
                     ]);
                 } else {
-                    // Check if student has any previous journals in current session to determine current week
-                    $latest_sql = "SELECT MAX(CAST(week AS UNSIGNED)) as latest_week FROM journal WHERE student_id = ? AND session_id = ?";
+                    // Check if student has any previous journals in current session and period to determine current week
+                    $latest_sql = "SELECT MAX(CAST(week AS UNSIGNED)) as latest_week FROM journal WHERE student_id = ? AND session_id = ? AND period_id = ?";
                     $latest_stmt = $conn->prepare($latest_sql);
                     $latest_stmt->bindParam(1, $student_id);
                     $latest_stmt->bindParam(2, $session_id);
+                    $latest_stmt->bindParam(3, $period_id);
                     $latest_stmt->execute();
                     $latest_result = $latest_stmt->fetch(PDO::FETCH_ASSOC);
                     
                     $latest_week = $latest_result['latest_week'] ? (int)$latest_result['latest_week'] : 0;
-                    $current_week = $latest_week + 1;
+                    
+                    // Use the calculated week from practicum start date, but ensure we don't go backwards
+                    $current_week = max($current_week_in_period, $latest_week + 1);
+                    
+                    // Make sure we don't exceed the period weeks
+                    $current_week = min($current_week, $period_weeks);
                     
                     return json_encode([
                         'success' => true,
                         'week' => $current_week,
+                        'period_id' => $period_id,
+                        'period_weeks' => $period_weeks,
                         'already_submitted' => false,
                         'message' => 'Ready for Friday submission'
                     ]);
                 }
             } else {
-                // Not Friday, get the latest week for display purposes in current session
-                $latest_sql = "SELECT MAX(CAST(week AS UNSIGNED)) as latest_week FROM journal WHERE student_id = ? AND session_id = ?";
+                // Not Friday, get the latest week for display purposes in current session and period
+                $latest_sql = "SELECT MAX(CAST(week AS UNSIGNED)) as latest_week FROM journal WHERE student_id = ? AND session_id = ? AND period_id = ?";
                 $latest_stmt = $conn->prepare($latest_sql);
                 $latest_stmt->bindParam(1, $student_id);
                 $latest_stmt->bindParam(2, $session_id);
+                $latest_stmt->bindParam(3, $period_id);
                 $latest_stmt->execute();
                 $latest_result = $latest_stmt->fetch(PDO::FETCH_ASSOC);
                 
                 $latest_week = $latest_result['latest_week'] ? (int)$latest_result['latest_week'] : 0;
-                $next_week = $latest_week + 1;
+                
+                // Use the calculated week from practicum start date, but ensure we don't go backwards
+                $next_week = max($current_week_in_period, $latest_week + 1);
+                $next_week = min($next_week, $period_weeks);
                 
                 return json_encode([
                     'success' => true,
                     'week' => $next_week,
+                    'period_id' => $period_id,
+                    'period_weeks' => $period_weeks,
                     'already_submitted' => false,
                     'message' => 'Not submission day'
                 ]);
@@ -934,6 +1089,7 @@ class Students {
         
         $student_id = $data['student_id'];
         $week = $data['week'];
+        $period_id = $data['period_id'];
         $grateful = $data['grateful'];
         $proud_of = $data['proud_of'];
         $look_forward = $data['look_forward'];
@@ -959,12 +1115,13 @@ class Students {
             
             $conn->beginTransaction();
             
-            // Check if journal entry already exists for this week and session
-            $check_sql = "SELECT id FROM journal WHERE student_id = ? AND week = ? AND session_id = ?";
+            // Check if journal entry already exists for this week, session, and period
+            $check_sql = "SELECT id FROM journal WHERE student_id = ? AND week = ? AND session_id = ? AND period_id = ?";
             $check_stmt = $conn->prepare($check_sql);
             $check_stmt->bindParam(1, $student_id);
             $check_stmt->bindParam(2, $week);
             $check_stmt->bindParam(3, $session_id);
+            $check_stmt->bindParam(4, $period_id);
             $check_stmt->execute();
             $existing_row = $check_stmt->fetch(PDO::FETCH_ASSOC);
             
@@ -986,8 +1143,8 @@ class Students {
                 $conn->query("DELETE FROM words_affirmation WHERE journal_id = $journal_id");
                 
             } else {
-                // Insert new journal with session_id
-                $sql = "INSERT INTO journal (student_id, week, grateful, proud_of, look_forward, felt_this_week, session_id) VALUES (?, ?, ?, ?, ?, ?, ?)";
+                // Insert new journal with session_id and period_id
+                $sql = "INSERT INTO journal (student_id, week, grateful, proud_of, look_forward, felt_this_week, session_id, period_id) VALUES (?, ?, ?, ?, ?, ?, ?, ?)";
                 $stmt = $conn->prepare($sql);
                 $stmt->bindParam(1, $student_id);
                 $stmt->bindParam(2, $week);
@@ -996,6 +1153,7 @@ class Students {
                 $stmt->bindParam(5, $look_forward);
                 $stmt->bindParam(6, $felt_this_week);
                 $stmt->bindParam(7, $session_id);
+                $stmt->bindParam(8, $period_id);
                 $stmt->execute();
                 
                 $journal_id = $conn->lastInsertId();
@@ -1076,43 +1234,34 @@ class Students {
             // Get journal entry
             $sql = "SELECT * FROM journal WHERE student_id = ? AND week = ?";
             $stmt = $conn->prepare($sql);
-            $stmt->bind_param("ss", $student_id, $week);
+            $stmt->bindParam(1, $student_id);
+            $stmt->bindParam(2, $week);
             $stmt->execute();
-            $result = $stmt->get_result();
+            $result = $stmt->fetch(PDO::FETCH_ASSOC);
             
-            if ($result->num_rows === 0) {
+            if (!$result) {
                 return json_encode([
                     'success' => true,
                     'journal' => null
                 ]);
             }
             
-            $journal = $result->fetch_assoc();
+            $journal = $result;
             $journal_id = $journal['id'];
             
             // Get words_inspire
             $inspire_sql = "SELECT inspire_words FROM words_inspire WHERE journal_id = ?";
             $inspire_stmt = $conn->prepare($inspire_sql);
-            $inspire_stmt->bind_param("i", $journal_id);
+            $inspire_stmt->bindParam(1, $journal_id);
             $inspire_stmt->execute();
-            $inspire_result = $inspire_stmt->get_result();
-            
-            $words_inspire = [];
-            while ($row = $inspire_result->fetch_assoc()) {
-                $words_inspire[] = $row;
-            }
+            $words_inspire = $inspire_stmt->fetchAll(PDO::FETCH_ASSOC);
             
             // Get words_affirmation
             $affirmation_sql = "SELECT affirmation_word FROM words_affirmation WHERE journal_id = ?";
             $affirmation_stmt = $conn->prepare($affirmation_sql);
-            $affirmation_stmt->bind_param("i", $journal_id);
+            $affirmation_stmt->bindParam(1, $journal_id);
             $affirmation_stmt->execute();
-            $affirmation_result = $affirmation_stmt->get_result();
-            
-            $words_affirmation = [];
-            while ($row = $affirmation_result->fetch_assoc()) {
-                $words_affirmation[] = $row;
-            }
+            $words_affirmation = $affirmation_stmt->fetchAll(PDO::FETCH_ASSOC);
             
             $journal['words_inspire'] = $words_inspire;
             $journal['words_affirmation'] = $words_affirmation;
@@ -1187,6 +1336,10 @@ switch ($operation) {
         
     case 'get_current_week':
         echo $students->getCurrentWeek($json);
+        break;
+        
+    case 'get_student_period_info':
+        echo getStudentPeriodInfo($json);
         break;
         
     case 'save_journal':
