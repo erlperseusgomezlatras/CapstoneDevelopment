@@ -279,39 +279,26 @@ class Students {
         $longitude = $data['longitude'];
         
         try {
-            // Get student's section and partnered school information
-            $sql = "SELECT u.section_id, s.school_id as partnered_school_id, ps.latitude, ps.longitude, ps.geofencing_radius
-                    FROM users u
-                    LEFT JOIN sections s ON u.section_id = s.id
-                    LEFT JOIN partnered_schools ps ON s.school_id = ps.id
-                    WHERE u.school_id = ? AND u.level_id = 4";
+            // Get student information
+            $sql = "SELECT s.geofencing_radius, sc.latitude, sc.longitude 
+                    FROM students s 
+                    JOIN partnered_schools sc ON s.partnered_school_id = sc.id 
+                    WHERE s.school_id = ?";
             $stmt = $conn->prepare($sql);
             $stmt->execute([$student_id]);
             $student_info = $stmt->fetch(PDO::FETCH_ASSOC);
             
-            if (!$student_info || !$student_info['section_id']) {
+            if (!$student_info) {
                 return json_encode([
                     'success' => false,
-                    'message' => 'Student is not assigned to any section'
+                    'message' => 'Student information not found'
                 ]);
             }
             
-            if (!$student_info['partnered_school_id'] || !$student_info['latitude'] || !$student_info['longitude']) {
-                return json_encode([
-                    'success' => false,
-                    'message' => 'No partnered school assigned to your section'
-                ]);
-            }
+            // Calculate distance
+            $distance = $this->calculateDistance($latitude, $longitude, $student_info['latitude'], $student_info['longitude']);
             
-            // Calculate distance from school
-            $distance = $this->calculateDistance(
-                $latitude,
-                $longitude,
-                $student_info['latitude'],
-                $student_info['longitude']
-            );
-            
-            // Check if student is within geofence radius
+            // Check if within geofence
             if ($distance > $student_info['geofencing_radius']) {
                 return json_encode([
                     'success' => false,
@@ -328,11 +315,57 @@ class Students {
             if (!$active_session) {
                 return json_encode([
                     'success' => false,
-                    'message' => 'No active academic session found. Please contact your coordinator.'
+                    'message' => 'No active academic session found'
                 ]);
             }
             
             $session_id = $active_session['academic_session_id'];
+            
+            // Calculate current period based on practicum start date
+            try {
+                // Get practicum start date
+                $query = "SELECT ps.practicum_startDate 
+                         FROM practicum_subjects ps 
+                         WHERE ps.practicum_startDate IS NOT NULL 
+                         ORDER BY ps.practicum_startDate DESC 
+                         LIMIT 1";
+                $stmt = $conn->prepare($query);
+                $stmt->execute();
+                $practicumInfo = $stmt->fetch(PDO::FETCH_ASSOC);
+                
+                $period_id = null;
+                if ($practicumInfo) {
+                    $startDate = new DateTime($practicumInfo['practicum_startDate']);
+                    $currentDate = new DateTime();
+                    
+                    // Calculate total weeks from start date
+                    $weeksDiff = floor($currentDate->diff($startDate)->days / 7) + 1;
+                    
+                    // Get all periods to determine current period
+                    $periodQuery = "SELECT id, period_weeks FROM period ORDER BY id";
+                    $periodStmt = $conn->prepare($periodQuery);
+                    $periodStmt->execute();
+                    $periods = $periodStmt->fetchAll(PDO::FETCH_ASSOC);
+                    
+                    $accumulatedWeeks = 0;
+                    foreach ($periods as $period) {
+                        $accumulatedWeeks += $period['period_weeks'];
+                        if ($weeksDiff <= $accumulatedWeeks) {
+                            $period_id = $period['id'];
+                            break;
+                        }
+                    }
+                    
+                    // If beyond all periods, use the last period
+                    if (!$period_id && !empty($periods)) {
+                        $lastPeriod = end($periods);
+                        $period_id = $lastPeriod['id'];
+                    }
+                }
+            } catch(PDOException $e) {
+                // If period calculation fails, continue without period_id
+                $period_id = null;
+            }
 
             // Check if attendance already marked for today in this session
             $check_sql = "SELECT id FROM attendance WHERE student_id = ? AND attendance_date = CURDATE() AND session_id = ?";
@@ -347,10 +380,10 @@ class Students {
                 ]);
             }
 
-            // Mark attendance
-            $insert_sql = "INSERT INTO attendance (student_id, attendance_date, attendance_timeIn, attendance_timeOut, session_id) VALUES (?, CURDATE(), CURTIME(), NULL, ?)";
+            // Mark attendance with period_id
+            $insert_sql = "INSERT INTO attendance (student_id, attendance_date, attendance_timeIn, attendance_timeOut, session_id, period_id) VALUES (?, CURDATE(), CURTIME(), NULL, ?, ?)";
             $stmt = $conn->prepare($insert_sql);
-            $result = $stmt->execute([$student_id, $session_id]);
+            $result = $stmt->execute([$student_id, $session_id, $period_id]);
             
             if ($result) {
                 return json_encode([
@@ -359,7 +392,7 @@ class Students {
                     'data' => [
                         'distance' => round($distance, 2),
                         'geofence_radius' => $student_info['geofencing_radius'],
-                        'time' => date('H:i:s')
+                        'period_id' => $period_id
                     ]
                 ]);
             } else {
@@ -1340,6 +1373,84 @@ switch ($operation) {
         
     case 'get_student_period_info':
         echo getStudentPeriodInfo($json);
+        break;
+        
+    case 'get_current_period':
+        // Calculate current period for attendance (same logic as journal)
+        try {
+            $data = json_decode($json, true);
+            $student_id = $data['student_id'];
+            
+            include "connection.php";
+            
+            // Get practicum start date and calculate current period
+            $query = "SELECT ps.practicum_startDate, ps.id as practicum_id 
+                     FROM practicum_subjects ps 
+                     WHERE ps.practicum_startDate IS NOT NULL 
+                     ORDER BY ps.practicum_startDate DESC 
+                     LIMIT 1";
+            $stmt = $conn->prepare($query);
+            $stmt->execute();
+            $practicumInfo = $stmt->fetch(PDO::FETCH_ASSOC);
+            
+            if (!$practicumInfo) {
+                echo json_encode([
+                    'success' => false,
+                    'message' => 'No practicum information found'
+                ]);
+                break;
+            }
+            
+            $startDate = new DateTime($practicumInfo['practicum_startDate']);
+            $currentDate = new DateTime();
+            
+            // Calculate total weeks from start date
+            $weeksDiff = floor($currentDate->diff($startDate)->days / 7) + 1;
+            
+            // Get all periods to determine current period based on weeks
+            $periodQuery = "SELECT id, period_name, period_weeks FROM period ORDER BY id";
+            $periodStmt = $conn->prepare($periodQuery);
+            $periodStmt->execute();
+            $periods = $periodStmt->fetchAll(PDO::FETCH_ASSOC);
+            
+            $currentPeriod = null;
+            $currentWeekInPeriod = 0;
+            $accumulatedWeeks = 0;
+            
+            foreach ($periods as $period) {
+                $accumulatedWeeks += $period['period_weeks'];
+                if ($weeksDiff <= $accumulatedWeeks) {
+                    $currentPeriod = $period;
+                    $currentWeekInPeriod = $weeksDiff - ($accumulatedWeeks - $period['period_weeks']);
+                    break;
+                }
+            }
+            
+            // If beyond all periods, use the last period
+            if (!$currentPeriod && !empty($periods)) {
+                $lastPeriod = end($periods);
+                $currentPeriod = $lastPeriod;
+                $currentWeekInPeriod = min($weeksDiff - ($accumulatedWeeks - $lastPeriod['period_weeks']), $lastPeriod['period_weeks']);
+            }
+            
+            echo json_encode([
+                'success' => true,
+                'data' => [
+                    'period_id' => $currentPeriod ? $currentPeriod['id'] : null,
+                    'period_name' => $currentPeriod ? $currentPeriod['period_name'] : null,
+                    'period_weeks' => $currentPeriod ? $currentPeriod['period_weeks'] : null,
+                    'current_week_in_period' => $currentWeekInPeriod,
+                    'total_weeks_from_start' => $weeksDiff,
+                    'practicum_start_date' => $practicumInfo['practicum_startDate']
+                ]
+            ]);
+            
+        } catch(PDOException $e) {
+            echo json_encode([
+                'success' => false,
+                'message' => 'Database error: ' . $e->getMessage()
+            ]);
+        }
         break;
         
     case 'save_journal':
