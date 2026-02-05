@@ -635,6 +635,355 @@ class Checklist {
             ]);
         }
     }
+    
+    // Get checklist records with filtering
+    function getChecklistRecords($json) {
+        include "connection.php";
+        
+        try {
+            $data = json_decode($json, true);
+            $sessionId = $data['session_id'] ?? 'all';
+            $sectionId = $data['section_id'] ?? 'all';
+            $periodId = $data['period_id'] ?? 'all';
+            $week = $data['week'] ?? 'all';
+            
+            // Build base query
+            $query = "SELECT 
+                        u.school_id,
+                        CONCAT(u.firstname, ' ', COALESCE(u.middlename, ''), ' ', u.lastname) as student_name,
+                        sec.section_name,
+                        CONCAT(cu.firstname, ' ', cu.lastname) as coordinator_name,
+                        cr.date_checked,
+                        cr.period_id,
+                        cr.session_id,
+                        p.period_name,
+                        p.period_weeks,
+                        CONCAT(sy.school_year, ' - ', sem.semester_name) as academic_session_name,
+                        SUM(cr.points_earned) as total_score,
+                        COUNT(*) as criteria_count,
+                        -- Calculate week number based on period start date
+                        CASE 
+                            WHEN ps.practicum_startDate IS NOT NULL THEN
+                                FLOOR(DATEDIFF(cr.date_checked, ps.practicum_startDate) / 7) + 1
+                            ELSE NULL
+                        END as week_number
+                      FROM checklist_results cr
+                      JOIN users u ON cr.student_id = u.school_id
+                      JOIN sections sec ON u.section_id = sec.id
+                      JOIN users cu ON cr.checked_by = cu.school_id
+                      LEFT JOIN period p ON cr.period_id = p.id
+                      LEFT JOIN practicum_subjects ps ON p.id = ps.id
+                      LEFT JOIN academic_sessions ac ON cr.session_id = ac.academic_session_id
+                      LEFT JOIN school_years sy ON ac.school_year_id = sy.school_year_id
+                      LEFT JOIN semesters sem ON ac.semester_id = sem.semester_id
+                      WHERE 1=1";
+            
+            $params = [];
+            
+            // Add session filter
+            if ($sessionId !== 'all') {
+                $query .= " AND cr.session_id = ?";
+                $params[] = $sessionId;
+            }
+            
+            // Add section filter
+            if ($sectionId !== 'all') {
+                $query .= " AND u.section_id = ?";
+                $params[] = $sectionId;
+            }
+            
+            // Add period filter
+            if ($periodId !== 'all') {
+                $query .= " AND cr.period_id = ?";
+                $params[] = $periodId;
+            }
+            
+            // Add week filter - this should work regardless of period selection
+            if ($week !== 'all') {
+                if ($periodId !== 'all') {
+                    // Specific period selected: calculate relative week
+                    $periodQuery = "SELECT 
+                                     p.period_weeks,
+                                     (SELECT COALESCE(SUM(prev_p.period_weeks), 0) 
+                                      FROM period prev_p 
+                                      WHERE prev_p.id < p.id) as start_week
+                                   FROM period p 
+                                   WHERE p.id = ?";
+                    $periodStmt = $conn->prepare($periodQuery);
+                    $periodStmt->execute([$periodId]);
+                    $periodInfo = $periodStmt->fetch(PDO::FETCH_ASSOC);
+                    
+                    if ($periodInfo) {
+                        $startWeek = $periodInfo['start_week'] + 1;
+                        $selectedWeek = $startWeek + intval($week) - 1;
+                        
+                        $query .= " AND FLOOR(DATEDIFF(cr.date_checked, ps.practicum_startDate) / 7) + 1 = ?";
+                        $params[] = $selectedWeek;
+                    }
+                } else {
+                    // All periods selected: filter by absolute week number
+                    $query .= " AND FLOOR(DATEDIFF(cr.date_checked, ps.practicum_startDate) / 7) + 1 = ?";
+                    $params[] = intval($week);
+                }
+            }
+            
+            $query .= " GROUP BY cr.student_id, cr.period_id, cr.session_id, cr.date_checked
+                        ORDER BY cr.date_checked DESC, u.lastname, u.firstname";
+            
+            $stmt = $conn->prepare($query);
+            $stmt->execute($params);
+            $records = $stmt->fetchAll(PDO::FETCH_ASSOC);
+            
+            return json_encode([
+                'success' => true,
+                'data' => $records
+            ]);
+            
+        } catch(PDOException $e) {
+            return json_encode([
+                'success' => false,
+                'message' => 'Database error: ' . $e->getMessage()
+            ]);
+        }
+    }
+    
+    // Get sections for filtering
+    function getSections($json) {
+        include "connection.php";
+        
+        try {
+            $query = "SELECT id, section_name FROM sections ORDER BY section_name";
+            $stmt = $conn->prepare($query);
+            $stmt->execute();
+            $sections = $stmt->fetchAll(PDO::FETCH_ASSOC);
+            
+            return json_encode([
+                'success' => true,
+                'data' => $sections
+            ]);
+            
+        } catch(PDOException $e) {
+            return json_encode([
+                'success' => false,
+                'message' => 'Database error: ' . $e->getMessage()
+            ]);
+        }
+    }
+    
+    // Get academic sessions for filtering
+    function getAcademicSessions($json) {
+        include "connection.php";
+        
+        try {
+            $query = "SELECT asess.academic_session_id, sy.school_year, s.semester_name,
+                            CASE WHEN asess.is_Active = 1 THEN ' (Active)' ELSE '' END as status_label
+                     FROM academic_sessions asess
+                     JOIN school_years sy ON asess.school_year_id = sy.school_year_id
+                     JOIN semesters s ON asess.semester_id = s.semester_id
+                     ORDER BY asess.is_Active DESC, sy.school_year DESC, s.semester_name";
+            $stmt = $conn->prepare($query);
+            $stmt->execute();
+            $sessions = $stmt->fetchAll(PDO::FETCH_ASSOC);
+            
+            return json_encode([
+                'success' => true,
+                'data' => $sessions
+            ]);
+            
+        } catch(PDOException $e) {
+            return json_encode([
+                'success' => false,
+                'message' => 'Database error: ' . $e->getMessage()
+            ]);
+        }
+    }
+    
+    // Get active academic session
+    function getActiveAcademicSession($json) {
+        include "connection.php";
+        
+        try {
+            $query = "SELECT asess.academic_session_id, asess.school_year_id, asess.semester_id,
+                            sy.school_year, s.semester_name
+                     FROM academic_sessions asess
+                     JOIN school_years sy ON asess.school_year_id = sy.school_year_id
+                     JOIN semesters s ON asess.semester_id = s.semester_id
+                     WHERE asess.is_Active = 1
+                     LIMIT 1";
+            $stmt = $conn->prepare($query);
+            $stmt->execute();
+            $active_session = $stmt->fetch(PDO::FETCH_ASSOC);
+            
+            if (!$active_session) {
+                return json_encode([
+                    'success' => false,
+                    'message' => 'No active academic session found'
+                ]);
+            }
+            
+            return json_encode([
+                'success' => true,
+                'data' => $active_session
+            ]);
+            
+        } catch(PDOException $e) {
+            return json_encode([
+                'success' => false,
+                'message' => 'Database error: ' . $e->getMessage()
+            ]);
+        }
+    }
+    
+    // Get period summary for all students in a period
+    function getPeriodSummaryForAll($json) {
+        include "connection.php";
+        
+        try {
+            $data = json_decode($json, true);
+            $sessionId = $data['session_id'];
+            $periodId = $data['period_id'];
+            $sectionId = $data['section_id'];
+            
+            // Build base query
+            $query = "SELECT 
+                        u.school_id,
+                        CONCAT(u.firstname, ' ', COALESCE(u.middlename, ''), ' ', u.lastname) as student_name,
+                        s.section_name,
+                        COUNT(DISTINCT cr.date_checked) as weeks_evaluated,
+                        SUM(cr.points_earned) as total_score,
+                        GROUP_CONCAT(
+                            DISTINCT CASE 
+                                WHEN ps.practicum_startDate IS NOT NULL THEN
+                                    FLOOR(DATEDIFF(cr.date_checked, ps.practicum_startDate) / 7) + 1
+                                ELSE NULL
+                            END 
+                            ORDER BY cr.date_checked ASC
+                        ) as evaluated_weeks
+                      FROM checklist_results cr
+                      JOIN users u ON cr.student_id = u.school_id
+                      JOIN sections s ON u.section_id = s.id
+                      LEFT JOIN practicum_subjects ps ON cr.period_id = ps.id
+                      WHERE cr.session_id = ? 
+                        AND cr.period_id = ?";
+            
+            $params = [$sessionId, $periodId];
+            
+            // Add section filter if not all
+            if ($sectionId !== 'all') {
+                $query .= " AND u.section_id = ?";
+                $params[] = $sectionId;
+            }
+            
+            $query .= " GROUP BY u.school_id, u.firstname, u.middlename, u.lastname, s.section_name
+                        ORDER BY u.lastname, u.firstname";
+            
+            $stmt = $conn->prepare($query);
+            $stmt->execute($params);
+            $summaryData = $stmt->fetchAll(PDO::FETCH_ASSOC);
+            
+            return json_encode([
+                'success' => true,
+                'data' => $summaryData
+            ]);
+            
+        } catch(PDOException $e) {
+            return json_encode([
+                'success' => false,
+                'message' => 'Database error: ' . $e->getMessage()
+            ]);
+        }
+    }
+    
+    // Get detailed checklist results for a specific record
+    function getChecklistRecordDetails($json) {
+        include "connection.php";
+        
+        try {
+            $data = json_decode($json, true);
+            $studentId = $data['student_id'];
+            $periodId = $data['period_id'];
+            $dateChecked = $data['date_checked'];
+            
+            $query = "SELECT 
+                        cr.checklist_id,
+                        cr.points_earned,
+                        c.checklist_criteria,
+                        CASE 
+                            WHEN c.checklist_criteria = 'Well-pressed prescribed ST uniform' AND cc.is_ratingscore = 1 THEN 2
+                            ELSE c.points
+                        END as max_points,
+                        cc.category_name,
+                        ct.type_name,
+                        CASE 
+                            WHEN cc.is_type = 1 THEN 1
+                            ELSE 0
+                        END as has_type
+                      FROM checklist_results cr
+                      JOIN checklist c ON cr.checklist_id = c.id
+                      JOIN checklist_category cc ON c.category_id = cc.id
+                      LEFT JOIN checklist_type ct ON c.type_id = ct.id
+                      WHERE cr.student_id = ? 
+                        AND cr.period_id = ? 
+                        AND cr.date_checked = ?
+                      ORDER BY cc.category_name, ct.type_name, c.checklist_criteria";
+            
+            $stmt = $conn->prepare($query);
+            $stmt->execute([$studentId, $periodId, $dateChecked]);
+            $details = $stmt->fetchAll(PDO::FETCH_ASSOC);
+            
+            return json_encode([
+                'success' => true,
+                'data' => $details
+            ]);
+            
+        } catch(PDOException $e) {
+            return json_encode([
+                'success' => false,
+                'message' => 'Database error: ' . $e->getMessage()
+            ]);
+        }
+    }
+    
+    // Get period info for week calculation
+    function getPeriodInfo($json) {
+        include "connection.php";
+        
+        try {
+            $data = json_decode($json, true);
+            $periodId = $data['period_id'];
+            
+            // Debug: Get all periods to see the data
+            $debugQuery = "SELECT id, period_name, period_weeks FROM period ORDER BY id";
+            $debugStmt = $conn->prepare($debugQuery);
+            $debugStmt->execute();
+            $allPeriods = $debugStmt->fetchAll(PDO::FETCH_ASSOC);
+            
+            // Get the current period info
+            $query = "SELECT 
+                        p.id,
+                        p.period_name,
+                        p.period_weeks,
+                        (SELECT COALESCE(SUM(prev_p.period_weeks), 0) 
+                         FROM period prev_p 
+                         WHERE prev_p.id < p.id) as start_week
+                      FROM period p 
+                      WHERE p.id = ?";
+            $stmt = $conn->prepare($query);
+            $stmt->execute([$periodId]);
+            $periodInfo = $stmt->fetch(PDO::FETCH_ASSOC);
+            
+            return json_encode([
+                'success' => true,
+                'data' => $periodInfo
+            ]);
+            
+        } catch(PDOException $e) {
+            return json_encode([
+                'success' => false,
+                'message' => 'Database error: ' . $e->getMessage()
+            ]);
+        }
+    }
 }
 
 // Handle API requests
@@ -693,6 +1042,27 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             break;
         case 'saveChecklistResults':
             echo $checklist->saveChecklistResults($json);
+            break;
+        case 'getChecklistRecords':
+            echo $checklist->getChecklistRecords($json);
+            break;
+        case 'getSections':
+            echo $checklist->getSections($json);
+            break;
+        case 'getAcademicSessions':
+            echo $checklist->getAcademicSessions($json);
+            break;
+        case 'getActiveAcademicSession':
+            echo $checklist->getActiveAcademicSession($json);
+            break;
+        case 'getPeriodSummaryForAll':
+            echo $checklist->getPeriodSummaryForAll($json);
+            break;
+        case 'getChecklistRecordDetails':
+            echo $checklist->getChecklistRecordDetails($json);
+            break;
+        case 'getPeriodInfo':
+            echo $checklist->getPeriodInfo($json);
             break;
         default:
             echo json_encode([

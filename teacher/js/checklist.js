@@ -3,9 +3,22 @@ $(document).ready(function() {
     loadCategories();
     loadTypes();
     loadCriteria();
+    loadSections();
+    loadPeriods();
+    loadAcademicSessions();
     
     // Setup event listeners
     setupEventListeners();
+    
+    // Initialize Select2 for record filters
+    $('#recordSessionFilter, #recordSectionFilter, #recordPeriodFilter, #recordWeekFilter').select2({
+        width: '100%'
+    });
+    
+    // Setup period change event to update week filter
+    $('#recordPeriodFilter').on('change', function() {
+        updateWeekFilter();
+    });
 });
 
 function setupEventListeners() {
@@ -58,6 +71,12 @@ function switchTab(tabName) {
     
     // Activate selected mobile tab button
     $(`.mobile-tab-button[onclick="switchTab('${tabName}')"]`).addClass('active').removeClass('text-gray-500 border-transparent').addClass('text-green-700 border-green-700');
+    
+    // Load data for Records tab when switched to it
+    if (tabName === 'records') {
+        updateWeekFilter();
+        loadRecords();
+    }
 }
 
 // Modal functions
@@ -521,4 +540,486 @@ function showAlert(message, type) {
             alertDiv.parentNode.removeChild(alertDiv);
         }
     }, 5000);
+}
+
+// Records Tab Functions
+let recordsData = [];
+
+function loadAcademicSessions() {
+    // First load all sessions
+    axios.post(`${window.APP_CONFIG.API_BASE_URL}checklist.php`, {
+        action: 'getAcademicSessions'
+    })
+    .then(function(response) {
+        if (response.data.success) {
+            const sessions = response.data.data;
+            const select = $('#recordSessionFilter');
+            select.empty().append('<option value="all">All Sessions</option>');
+            
+            sessions.forEach(session => {
+                const displayName = `${session.school_year} - ${session.semester_name}${session.status_label}`;
+                select.append(`<option value="${session.academic_session_id}">${displayName}</option>`);
+            });
+            
+            // Now load and set the active session as default
+            loadActiveAcademicSession();
+            
+            select.trigger('change.select2');
+        } else {
+            showAlert('Error loading academic sessions', 'danger');
+        }
+    })
+    .catch(function(error) {
+        console.error('Error loading academic sessions:', error);
+        showAlert('Error loading academic sessions', 'danger');
+    });
+}
+
+function loadActiveAcademicSession() {
+    axios.post(`${window.APP_CONFIG.API_BASE_URL}checklist.php`, {
+        action: 'getActiveAcademicSession'
+    })
+    .then(function(response) {
+        if (response.data.success) {
+            const activeSession = response.data.data;
+            // Set the active session as selected
+            $('#recordSessionFilter').val(activeSession.academic_session_id).trigger('change.select2');
+        }
+    })
+    .catch(function(error) {
+        console.error('Error loading active academic session:', error);
+    });
+}
+
+function loadSections() {
+    axios.post(`${window.APP_CONFIG.API_BASE_URL}checklist.php`, {
+        action: 'getSections'
+    })
+    .then(function(response) {
+        if (response.data.success) {
+            const sections = response.data.data;
+            const select = $('#recordSectionFilter');
+            select.empty().append('<option value="all">All Sections</option>');
+            
+            sections.forEach(section => {
+                select.append(`<option value="${section.id}">${section.section_name}</option>`);
+            });
+            
+            select.trigger('change.select2');
+        } else {
+            showAlert('Error loading sections', 'danger');
+        }
+    })
+    .catch(function(error) {
+        console.error('Error loading sections:', error);
+        showAlert('Error loading sections', 'danger');
+    });
+}
+
+function loadPeriods() {
+    axios.post(`${window.APP_CONFIG.API_BASE_URL}checklist.php`, {
+        action: 'getPeriods'
+    })
+    .then(function(response) {
+        if (response.data.success) {
+            const periods = response.data.data;
+            const select = $('#recordPeriodFilter');
+            select.empty().append('<option value="all">All Periods</option>');
+            
+            periods.forEach(period => {
+                select.append(`<option value="${period.id}">${period.period_name} (${period.period_weeks} weeks)</option>`);
+            });
+            
+            select.trigger('change.select2');
+        } else {
+            showAlert('Error loading periods', 'danger');
+        }
+    })
+    .catch(function(error) {
+        console.error('Error loading periods:', error);
+        showAlert('Error loading periods', 'danger');
+    });
+}
+
+function loadRecords() {
+    const sessionId = $('#recordSessionFilter').val();
+    const sectionId = $('#recordSectionFilter').val();
+    const periodId = $('#recordPeriodFilter').val();
+    const week = $('#recordWeekFilter').val();
+    
+    axios.post(`${window.APP_CONFIG.API_BASE_URL}checklist.php`, {
+        action: 'getChecklistRecords',
+        session_id: sessionId,
+        section_id: sectionId,
+        period_id: periodId,
+        week: week
+    })
+    .then(function(response) {
+        if (response.data.success) {
+            recordsData = response.data.data;
+            displayRecords();
+        } else {
+            showAlert('Error loading records', 'danger');
+        }
+    })
+    .catch(function(error) {
+        console.error('Error loading records:', error);
+        showAlert('Error loading records', 'danger');
+    });
+}
+
+function displayRecords() {
+    const tbody = document.getElementById('recordsTableBody');
+    const noRecordsMessage = document.getElementById('noRecordsMessage');
+    
+    if (recordsData.length === 0) {
+        tbody.innerHTML = '';
+        noRecordsMessage.classList.remove('hidden');
+        return;
+    }
+    
+    noRecordsMessage.classList.add('hidden');
+    
+    tbody.innerHTML = recordsData.map(record => {
+        // Calculate period-specific week number
+        let displayWeek = record.week_number || 'N/A';
+        if (record.period_id && record.period_weeks) {
+            // Get period start week to calculate relative week
+            const startWeek = getPeriodStartWeek(record.period_id);
+            if (startWeek !== null && record.week_number) {
+                const relativeWeek = record.week_number - startWeek + 1;
+                if (relativeWeek > 0 && relativeWeek <= record.period_weeks) {
+                    displayWeek = `Week ${relativeWeek} (P${record.period_id})`;
+                }
+            }
+        }
+        
+        return `
+            <tr class="hover:bg-gray-50">
+                <td class="px-6 py-4 whitespace-nowrap">
+                    <div class="text-sm font-medium text-gray-900">${record.student_name}</div>
+                    <div class="text-sm text-gray-500">${record.school_id}</div>
+                </td>
+                <td class="px-6 py-4 whitespace-nowrap">
+                    <div class="text-sm text-gray-900">${record.section_name}</div>
+                </td>
+                <td class="px-6 py-4 whitespace-nowrap">
+                    <div class="text-sm text-gray-900">${record.coordinator_name}</div>
+                </td>
+                <td class="px-6 py-4 whitespace-nowrap">
+                    <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
+                        ${displayWeek}
+                    </span>
+                </td>
+                <td class="px-6 py-4 whitespace-nowrap">
+                    <div class="text-sm font-medium text-gray-900">${record.total_score}</div>
+                    <div class="text-sm text-gray-500">${record.criteria_count} criteria</div>
+                </td>
+                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                    ${new Date(record.date_checked).toLocaleDateString()}
+                </td>
+                <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                    <button onclick="viewRecordDetails('${record.school_id}', '${record.period_id}', '${record.date_checked}')" 
+                            class="text-blue-600 hover:text-blue-900 mr-3">
+                        <i class="fas fa-eye"></i> View
+                    </button>
+                </td>
+            </tr>
+        `;
+    }).join('');
+}
+
+function applyRecordFilters() {
+    loadRecords();
+}
+
+function viewRecordDetails(studentId, periodId, dateChecked) {
+    console.log('View record details called:', { studentId, periodId, dateChecked });
+    console.log('Records data available:', recordsData);
+    
+    axios.post(`${window.APP_CONFIG.API_BASE_URL}checklist.php`, {
+        action: 'getChecklistRecordDetails',
+        student_id: studentId,
+        period_id: periodId,
+        date_checked: dateChecked
+    })
+    .then(function(response) {
+        console.log('API response:', response.data);
+        if (response.data.success) {
+            displayRecordDetailsModal(response.data.data, studentId, periodId, dateChecked);
+        } else {
+            showAlert('Error loading checklist details', 'danger');
+        }
+    })
+    .catch(function(error) {
+        console.error('Error loading checklist details:', error);
+        showAlert('Error loading checklist details', 'danger');
+    });
+}
+
+function displayRecordDetailsModal(details, studentId, periodId, dateChecked) {
+    // Find the corresponding record from recordsData to get basic info
+    const record = recordsData.find(r => 
+        r.school_id === studentId && 
+        r.period_id === periodId && 
+        r.date_checked === dateChecked
+    );
+    
+    if (!record) {
+        showAlert('Record information not found', 'warning');
+        return;
+    }
+    
+    // Update modal header information
+    document.getElementById('modalStudentName').textContent = record.student_name;
+    document.getElementById('modalStudentId').textContent = record.school_id;
+    document.getElementById('modalSectionName').textContent = record.section_name;
+    document.getElementById('modalEvaluationDate').textContent = new Date(record.date_checked).toLocaleDateString('en-US', { 
+        year: 'numeric', 
+        month: 'short', 
+        day: 'numeric' 
+    }).replace(',', ',');
+    document.getElementById('modalWeekNumber').textContent = `Week ${record.week_number}`;
+    document.getElementById('modalPeriodName').textContent = record.period_name;
+    document.getElementById('modalCoordinatorName').textContent = record.coordinator_name;
+    document.getElementById('modalTotalScore').textContent = record.total_score;
+    
+    // Display checklist items
+    const container = document.getElementById('modalChecklistItems');
+    container.innerHTML = '';
+    
+    if (details.length === 0) {
+        container.innerHTML = '<p class="text-gray-500">No checklist items found for this record.</p>';
+        return;
+    }
+    
+    let currentCategory = '';
+    let currentType = '';
+    
+    details.forEach((item, index) => {
+        // Add category header if it's a new category
+        if (item.category_name !== currentCategory) {
+            currentCategory = item.category_name;
+            currentType = ''; // Reset type when category changes
+            const categoryId = item.category_name.replace(/\s+/g, '-'); // Replace spaces with dashes
+            container.innerHTML += `
+                <div class="mb-6">
+                    <h4 class="text-md font-semibold text-gray-800 mb-3">${item.category_name}</h4>
+                    <div class="space-y-3" id="category-${categoryId}">
+                    </div>
+                </div>
+            `;
+        }
+        
+        // Add type header if it's a new type (and type exists)
+        const itemTypeName = item.type_name || 'General';
+        if (itemTypeName !== currentType) {
+            currentType = itemTypeName;
+            const categoryId = item.category_name.replace(/\s+/g, '-');
+            const typeId = itemTypeName.replace(/\s+/g, '-').toLowerCase();
+            container.innerHTML += `
+                <div class="ml-4 mb-3">
+                    <h5 class="text-sm font-medium text-gray-600 border-l-4 border-blue-400 pl-3">${itemTypeName}</h5>
+                </div>
+                <div class="space-y-3 ml-4" id="type-${typeId}">
+                </div>
+            `;
+        }
+        
+        const typeId = (itemTypeName || 'General').replace(/\s+/g, '-').toLowerCase();
+        const typeContainer = document.getElementById(`type-${typeId}`);
+        
+        if (typeContainer) {
+            const isRatingScore = parseInt(item.has_type) === 1;
+            
+            if (isRatingScore) {
+                // Rating score display (1 to points based on checklist table)
+                const existingScore = parseInt(item.points_earned) || 0;
+                const maxRating = parseInt(item.max_points) || 5;
+                const stars = Array.from({length: maxRating}, (_, i) => i + 1);
+                
+                typeContainer.innerHTML += `
+                    <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between p-3 bg-gray-50 rounded-lg gap-3">
+                        <div class="flex-1">
+                            <label class="text-sm font-medium text-gray-700 block mb-2">${item.checklist_criteria}</label>
+                            <div class="flex items-center gap-2">
+                                <div class="rating-stars flex gap-1">
+                                    ${stars.map(star => `
+                                        <span class="text-xl sm:text-2xl ${existingScore >= star ? 'text-yellow-400' : 'text-gray-300'}">
+                                            ★
+                                        </span>
+                                    `).join('')}
+                                </div>
+                                <div class="text-xs sm:text-sm text-gray-600 ml-2">
+                                    <span class="font-medium">Score:</span> <span>${existingScore}/${maxRating}</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            } else {
+                // Checkbox display (original)
+                const isChecked = item.points_earned > 0;
+                typeContainer.innerHTML += `
+                    <div class="flex items-center justify-between p-3 bg-gray-50 rounded-lg gap-3">
+                        <label class="flex items-center cursor-pointer flex-1 gap-3">
+                            <input type="checkbox" 
+                                   class="checklist-checkbox form-checkbox h-5 w-5 ${item.points_earned > 0 ? 'text-green-600' : 'text-blue-600'} rounded flex-shrink-0 mt-0.5" 
+                                   ${isChecked ? 'checked' : ''} ${item.points_earned === 0 ? 'disabled' : ''}>
+                            <span class="text-sm font-medium text-gray-700 leading-tight">${item.checklist_criteria}</span>
+                        </label>
+                        <div class="text-sm text-gray-600">
+                            ${item.max_points} points
+                        </div>
+                    </div>
+                `;
+            }
+        }
+    });
+    
+    // Show the modal
+    document.getElementById('recordDetailsModal').classList.remove('hidden');
+}
+
+function closeRecordDetailsModal() {
+    document.getElementById('recordDetailsModal').classList.add('hidden');
+}
+
+// Period Summary Table Functions
+function loadPeriodSummaryTable() {
+    const sessionId = $('#recordSessionFilter').val();
+    const sectionId = $('#recordSectionFilter').val();
+    const periodId = $('#recordPeriodFilter').val();
+    
+    if (sessionId === 'all' || periodId === 'all') {
+        showAlert('Please select an Academic Session and Period to show period summary', 'warning');
+        return;
+    }
+    
+    axios.post(`${window.APP_CONFIG.API_BASE_URL}checklist.php`, {
+        action: 'getPeriodSummaryForAll',
+        session_id: sessionId,
+        period_id: periodId,
+        section_id: sectionId
+    })
+    .then(function(response) {
+        if (response.data.success) {
+            displayPeriodSummaryTable(response.data.data);
+        } else {
+            showAlert('Error loading period summary', 'danger');
+        }
+    })
+    .catch(function(error) {
+        console.error('Error loading period summary:', error);
+        showAlert('Error loading period summary', 'danger');
+    });
+}
+
+function displayPeriodSummaryTable(summaryData) {
+    const tbody = document.getElementById('periodSummaryTableBody');
+    tbody.innerHTML = '';
+    
+    console.log('Summary data received:', summaryData);
+    
+    // Handle both direct data and nested data structures
+    const students = summaryData.data || summaryData || [];
+    
+    
+    if (students.length === 0) {
+        tbody.innerHTML = `
+            <tr>
+                <td colspan="4" class="px-6 py-4 text-center text-gray-500">
+                    <i class="fas fa-chart-line text-2xl mb-2"></i>
+                    <p>No period data found for the selected filters.</p>
+                </td>
+            </tr>
+        `;
+    } else {
+        students.forEach(student => {
+            // Format the evaluated weeks display
+            let weeksDisplay = 'No weeks';
+            if (student.evaluated_weeks) {
+                const weeks = student.evaluated_weeks.split(',').filter(week => week && week.trim());
+                if (weeks.length > 0) {
+                    weeksDisplay = weeks.join(', ');
+                }
+            }
+            
+            tbody.innerHTML += `
+                <tr class="hover:bg-gray-50">
+                    <td class="px-6 py-4 whitespace-nowrap">
+                        <div class="text-sm font-medium text-gray-900">${student.student_name}</div>
+                        <div class="text-sm text-gray-500">${student.school_id}</div>
+                    </td>
+                    <td class="px-6 py-4 whitespace-nowrap">
+                        <div class="text-sm text-gray-900">${student.section_name}</div>
+                    </td>
+                    <td class="px-6 py-4 whitespace-nowrap">
+                        <div class="text-sm font-medium text-gray-900">${weeksDisplay}</div>
+                    </td>
+                    <td class="px-6 py-4 whitespace-nowrap">
+                        <div class="text-sm font-medium text-gray-900">${student.total_score}</div>
+                    </td>
+                </tr>
+            `;
+        });
+    }
+    
+    // Show the summary table
+    document.getElementById('periodSummaryTable').classList.remove('hidden');
+}
+
+function hidePeriodSummaryTable() {
+    document.getElementById('periodSummaryTable').classList.add('hidden');
+}
+
+let periodsCache = [];
+
+function updateWeekFilter() {
+    const periodId = $('#recordPeriodFilter').val();
+    const weekSelect = $('#recordWeekFilter');
+    
+    weekSelect.empty().append('<option value="all">All Weeks</option>');
+    
+    if (periodId === 'all') {
+        // If all periods selected, show weeks 1-17 (total)
+        for (let i = 1; i <= 17; i++) {
+            weekSelect.append(`<option value="${i}">Week ${i}</option>`);
+        }
+    } else {
+        // Get period info to calculate week range
+        axios.post(`${window.APP_CONFIG.API_BASE_URL}checklist.php`, {
+            action: 'getPeriodInfo',
+            period_id: periodId
+        })
+        .then(function(response) {
+            if (response.data.success) {
+                console.log('Period info response:', response.data);
+                const periodInfo = response.data.data;
+                const startWeek = (parseInt(periodInfo.start_week) || 0) + 1;
+                const endWeek = startWeek + (parseInt(periodInfo.period_weeks) || 0) - 1;
+                
+                console.log('Period info:', periodInfo);
+                console.log('Start week:', startWeek, 'End week:', endWeek);
+                
+                // Add absolute week numbers for this specific period
+                for (let i = startWeek; i <= endWeek; i++) {
+                    weekSelect.append(`<option value="${i}">Week ${i}</option>`);
+                }
+                
+                weekSelect.trigger('change.select2');
+            }
+        })
+        .catch(function(error) {
+            console.error('Error getting period info:', error);
+        });
+    }
+    
+    weekSelect.trigger('change.select2');
+}
+
+function getPeriodStartWeek(periodId) {
+    // This would need to be implemented based on the periods cache
+    // For now, return null as fallback
+    return null;
 }

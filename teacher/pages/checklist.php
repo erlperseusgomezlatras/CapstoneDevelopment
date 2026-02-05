@@ -286,6 +286,11 @@ $current_page = 'checklist';
                                 <i class="fas fa-list-check mr-2"></i>
                                 Checklist Criteria
                             </button>
+                            <button onclick="switchTab('records')" 
+                                    class="tab-button px-6 py-3 text-sm font-medium text-gray-500 hover:text-gray-700 focus:outline-none focus:text-gray-700">
+                                <i class="fas fa-chart-line mr-2"></i>
+                                Records
+                            </button>
                             <button onclick="switchTab('categories')" 
                                     class="tab-button px-6 py-3 text-sm font-medium text-gray-500 hover:text-gray-700 focus:outline-none focus:text-gray-700">
                                 <i class="fas fa-tags mr-2"></i>
@@ -306,6 +311,12 @@ $current_page = 'checklist';
                                     <i class="fas fa-list-check mr-1"></i>
                                     <span class="hidden sm:inline">Checklist</span>
                                     <span class="sm:hidden">Checklist</span>
+                                </button>
+                                <button onclick="switchTab('records')" 
+                                        class="mobile-tab-button flex-shrink-0 px-4 py-3 text-sm font-medium text-gray-500 hover:text-gray-700 focus:outline-none focus:text-gray-700 border-b-2 border-transparent">
+                                    <i class="fas fa-chart-line mr-1"></i>
+                                    <span class="hidden sm:inline">Records</span>
+                                    <span class="sm:hidden">Records</span>
                                 </button>
                                 <button onclick="switchTab('categories')" 
                                         class="mobile-tab-button flex-shrink-0 px-4 py-3 text-sm font-medium text-gray-500 hover:text-gray-700 focus:outline-none focus:text-gray-700 border-b-2 border-transparent">
@@ -336,6 +347,106 @@ $current_page = 'checklist';
                     
                     <div id="criteriaList" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                         <!-- Criteria cards will be loaded here -->
+                    </div>
+                </div>
+                
+                <!-- Records Tab Content -->
+                <div id="records" class="tab-content">
+                    <!-- Filters Section -->
+                    <div class="filter-card bg-white rounded-lg shadow-sm p-4 sm:p-6 mb-6">
+                        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-2">Academic Session</label>
+                                <select id="recordSessionFilter" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+                                    <option value="all">All Sessions</option>
+                                </select>
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-2">Section</label>
+                                <select id="recordSectionFilter" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+                                    <option value="all">All Sections</option>
+                                </select>
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-2">Period</label>
+                                <select id="recordPeriodFilter" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+                                    <option value="all">All Periods</option>
+                                </select>
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-2">Week</label>
+                                <select id="recordWeekFilter" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+                                    <option value="all">All Weeks</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="mt-4 flex flex-col sm:flex-row gap-3">
+                            <button onclick="applyRecordFilters()" class="w-full sm:w-auto bg-blue-600 text-white px-6 py-2 rounded-lg hover:bg-blue-700 transition-colors text-sm font-medium">
+                                <i class="fas fa-filter mr-2"></i>Apply Filters
+                            </button>
+                            <button onclick="loadPeriodSummaryTable()" class="w-full sm:w-auto bg-green-600 text-white px-6 py-2 rounded-lg hover:bg-green-700 transition-colors text-sm font-medium">
+                                <i class="fas fa-chart-line mr-2"></i>Show Period Summary
+                            </button>
+                        </div>
+                    </div>
+                    
+                    <!-- Period Summary Table -->
+                    <div id="periodSummaryTable" class="hidden bg-white rounded-lg shadow-sm mb-6">
+                        <div class="p-6">
+                            <div class="flex justify-between items-center mb-6">
+                                <h3 class="text-lg font-semibold text-gray-900">Period Performance Summary</h3>
+                                <button onclick="hidePeriodSummaryTable()" class="text-gray-400 hover:text-gray-600">
+                                    <i class="fas fa-times"></i>
+                                </button>
+                            </div>
+                            <div class="overflow-x-auto">
+                                <table class="min-w-full divide-y divide-gray-200">
+                                    <thead class="bg-gray-50">
+                                        <tr>
+                                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Student Name</th>
+                                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Section</th>
+                                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Weeks Evaluated</th>
+                                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Total Score</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="periodSummaryTableBody" class="bg-white divide-y divide-gray-200">
+                                        <!-- Period summary data will be loaded here -->
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Records Table -->
+                    <div class="bg-white rounded-lg shadow-sm overflow-hidden">
+                        <div class="px-4 sm:px-6 lg:px-8 py-4 border-b border-gray-200">
+                            <h3 class="text-lg font-medium text-gray-900">Checklist Records</h3>
+                        </div>
+                        <div class="overflow-x-auto">
+                            <table class="min-w-full divide-y divide-gray-200">
+                                <thead class="bg-gray-50">
+                                    <tr>
+                                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Student</th>
+                                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Section</th>
+                                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Coordinator</th>
+                                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Week</th>
+                                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Score</th>
+                                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Date</th>
+                                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="recordsTableBody" class="bg-white divide-y divide-gray-200">
+                                    <!-- Records will be loaded here -->
+                                </tbody>
+                            </table>
+                        </div>
+                        <div id="noRecordsMessage" class="hidden p-8 text-center">
+                            <div class="text-gray-500">
+                                <i class="fas fa-clipboard-list text-4xl mb-4"></i>
+                                <p class="text-lg font-medium">No records found</p>
+                                <p class="text-sm mt-2">Try adjusting your filters or check back later.</p>
+                            </div>
+                        </div>
                     </div>
                 </div>
                 
@@ -493,6 +604,87 @@ $current_page = 'checklist';
                                 </button>
                                 <button type="button" onclick="saveType()" class="btn-primary text-white px-4 py-2 rounded-md text-sm font-medium">
                                     Save
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Record Details Modal -->
+                <div id="recordDetailsModal" class="hidden fixed inset-0 z-50 overflow-y-auto">
+                    <div class="flex items-center justify-center min-h-screen px-4 pt-4 pb-20 text-center sm:p-0">
+                        <div class="fixed inset-0 transition-opacity modal-backdrop" onclick="closeRecordDetailsModal()"></div>
+                        
+                        <div class="relative inline-block w-full max-w-4xl text-left align-middle transition-all transform bg-white shadow-xl rounded-lg max-h-[90vh] overflow-y-auto">
+                            <div class="flex justify-between items-center p-6 border-b bg-gray-50">
+                                <div>
+                                    <h3 class="text-lg font-medium text-gray-900">Checklist Details</h3>
+                                    <p class="text-sm text-gray-600 mt-1" id="recordDetailsHeader">Student checklist evaluation details</p>
+                                </div>
+                                <button onclick="closeRecordDetailsModal()" class="text-gray-400 hover:text-gray-600">
+                                    <i class="fas fa-times"></i>
+                                </button>
+                            </div>
+                            
+                            <div class="p-6">
+                                <!-- Student and Evaluation Info -->
+                                <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+                                    <div class="bg-gray-50 p-4 rounded-lg">
+                                        <h4 class="text-sm font-medium text-gray-700 mb-2">Student Information</h4>
+                                        <div class="space-y-2">
+                                            <div class="flex justify-between">
+                                                <span class="text-sm text-gray-600">Name:</span>
+                                                <span class="text-sm font-medium text-gray-900" id="modalStudentName">-</span>
+                                            </div>
+                                            <div class="flex justify-between">
+                                                <span class="text-sm text-gray-600">ID:</span>
+                                                <span class="text-sm font-medium text-gray-900" id="modalStudentId">-</span>
+                                            </div>
+                                            <div class="flex justify-between">
+                                                <span class="text-sm text-gray-600">Section:</span>
+                                                <span class="text-sm font-medium text-gray-900" id="modalSectionName">-</span>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div class="bg-gray-50 p-4 rounded-lg">
+                                        <h4 class="text-sm font-medium text-gray-700 mb-2">Evaluation Information</h4>
+                                        <div class="space-y-2">
+                                            <div class="flex justify-between">
+                                                <span class="text-sm text-gray-600">Date:</span>
+                                                <span class="text-sm font-medium text-gray-900" id="modalEvaluationDate">-</span>
+                                            </div>
+                                            <div class="flex justify-between">
+                                                <span class="text-sm text-gray-600">Week:</span>
+                                                <span class="text-sm font-medium text-gray-900" id="modalWeekNumber">-</span>
+                                            </div>
+                                            <div class="flex justify-between">
+                                                <span class="text-sm text-gray-600">Period:</span>
+                                                <span class="text-sm font-medium text-gray-900" id="modalPeriodName">-</span>
+                                            </div>
+                                            <div class="flex justify-between">
+                                                <span class="text-sm text-gray-600">Coordinator:</span>
+                                                <span class="text-sm font-medium text-gray-900" id="modalCoordinatorName">-</span>
+                                            </div>
+                                            <div class="flex justify-between">
+                                                <span class="text-sm text-gray-600">Total Score:</span>
+                                                <span class="text-sm font-bold text-green-600" id="modalTotalScore">-</span>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                                
+                                <!-- Checklist Items -->
+                                <div class="mt-6">
+                                    <h4 class="text-lg font-medium text-gray-900 mb-4">Checklist Items</h4>
+                                    <div id="modalChecklistItems" class="space-y-4 max-h-96 overflow-y-auto">
+                                        <!-- Checklist items will be loaded here -->
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <div class="flex justify-end space-x-3 p-6 border-t bg-gray-50">
+                                <button type="button" onclick="closeRecordDetailsModal()" class="px-4 py-2 border border-gray-300 rounded-md text-sm font-medium text-gray-700 hover:bg-gray-50">
+                                    Close
                                 </button>
                             </div>
                         </div>
