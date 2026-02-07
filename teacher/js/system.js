@@ -26,6 +26,15 @@ document.addEventListener('DOMContentLoaded', function () {
     loadSections();
     initializeMap();
 
+    // Check URL hash for tab persistence
+    const currentHash = window.location.hash.replace('#', '');
+    const validTabs = ['partnered-schools', 'sections', 'email-domains', 'system-settings'];
+
+    if (currentHash && validTabs.includes(currentHash)) {
+        // Delay slightly to ensure tabs are ready
+        setTimeout(() => switchTab(currentHash), 50);
+    }
+
     // Auto-search functionality for partnered schools
     document.getElementById('searchInput').addEventListener('input', () => {
         partneredCurrentPage = 1;
@@ -58,7 +67,7 @@ document.addEventListener('DOMContentLoaded', function () {
     });
 
     // Prevent browser default validation messages
-    document.getElementById('partneredSchoolForm').addEventListener('invalid', function(e) {
+    document.getElementById('partneredSchoolForm').addEventListener('invalid', function (e) {
         e.preventDefault(); // Prevent default validation bubble
     }, true);
 
@@ -74,16 +83,18 @@ document.addEventListener('DOMContentLoaded', function () {
     const mobileSidebarOverlay = document.getElementById('mobileSidebarOverlay');
     const closeMobileSidebar = document.getElementById('closeMobileSidebar');
 
-    mobileSidebarToggle.addEventListener('click', function () {
-        mobileSidebar.classList.remove('hidden');
-    });
-
-    function closeMobileSidebarFunc() {
-        mobileSidebar.classList.add('hidden');
+    if (mobileSidebarToggle) {
+        mobileSidebarToggle.addEventListener('click', function () {
+            mobileSidebar.classList.remove('hidden');
+        });
     }
 
-    closeMobileSidebar.addEventListener('click', closeMobileSidebarFunc);
-    mobileSidebarOverlay.addEventListener('click', closeMobileSidebarFunc);
+    function closeMobileSidebarFunc() {
+        if (mobileSidebar) mobileSidebar.classList.add('hidden');
+    }
+
+    if (closeMobileSidebar) closeMobileSidebar.addEventListener('click', closeMobileSidebarFunc);
+    if (mobileSidebarOverlay) mobileSidebarOverlay.addEventListener('click', closeMobileSidebarFunc);
 });
 
 // Dropdown functions
@@ -178,27 +189,47 @@ function switchTab(tabName) {
     });
 
     // Show selected tab content
-    document.getElementById(tabName).classList.add('active');
+    const selectedTab = document.getElementById(tabName);
+    if (selectedTab) {
+        selectedTab.classList.add('active');
+    }
 
     // Add active class to clicked tab button (desktop or mobile)
-    if (event.target) {
-        event.target.classList.add('active', 'text-green-700');
-        event.target.classList.remove('text-gray-500');
-        
+    if (window.event && window.event.currentTarget && (window.event.currentTarget.classList.contains('tab-button') || window.event.currentTarget.classList.contains('mobile-tab-button'))) {
+        const btn = window.event.currentTarget;
+        btn.classList.add('active', 'text-green-700');
+        btn.classList.remove('text-gray-500');
+
         // For mobile tabs, also update border
-        if (event.target.classList.contains('mobile-tab-button')) {
-            event.target.classList.add('border-green-700');
-            event.target.classList.remove('border-transparent');
+        if (btn.classList.contains('mobile-tab-button')) {
+            btn.classList.add('border-green-700');
+            btn.classList.remove('border-transparent');
         }
+    } else {
+        // Find button by checking the onclick attribute string more flexibly
+        document.querySelectorAll('.tab-button, .mobile-tab-button').forEach(btn => {
+            const onclick = btn.getAttribute('onclick') || '';
+            if (onclick.includes(`'${tabName}'`) || onclick.includes(`"${tabName}"`)) {
+                btn.classList.add('active', 'text-green-700');
+                btn.classList.remove('text-gray-500');
+                if (btn.classList.contains('mobile-tab-button')) {
+                    btn.classList.add('border-green-700');
+                    btn.classList.remove('border-transparent');
+                }
+            }
+        });
     }
-    
+
+    // Update URL hash without refreshing the page
+    window.location.hash = tabName;
+
     // Initialize academic sessions if switching to system-settings
     if (tabName === 'system-settings') {
         setTimeout(() => {
             loadAcademicSessions();
         }, 100);
     }
-    
+
     // Close mobile dropdown if open
     closeMobileTabDropdown();
 }
@@ -211,58 +242,23 @@ function toggleMobileTabDropdown() {
 
 function closeMobileTabDropdown() {
     const dropdown = document.getElementById('mobileTabDropdown');
-    if (!dropdown.classList.contains('hidden')) {
+    if (dropdown && !dropdown.classList.contains('hidden')) {
         dropdown.classList.add('hidden');
     }
 }
 
 function switchTabFromDropdown(tabName) {
-    // Hide all tab contents
-    document.querySelectorAll('.tab-content').forEach(content => {
-        content.classList.remove('active');
-    });
-
-    // Remove active class from all desktop tab buttons
-    document.querySelectorAll('.tab-button').forEach(button => {
-        button.classList.remove('active', 'text-green-700');
-        button.classList.add('text-gray-500');
-    });
-
-    // Remove active class from all mobile tab buttons
-    document.querySelectorAll('.mobile-tab-button').forEach(button => {
-        button.classList.remove('active', 'text-green-700', 'border-green-700');
-        button.classList.add('text-gray-500', 'border-transparent');
-    });
-
-    // Show selected tab content
-    document.getElementById(tabName).classList.add('active');
-    
-    // For dropdown tabs, we don't highlight a mobile tab button since it's in dropdown
-    // But we do highlight the corresponding desktop tab if it exists
-    const desktopTab = document.querySelector(`.tab-button[onclick="switchTab('${tabName}')"]`);
-    if (desktopTab) {
-        desktopTab.classList.add('active', 'text-green-700');
-        desktopTab.classList.remove('text-gray-500');
-    }
-    
-    // Initialize academic sessions if switching to system-settings
-    if (tabName === 'system-settings') {
-        setTimeout(() => {
-            loadAcademicSessions();
-        }, 100);
-    }
-    
-    // Close dropdown
-    closeMobileTabDropdown();
+    // Use the generic switchTab function which now handles hash and UI updates
+    switchTab(tabName);
 }
 
 // Close mobile dropdown when clicking outside
-document.addEventListener('click', function(event) {
+document.addEventListener('click', function (event) {
     const dropdown = document.getElementById('mobileTabDropdown');
     const dropdownBtn = document.querySelector('.mobile-tab-dropdown-btn');
-    
-    if (dropdown && !dropdown.classList.contains('hidden') && 
-        !dropdown.contains(event.target) && 
+
+    if (dropdown && !dropdown.classList.contains('hidden') &&
+        !dropdown.contains(event.target) &&
         !dropdownBtn.contains(event.target)) {
         closeMobileTabDropdown();
     }
@@ -297,7 +293,7 @@ async function searchAddress() {
     try {
         // Determine if this is likely a school search
         const schoolKeywords = ['school', 'university', 'college', 'academy', 'institute', 'elementary', 'high school', 'primary', 'secondary'];
-        const isLikelySchool = schoolKeywords.some(keyword => 
+        const isLikelySchool = schoolKeywords.some(keyword =>
             address.toLowerCase().includes(keyword)
         ) || address.length < 30; // Short queries are likely school names
 
@@ -317,15 +313,15 @@ async function searchAddress() {
 
             if (!isNaN(lat) && !isNaN(lng)) {
                 setMapLocation(lat, lng);
-                
+
                 // Show appropriate success message
                 if (data.is_school || searchType === 'school') {
                     showNotification('School found and located on map', 'success');
-                    
+
                     // Auto-populate school name field if it's empty or if this is a school search
                     const schoolNameField = document.getElementById('schoolName');
                     const currentSchoolName = schoolNameField.value.trim();
-                    
+
                     if (!currentSchoolName || searchType === 'school') {
                         // Extract school name from display_name (remove address details)
                         let schoolName = data.display_name;

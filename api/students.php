@@ -1081,7 +1081,7 @@ class Students {
                     ]);
                 }
             } else {
-                // Not Friday, get the latest week for display purposes in current session and period
+                // Not Friday, check if they already submitted for this week cycle
                 $latest_sql = "SELECT MAX(CAST(week AS UNSIGNED)) as latest_week FROM journal WHERE student_id = ? AND session_id = ? AND period_id = ?";
                 $latest_stmt = $conn->prepare($latest_sql);
                 $latest_stmt->bindParam(1, $student_id);
@@ -1092,8 +1092,10 @@ class Students {
                 
                 $latest_week = $latest_result['latest_week'] ? (int)$latest_result['latest_week'] : 0;
                 
-                // Use the calculated week from practicum start date, but ensure we don't go backwards
-                $next_week = max($current_week_in_period, $latest_week + 1);
+                // If they already submitted the current week number, mark as already submitted
+                $already_submitted = ($latest_week >= $current_week_in_period && $latest_week > 0);
+                
+                $next_week = max($current_week_in_period, $latest_week + ( $already_submitted ? 1 : 0 ));
                 $next_week = min($next_week, $period_weeks);
                 
                 return json_encode([
@@ -1101,7 +1103,7 @@ class Students {
                     'week' => $next_week,
                     'period_id' => $period_id,
                     'period_weeks' => $period_weeks,
-                    'already_submitted' => false,
+                    'already_submitted' => $already_submitted,
                     'message' => 'Not submission day'
                 ]);
             }

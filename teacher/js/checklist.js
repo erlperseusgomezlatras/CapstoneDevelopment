@@ -1,4 +1,4 @@
-$(document).ready(function() {
+$(document).ready(function () {
     // Load initial data
     loadCategories();
     loadTypes();
@@ -6,19 +6,27 @@ $(document).ready(function() {
     loadSections();
     loadPeriods();
     loadAcademicSessions();
-    
+
     // Setup event listeners
     setupEventListeners();
-    
+
     // Initialize Select2 for record filters
     $('#recordSessionFilter, #recordSectionFilter, #recordPeriodFilter, #recordWeekFilter').select2({
         width: '100%'
     });
-    
+
     // Setup period change event to update week filter
-    $('#recordPeriodFilter').on('change', function() {
+    $('#recordPeriodFilter').on('change', function () {
         updateWeekFilter();
     });
+
+    // Check URL hash for tab persistence
+    const currentHash = window.location.hash.replace('#', '');
+    const validTabs = ['categories', 'types', 'criteria', 'records'];
+
+    if (currentHash && validTabs.includes(currentHash)) {
+        switchTab(currentHash);
+    }
 });
 
 function setupEventListeners() {
@@ -26,17 +34,17 @@ function setupEventListeners() {
     $('#categorySelect, #typeSelect').select2({
         width: '100%'
     });
-    
+
     // Category form events
-    $('#hasType').on('change', function() {
+    $('#hasType').on('change', function () {
         // This will be handled when saving the category
     });
-    
+
     // Criteria form events
-    $('#categorySelect').on('change', function() {
+    $('#categorySelect').on('change', function () {
         const categoryId = $(this).val();
         const category = categories.find(c => c.id == categoryId);
-        
+
         if (category && (category.is_type === '1' || category.is_type === 1)) {
             // Show type selection and load types
             $('#typeGroup').show();
@@ -56,22 +64,25 @@ function setupEventListeners() {
 function switchTab(tabName) {
     // Hide all tab contents
     $('.tab-content').removeClass('active');
-    
+
     // Remove active class from all desktop tab buttons
     $('.tab-button').removeClass('active text-green-700').addClass('text-gray-500');
-    
+
     // Remove active class from all mobile tab buttons
     $('.mobile-tab-button').removeClass('active text-green-700 border-green-700').addClass('text-gray-500 border-transparent');
-    
+
     // Show selected tab content
     $('#' + tabName).addClass('active');
-    
+
     // Activate selected desktop tab button
     $(`.tab-button[onclick="switchTab('${tabName}')"]`).addClass('active').removeClass('text-gray-500').addClass('text-green-700');
-    
+
     // Activate selected mobile tab button
     $(`.mobile-tab-button[onclick="switchTab('${tabName}')"]`).addClass('active').removeClass('text-gray-500 border-transparent').addClass('text-green-700 border-green-700');
-    
+
+    // Update URL hash without refreshing the page
+    window.location.hash = tabName;
+
     // Load data for Records tab when switched to it
     if (tabName === 'records') {
         updateWeekFilter();
@@ -119,30 +130,30 @@ function loadCategories() {
     axios.post(`${window.APP_CONFIG.API_BASE_URL}checklist.php`, {
         action: 'getCategories'
     })
-    .then(function(response) {
-        if (response.data.success) {
-            categories = response.data.data;
-            displayCategories();
-            updateCategorySelect();
-        } else {
+        .then(function (response) {
+            if (response.data.success) {
+                categories = response.data.data;
+                displayCategories();
+                updateCategorySelect();
+            } else {
+                showAlert('Error loading categories', 'danger');
+            }
+        })
+        .catch(function (error) {
+            console.error('Error loading categories:', error);
             showAlert('Error loading categories', 'danger');
-        }
-    })
-    .catch(function(error) {
-        console.error('Error loading categories:', error);
-        showAlert('Error loading categories', 'danger');
-    });
+        });
 }
 
 function displayCategories() {
     const container = document.getElementById('categoryList');
     container.innerHTML = '';
-    
+
     if (categories.length === 0) {
         container.innerHTML = '<div class="col-span-full"><p class="text-gray-500 text-center py-8">No categories found. Add your first category!</p></div>';
         return;
     }
-    
+
     categories.forEach(category => {
         const card = document.createElement('div');
         card.className = 'category-card bg-white rounded-lg p-4';
@@ -171,12 +182,12 @@ function displayCategories() {
 function updateCategorySelect() {
     const select = $('#categorySelect');
     select.html('<option value="">Select Category</option>');
-    
+
     categories.forEach(category => {
         const option = $('<option></option>').val(category.id).text(category.category_name);
         select.append(option);
     });
-    
+
     // Reinitialize Select2 to update options
     select.trigger('change.select2');
 }
@@ -185,21 +196,21 @@ function saveCategory() {
     const id = $('#categoryId').val();
     const name = $('#categoryName').val();
     const hasType = $('#hasType').is(':checked') ? 1 : 0;
-    
+
     if (!name.trim()) {
         showAlert('Please enter a category name', 'warning');
         return;
     }
-    
+
     const requestData = {
         action: id ? 'updateCategory' : 'addCategory',
         ...(id && { id: parseInt(id) }),
         name: name,
         is_type: hasType
     };
-    
+
     axios.post(`${window.APP_CONFIG.API_BASE_URL}checklist.php`, requestData)
-        .then(function(response) {
+        .then(function (response) {
             if (response.data.success) {
                 showAlert(response.data.message, 'success');
                 closeCategoryModal();
@@ -208,7 +219,7 @@ function saveCategory() {
                 showAlert(response.data.message, 'danger');
             }
         })
-        .catch(function(error) {
+        .catch(function (error) {
             console.error('Error saving category:', error);
             showAlert('Error saving category', 'danger');
         });
@@ -220,7 +231,7 @@ function editCategory(id) {
         document.getElementById('categoryId').value = category.id;
         document.getElementById('categoryName').value = category.category_name;
         document.getElementById('hasType').checked = category.is_type === '1' || category.is_type === 1;
-        
+
         openCategoryModal();
     }
 }
@@ -229,24 +240,24 @@ function deleteCategory(id) {
     if (!confirm('Are you sure you want to delete this category? This will also delete all associated criteria.')) {
         return;
     }
-    
+
     axios.post(`${window.APP_CONFIG.API_BASE_URL}checklist.php`, {
         action: 'deleteCategory',
         id: parseInt(id)
     })
-    .then(function(response) {
-        if (response.data.success) {
-            showAlert(response.data.message, 'success');
-            loadCategories();
-            loadCriteria();
-        } else {
-            showAlert(response.data.message, 'danger');
-        }
-    })
-    .catch(function(error) {
-        console.error('Error deleting category:', error);
-        showAlert('Error deleting category', 'danger');
-    });
+        .then(function (response) {
+            if (response.data.success) {
+                showAlert(response.data.message, 'success');
+                loadCategories();
+                loadCriteria();
+            } else {
+                showAlert(response.data.message, 'danger');
+            }
+        })
+        .catch(function (error) {
+            console.error('Error deleting category:', error);
+            showAlert('Error deleting category', 'danger');
+        });
 }
 
 // Type Functions
@@ -254,29 +265,29 @@ function loadTypes() {
     axios.post(`${window.APP_CONFIG.API_BASE_URL}checklist.php`, {
         action: 'getTypes'
     })
-    .then(function(response) {
-        if (response.data.success) {
-            types = response.data.data;
-            displayTypes();
-        } else {
+        .then(function (response) {
+            if (response.data.success) {
+                types = response.data.data;
+                displayTypes();
+            } else {
+                showAlert('Error loading types', 'danger');
+            }
+        })
+        .catch(function (error) {
+            console.error('Error loading types:', error);
             showAlert('Error loading types', 'danger');
-        }
-    })
-    .catch(function(error) {
-        console.error('Error loading types:', error);
-        showAlert('Error loading types', 'danger');
-    });
+        });
 }
 
 function loadTypesForCriteria() {
     const select = $('#typeSelect');
     select.html('<option value="">Select Type</option>');
-    
+
     types.forEach(type => {
         const option = $('<option></option>').val(type.id).text(type.type_name);
         select.append(option);
     });
-    
+
     // Reinitialize Select2 to update options
     select.trigger('change.select2');
 }
@@ -284,12 +295,12 @@ function loadTypesForCriteria() {
 function displayTypes() {
     const container = document.getElementById('typeList');
     container.innerHTML = '';
-    
+
     if (types.length === 0) {
         container.innerHTML = '<div class="col-span-full"><p class="text-gray-500 text-center py-8">No types found. Add your first type!</p></div>';
         return;
     }
-    
+
     types.forEach(type => {
         const card = document.createElement('div');
         card.className = 'type-card bg-white rounded-lg p-4';
@@ -315,20 +326,20 @@ function displayTypes() {
 function saveType() {
     const id = $('#typeId').val();
     const name = $('#typeName').val();
-    
+
     if (!name.trim()) {
         showAlert('Please enter a type name', 'warning');
         return;
     }
-    
+
     const requestData = {
         action: id ? 'updateType' : 'addType',
         ...(id && { id: parseInt(id) }),
         name: name
     };
-    
+
     axios.post(`${window.APP_CONFIG.API_BASE_URL}checklist.php`, requestData)
-        .then(function(response) {
+        .then(function (response) {
             if (response.data.success) {
                 showAlert(response.data.message, 'success');
                 closeTypeModal();
@@ -337,7 +348,7 @@ function saveType() {
                 showAlert(response.data.message, 'danger');
             }
         })
-        .catch(function(error) {
+        .catch(function (error) {
             console.error('Error saving type:', error);
             showAlert('Error saving type', 'danger');
         });
@@ -348,7 +359,7 @@ function editType(id) {
     if (type) {
         document.getElementById('typeId').value = type.id;
         document.getElementById('typeName').value = type.type_name;
-        
+
         openTypeModal();
     }
 }
@@ -357,23 +368,23 @@ function deleteType(id) {
     if (!confirm('Are you sure you want to delete this type?')) {
         return;
     }
-    
+
     axios.post(`${window.APP_CONFIG.API_BASE_URL}checklist.php`, {
         action: 'deleteType',
         id: parseInt(id)
     })
-    .then(function(response) {
-        if (response.data.success) {
-            showAlert(response.data.message, 'success');
-            loadTypes();
-        } else {
-            showAlert(response.data.message, 'danger');
-        }
-    })
-    .catch(function(error) {
-        console.error('Error deleting type:', error);
-        showAlert('Error deleting type', 'danger');
-    });
+        .then(function (response) {
+            if (response.data.success) {
+                showAlert(response.data.message, 'success');
+                loadTypes();
+            } else {
+                showAlert(response.data.message, 'danger');
+            }
+        })
+        .catch(function (error) {
+            console.error('Error deleting type:', error);
+            showAlert('Error deleting type', 'danger');
+        });
 }
 
 // Criteria Functions
@@ -383,36 +394,36 @@ function loadCriteria() {
     axios.post(`${window.APP_CONFIG.API_BASE_URL}checklist.php`, {
         action: 'getCriteria'
     })
-    .then(function(response) {
-        if (response.data.success) {
-            criteriaList = response.data.data;
-            displayCriteria();
-        } else {
+        .then(function (response) {
+            if (response.data.success) {
+                criteriaList = response.data.data;
+                displayCriteria();
+            } else {
+                showAlert('Error loading criteria', 'danger');
+            }
+        })
+        .catch(function (error) {
+            console.error('Error loading criteria:', error);
             showAlert('Error loading criteria', 'danger');
-        }
-    })
-    .catch(function(error) {
-        console.error('Error loading criteria:', error);
-        showAlert('Error loading criteria', 'danger');
-    });
+        });
 }
 
 function displayCriteria() {
     const container = document.getElementById('criteriaList');
     container.innerHTML = '';
-    
+
     if (criteriaList.length === 0) {
         container.innerHTML = '<div class="col-span-full"><p class="text-gray-500 text-center py-8">No criteria found. Add your first criteria!</p></div>';
         return;
     }
-    
+
     criteriaList.forEach(criteria => {
         const card = document.createElement('div');
         card.className = 'criteria-card bg-white rounded-lg p-4';
-        
+
         const category = categories.find(c => c.id == criteria.category_id);
         const type = criteria.type_id ? types.find(t => t.id == criteria.type_id) : null;
-        
+
         card.innerHTML = `
             <div class="flex justify-between items-start">
                 <div class="flex-1">
@@ -447,12 +458,12 @@ function saveCriteria() {
     const typeId = $('#typeSelect').val() || null;
     const name = $('#criteriaName').val();
     const points = $('#criteriaPoints').val();
-    
+
     if (!categoryId || !name.trim() || !points) {
         showAlert('Please fill all required fields', 'warning');
         return;
     }
-    
+
     const requestData = {
         action: id ? 'updateCriteria' : 'addCriteria',
         ...(id && { id: parseInt(id) }),
@@ -461,9 +472,9 @@ function saveCriteria() {
         name: name,
         points: parseInt(points)
     };
-    
+
     axios.post(`${window.APP_CONFIG.API_BASE_URL}checklist.php`, requestData)
-        .then(function(response) {
+        .then(function (response) {
             if (response.data.success) {
                 showAlert(response.data.message, 'success');
                 closeCriteriaModal();
@@ -472,7 +483,7 @@ function saveCriteria() {
                 showAlert(response.data.message, 'danger');
             }
         })
-        .catch(function(error) {
+        .catch(function (error) {
             console.error('Error saving criteria:', error);
             showAlert('Error saving criteria', 'danger');
         });
@@ -485,17 +496,17 @@ function editCriteria(id) {
         document.getElementById('categorySelect').value = criteria.category_id;
         document.getElementById('criteriaName').value = criteria.checklist_criteria;
         document.getElementById('criteriaPoints').value = criteria.points;
-        
+
         // Trigger category change to show/hide type field
         document.getElementById('categorySelect').dispatchEvent(new Event('change'));
-        
+
         // Set type if exists
         if (criteria.type_id) {
             setTimeout(() => {
                 document.getElementById('typeSelect').value = criteria.type_id;
             }, 100);
         }
-        
+
         openCriteriaModal();
     }
 }
@@ -504,23 +515,23 @@ function deleteCriteria(id) {
     if (!confirm('Are you sure you want to delete this criteria?')) {
         return;
     }
-    
+
     axios.post(`${window.APP_CONFIG.API_BASE_URL}checklist.php`, {
         action: 'deleteCriteria',
         id: parseInt(id)
     })
-    .then(function(response) {
-        if (response.data.success) {
-            showAlert(response.data.message, 'success');
-            loadCriteria();
-        } else {
-            showAlert(response.data.message, 'danger');
-        }
-    })
-    .catch(function(error) {
-        console.error('Error deleting criteria:', error);
-        showAlert('Error deleting criteria', 'danger');
-    });
+        .then(function (response) {
+            if (response.data.success) {
+                showAlert(response.data.message, 'success');
+                loadCriteria();
+            } else {
+                showAlert(response.data.message, 'danger');
+            }
+        })
+        .catch(function (error) {
+            console.error('Error deleting criteria:', error);
+            showAlert('Error deleting criteria', 'danger');
+        });
 }
 
 // Utility Functions
@@ -532,9 +543,9 @@ function showAlert(message, type) {
         ${message}
         <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
     `;
-    
+
     document.body.appendChild(alertDiv);
-    
+
     setTimeout(() => {
         if (alertDiv.parentNode) {
             alertDiv.parentNode.removeChild(alertDiv);
@@ -550,95 +561,95 @@ function loadAcademicSessions() {
     axios.post(`${window.APP_CONFIG.API_BASE_URL}checklist.php`, {
         action: 'getAcademicSessions'
     })
-    .then(function(response) {
-        if (response.data.success) {
-            const sessions = response.data.data;
-            const select = $('#recordSessionFilter');
-            select.empty().append('<option value="all">All Sessions</option>');
-            
-            sessions.forEach(session => {
-                const displayName = `${session.school_year} - ${session.semester_name}${session.status_label}`;
-                select.append(`<option value="${session.academic_session_id}">${displayName}</option>`);
-            });
-            
-            // Now load and set the active session as default
-            loadActiveAcademicSession();
-            
-            select.trigger('change.select2');
-        } else {
+        .then(function (response) {
+            if (response.data.success) {
+                const sessions = response.data.data;
+                const select = $('#recordSessionFilter');
+                select.empty().append('<option value="all">All Sessions</option>');
+
+                sessions.forEach(session => {
+                    const displayName = `${session.school_year} - ${session.semester_name}${session.status_label}`;
+                    select.append(`<option value="${session.academic_session_id}">${displayName}</option>`);
+                });
+
+                // Now load and set the active session as default
+                loadActiveAcademicSession();
+
+                select.trigger('change.select2');
+            } else {
+                showAlert('Error loading academic sessions', 'danger');
+            }
+        })
+        .catch(function (error) {
+            console.error('Error loading academic sessions:', error);
             showAlert('Error loading academic sessions', 'danger');
-        }
-    })
-    .catch(function(error) {
-        console.error('Error loading academic sessions:', error);
-        showAlert('Error loading academic sessions', 'danger');
-    });
+        });
 }
 
 function loadActiveAcademicSession() {
     axios.post(`${window.APP_CONFIG.API_BASE_URL}checklist.php`, {
         action: 'getActiveAcademicSession'
     })
-    .then(function(response) {
-        if (response.data.success) {
-            const activeSession = response.data.data;
-            // Set the active session as selected
-            $('#recordSessionFilter').val(activeSession.academic_session_id).trigger('change.select2');
-        }
-    })
-    .catch(function(error) {
-        console.error('Error loading active academic session:', error);
-    });
+        .then(function (response) {
+            if (response.data.success) {
+                const activeSession = response.data.data;
+                // Set the active session as selected
+                $('#recordSessionFilter').val(activeSession.academic_session_id).trigger('change.select2');
+            }
+        })
+        .catch(function (error) {
+            console.error('Error loading active academic session:', error);
+        });
 }
 
 function loadSections() {
     axios.post(`${window.APP_CONFIG.API_BASE_URL}checklist.php`, {
         action: 'getSections'
     })
-    .then(function(response) {
-        if (response.data.success) {
-            const sections = response.data.data;
-            const select = $('#recordSectionFilter');
-            select.empty().append('<option value="all">All Sections</option>');
-            
-            sections.forEach(section => {
-                select.append(`<option value="${section.id}">${section.section_name}</option>`);
-            });
-            
-            select.trigger('change.select2');
-        } else {
+        .then(function (response) {
+            if (response.data.success) {
+                const sections = response.data.data;
+                const select = $('#recordSectionFilter');
+                select.empty().append('<option value="all">All Sections</option>');
+
+                sections.forEach(section => {
+                    select.append(`<option value="${section.id}">${section.section_name}</option>`);
+                });
+
+                select.trigger('change.select2');
+            } else {
+                showAlert('Error loading sections', 'danger');
+            }
+        })
+        .catch(function (error) {
+            console.error('Error loading sections:', error);
             showAlert('Error loading sections', 'danger');
-        }
-    })
-    .catch(function(error) {
-        console.error('Error loading sections:', error);
-        showAlert('Error loading sections', 'danger');
-    });
+        });
 }
 
 function loadPeriods() {
     axios.post(`${window.APP_CONFIG.API_BASE_URL}checklist.php`, {
         action: 'getPeriods'
     })
-    .then(function(response) {
-        if (response.data.success) {
-            const periods = response.data.data;
-            const select = $('#recordPeriodFilter');
-            select.empty().append('<option value="all">All Periods</option>');
-            
-            periods.forEach(period => {
-                select.append(`<option value="${period.id}">${period.period_name} (${period.period_weeks} weeks)</option>`);
-            });
-            
-            select.trigger('change.select2');
-        } else {
+        .then(function (response) {
+            if (response.data.success) {
+                const periods = response.data.data;
+                const select = $('#recordPeriodFilter');
+                select.empty().append('<option value="all">All Periods</option>');
+
+                periods.forEach(period => {
+                    select.append(`<option value="${period.id}">${period.period_name} (${period.period_weeks} weeks)</option>`);
+                });
+
+                select.trigger('change.select2');
+            } else {
+                showAlert('Error loading periods', 'danger');
+            }
+        })
+        .catch(function (error) {
+            console.error('Error loading periods:', error);
             showAlert('Error loading periods', 'danger');
-        }
-    })
-    .catch(function(error) {
-        console.error('Error loading periods:', error);
-        showAlert('Error loading periods', 'danger');
-    });
+        });
 }
 
 function loadRecords() {
@@ -646,7 +657,7 @@ function loadRecords() {
     const sectionId = $('#recordSectionFilter').val();
     const periodId = $('#recordPeriodFilter').val();
     const week = $('#recordWeekFilter').val();
-    
+
     axios.post(`${window.APP_CONFIG.API_BASE_URL}checklist.php`, {
         action: 'getChecklistRecords',
         session_id: sessionId,
@@ -654,32 +665,32 @@ function loadRecords() {
         period_id: periodId,
         week: week
     })
-    .then(function(response) {
-        if (response.data.success) {
-            recordsData = response.data.data;
-            displayRecords();
-        } else {
+        .then(function (response) {
+            if (response.data.success) {
+                recordsData = response.data.data;
+                displayRecords();
+            } else {
+                showAlert('Error loading records', 'danger');
+            }
+        })
+        .catch(function (error) {
+            console.error('Error loading records:', error);
             showAlert('Error loading records', 'danger');
-        }
-    })
-    .catch(function(error) {
-        console.error('Error loading records:', error);
-        showAlert('Error loading records', 'danger');
-    });
+        });
 }
 
 function displayRecords() {
     const tbody = document.getElementById('recordsTableBody');
     const noRecordsMessage = document.getElementById('noRecordsMessage');
-    
+
     if (recordsData.length === 0) {
         tbody.innerHTML = '';
         noRecordsMessage.classList.remove('hidden');
         return;
     }
-    
+
     noRecordsMessage.classList.add('hidden');
-    
+
     tbody.innerHTML = recordsData.map(record => {
         // Calculate period-specific week number
         let displayWeek = record.week_number || 'N/A';
@@ -693,7 +704,7 @@ function displayRecords() {
                 }
             }
         }
-        
+
         return `
             <tr class="hover:bg-gray-50">
                 <td class="px-6 py-4 whitespace-nowrap">
@@ -736,66 +747,66 @@ function applyRecordFilters() {
 function viewRecordDetails(studentId, periodId, dateChecked) {
     console.log('View record details called:', { studentId, periodId, dateChecked });
     console.log('Records data available:', recordsData);
-    
+
     axios.post(`${window.APP_CONFIG.API_BASE_URL}checklist.php`, {
         action: 'getChecklistRecordDetails',
         student_id: studentId,
         period_id: periodId,
         date_checked: dateChecked
     })
-    .then(function(response) {
-        console.log('API response:', response.data);
-        if (response.data.success) {
-            displayRecordDetailsModal(response.data.data, studentId, periodId, dateChecked);
-        } else {
+        .then(function (response) {
+            console.log('API response:', response.data);
+            if (response.data.success) {
+                displayRecordDetailsModal(response.data.data, studentId, periodId, dateChecked);
+            } else {
+                showAlert('Error loading checklist details', 'danger');
+            }
+        })
+        .catch(function (error) {
+            console.error('Error loading checklist details:', error);
             showAlert('Error loading checklist details', 'danger');
-        }
-    })
-    .catch(function(error) {
-        console.error('Error loading checklist details:', error);
-        showAlert('Error loading checklist details', 'danger');
-    });
+        });
 }
 
 function displayRecordDetailsModal(details, studentId, periodId, dateChecked) {
     // Find the corresponding record from recordsData to get basic info
-    const record = recordsData.find(r => 
-        r.school_id === studentId && 
-        r.period_id === periodId && 
+    const record = recordsData.find(r =>
+        r.school_id === studentId &&
+        r.period_id === periodId &&
         r.date_checked === dateChecked
     );
-    
+
     if (!record) {
         showAlert('Record information not found', 'warning');
         return;
     }
-    
+
     // Update modal header information
     document.getElementById('modalStudentName').textContent = record.student_name;
     document.getElementById('modalStudentId').textContent = record.school_id;
     document.getElementById('modalSectionName').textContent = record.section_name;
-    document.getElementById('modalEvaluationDate').textContent = new Date(record.date_checked).toLocaleDateString('en-US', { 
-        year: 'numeric', 
-        month: 'short', 
-        day: 'numeric' 
+    document.getElementById('modalEvaluationDate').textContent = new Date(record.date_checked).toLocaleDateString('en-US', {
+        year: 'numeric',
+        month: 'short',
+        day: 'numeric'
     }).replace(',', ',');
     document.getElementById('modalWeekNumber').textContent = `Week ${record.week_number}`;
     document.getElementById('modalPeriodName').textContent = record.period_name;
     document.getElementById('modalCoordinatorName').textContent = record.coordinator_name;
     document.getElementById('modalTotalScore').textContent = record.total_score;
-    
+
     // Display checklist items
     const container = document.getElementById('modalChecklistItems');
     container.innerHTML = '';
-    
+
     if (details.length === 0) {
         container.innerHTML = '<p class="text-gray-500">No checklist items found for this record.</p>';
         return;
     }
-    
+
     let currentCategory = '';
     let currentType = '';
-    
+
     details.forEach((item, index) => {
         // Add category header if it's a new category
         if (item.category_name !== currentCategory) {
@@ -810,7 +821,7 @@ function displayRecordDetailsModal(details, studentId, periodId, dateChecked) {
                 </div>
             `;
         }
-        
+
         // Add type header if it's a new type (and type exists)
         const itemTypeName = item.type_name || 'General';
         if (itemTypeName !== currentType) {
@@ -825,19 +836,19 @@ function displayRecordDetailsModal(details, studentId, periodId, dateChecked) {
                 </div>
             `;
         }
-        
+
         const typeId = (itemTypeName || 'General').replace(/\s+/g, '-').toLowerCase();
         const typeContainer = document.getElementById(`type-${typeId}`);
-        
+
         if (typeContainer) {
             const isRatingScore = parseInt(item.has_type) === 1;
-            
+
             if (isRatingScore) {
                 // Rating score display (1 to points based on checklist table)
                 const existingScore = parseInt(item.points_earned) || 0;
                 const maxRating = parseInt(item.max_points) || 5;
-                const stars = Array.from({length: maxRating}, (_, i) => i + 1);
-                
+                const stars = Array.from({ length: maxRating }, (_, i) => i + 1);
+
                 typeContainer.innerHTML += `
                     <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between p-3 bg-gray-50 rounded-lg gap-3">
                         <div class="flex-1">
@@ -876,7 +887,7 @@ function displayRecordDetailsModal(details, studentId, periodId, dateChecked) {
             }
         }
     });
-    
+
     // Show the modal
     document.getElementById('recordDetailsModal').classList.remove('hidden');
 }
@@ -890,41 +901,41 @@ function loadPeriodSummaryTable() {
     const sessionId = $('#recordSessionFilter').val();
     const sectionId = $('#recordSectionFilter').val();
     const periodId = $('#recordPeriodFilter').val();
-    
+
     if (sessionId === 'all' || periodId === 'all') {
         showAlert('Please select an Academic Session and Period to show period summary', 'warning');
         return;
     }
-    
+
     axios.post(`${window.APP_CONFIG.API_BASE_URL}checklist.php`, {
         action: 'getPeriodSummaryForAll',
         session_id: sessionId,
         period_id: periodId,
         section_id: sectionId
     })
-    .then(function(response) {
-        if (response.data.success) {
-            displayPeriodSummaryTable(response.data.data);
-        } else {
+        .then(function (response) {
+            if (response.data.success) {
+                displayPeriodSummaryTable(response.data.data);
+            } else {
+                showAlert('Error loading period summary', 'danger');
+            }
+        })
+        .catch(function (error) {
+            console.error('Error loading period summary:', error);
             showAlert('Error loading period summary', 'danger');
-        }
-    })
-    .catch(function(error) {
-        console.error('Error loading period summary:', error);
-        showAlert('Error loading period summary', 'danger');
-    });
+        });
 }
 
 function displayPeriodSummaryTable(summaryData) {
     const tbody = document.getElementById('periodSummaryTableBody');
     tbody.innerHTML = '';
-    
+
     console.log('Summary data received:', summaryData);
-    
+
     // Handle both direct data and nested data structures
     const students = summaryData.data || summaryData || [];
-    
-    
+
+
     if (students.length === 0) {
         tbody.innerHTML = `
             <tr>
@@ -944,7 +955,7 @@ function displayPeriodSummaryTable(summaryData) {
                     weeksDisplay = weeks.join(', ');
                 }
             }
-            
+
             tbody.innerHTML += `
                 <tr class="hover:bg-gray-50">
                     <td class="px-6 py-4 whitespace-nowrap">
@@ -964,7 +975,7 @@ function displayPeriodSummaryTable(summaryData) {
             `;
         });
     }
-    
+
     // Show the summary table
     document.getElementById('periodSummaryTable').classList.remove('hidden');
 }
@@ -978,9 +989,9 @@ let periodsCache = [];
 function updateWeekFilter() {
     const periodId = $('#recordPeriodFilter').val();
     const weekSelect = $('#recordWeekFilter');
-    
+
     weekSelect.empty().append('<option value="all">All Weeks</option>');
-    
+
     if (periodId === 'all') {
         // If all periods selected, show weeks 1-17 (total)
         for (let i = 1; i <= 17; i++) {
@@ -992,29 +1003,29 @@ function updateWeekFilter() {
             action: 'getPeriodInfo',
             period_id: periodId
         })
-        .then(function(response) {
-            if (response.data.success) {
-                console.log('Period info response:', response.data);
-                const periodInfo = response.data.data;
-                const startWeek = (parseInt(periodInfo.start_week) || 0) + 1;
-                const endWeek = startWeek + (parseInt(periodInfo.period_weeks) || 0) - 1;
-                
-                console.log('Period info:', periodInfo);
-                console.log('Start week:', startWeek, 'End week:', endWeek);
-                
-                // Add absolute week numbers for this specific period
-                for (let i = startWeek; i <= endWeek; i++) {
-                    weekSelect.append(`<option value="${i}">Week ${i}</option>`);
+            .then(function (response) {
+                if (response.data.success) {
+                    console.log('Period info response:', response.data);
+                    const periodInfo = response.data.data;
+                    const startWeek = (parseInt(periodInfo.start_week) || 0) + 1;
+                    const endWeek = startWeek + (parseInt(periodInfo.period_weeks) || 0) - 1;
+
+                    console.log('Period info:', periodInfo);
+                    console.log('Start week:', startWeek, 'End week:', endWeek);
+
+                    // Add absolute week numbers for this specific period
+                    for (let i = startWeek; i <= endWeek; i++) {
+                        weekSelect.append(`<option value="${i}">Week ${i}</option>`);
+                    }
+
+                    weekSelect.trigger('change.select2');
                 }
-                
-                weekSelect.trigger('change.select2');
-            }
-        })
-        .catch(function(error) {
-            console.error('Error getting period info:', error);
-        });
+            })
+            .catch(function (error) {
+                console.error('Error getting period info:', error);
+            });
     }
-    
+
     weekSelect.trigger('change.select2');
 }
 

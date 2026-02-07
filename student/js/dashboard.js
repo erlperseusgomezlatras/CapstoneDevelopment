@@ -1,8 +1,16 @@
 // Initialize the page
-document.addEventListener('DOMContentLoaded', function() {
+document.addEventListener('DOMContentLoaded', function () {
     // Initialize attendance functionality
     if (typeof initializeAttendance === 'function') {
         initializeAttendance(studentSchoolId);
+    }
+
+    // Check URL hash for tab persistence
+    const currentHash = window.location.hash.replace('#', '');
+    const validTabs = ['attendance', 'journal', 'activity-checklist'];
+
+    if (currentHash && validTabs.includes(currentHash)) {
+        switchTab(currentHash);
     }
 });
 
@@ -12,22 +20,25 @@ function switchTab(tabName) {
     document.querySelectorAll('.tab-content').forEach(content => {
         content.classList.remove('active');
     });
-    
+
     // Remove active class from all desktop tab buttons
     document.querySelectorAll('.tab-button').forEach(button => {
         button.classList.remove('active');
         button.classList.remove('text-green-700');
         button.classList.add('text-gray-500');
     });
-    
+
     // Remove active class from all mobile nav items
     document.querySelectorAll('.mobile-nav-item').forEach(item => {
         item.classList.remove('active');
     });
-    
+
     // Show selected tab content
-    document.getElementById(tabName).classList.add('active');
-    
+    const selectedTab = document.getElementById(tabName);
+    if (selectedTab) {
+        selectedTab.classList.add('active');
+    }
+
     // Add active class to desktop tab button
     const activeButton = document.querySelector(`.tab-button[onclick="switchTab('${tabName}')"]`);
     if (activeButton) {
@@ -35,13 +46,16 @@ function switchTab(tabName) {
         activeButton.classList.remove('text-gray-500');
         activeButton.classList.add('text-green-700');
     }
-    
+
     // Add active class to mobile nav item
     const activeNavItem = document.getElementById(`nav-${tabName}`);
     if (activeNavItem) {
         activeNavItem.classList.add('active');
     }
-    
+
+    // Update URL hash without refreshing the page
+    window.location.hash = tabName;
+
     // Load tab-specific content
     if (tabName === 'journal') {
         loadJournalComponent();
@@ -52,7 +66,7 @@ function switchTab(tabName) {
 function loadJournalComponent() {
     const journalContent = document.getElementById('journalContent');
     if (!journalContent) return;
-    
+
     // Show loading state
     journalContent.innerHTML = `
         <div class="bg-white rounded-lg shadow p-8 text-center">
@@ -60,13 +74,13 @@ function loadJournalComponent() {
             <p class="text-gray-600">Loading journal...</p>
         </div>
     `;
-    
+
     // Load the journal component
     fetch('components/journal.php')
         .then(response => response.text())
         .then(html => {
             journalContent.innerHTML = html;
-            
+
             // Initialize journal functionality
             if (typeof JournalManager !== 'undefined') {
                 new JournalManager();
@@ -108,12 +122,12 @@ function showLogoutModal() {
             </div>
         </div>
     `;
-    
+
     // Add modal to body
     const modalContainer = document.createElement('div');
     modalContainer.innerHTML = modalHtml;
     document.body.appendChild(modalContainer);
-    
+
     // Add escape key listener
     document.addEventListener('keydown', handleEscapeKey);
 }
@@ -148,19 +162,19 @@ function performLogout() {
             action: 'logout'
         })
     })
-    .then(response => response.json())
-    .then(result => {
-        if (result.success) {
-            // Redirect to login page
-            window.location.href = '../login.php';
-        } else {
-            showErrorToast('Logout failed: ' + result.message);
-        }
-    })
-    .catch(error => {
-        console.error('Logout error:', error);
-        showErrorToast('An error occurred during logout. Please try again.');
-    });
+        .then(response => response.json())
+        .then(result => {
+            if (result.success) {
+                // Redirect to login page
+                window.location.href = '../login.php';
+            } else {
+                showErrorToast('Logout failed: ' + result.message);
+            }
+        })
+        .catch(error => {
+            console.error('Logout error:', error);
+            showErrorToast('An error occurred during logout. Please try again.');
+        });
 }
 
 // Error toast function
@@ -173,11 +187,11 @@ function showErrorToast(message) {
             </div>
         </div>
     `;
-    
+
     const toastContainer = document.createElement('div');
     toastContainer.innerHTML = toastHtml;
     document.body.appendChild(toastContainer);
-    
+
     // Animate in
     setTimeout(() => {
         const toast = document.getElementById('errorToast');
@@ -185,7 +199,7 @@ function showErrorToast(message) {
             toast.classList.remove('translate-x-full');
         }
     }, 100);
-    
+
     // Remove after 3 seconds
     setTimeout(() => {
         const toast = document.getElementById('errorToast');
@@ -200,11 +214,11 @@ function showErrorToast(message) {
 function showNotification(message, type = 'info') {
     const container = document.getElementById('notificationContainer');
     const notification = document.createElement('div');
-    
-    const bgColor = type === 'success' ? 'bg-green-500' : 
-                   type === 'error' ? 'bg-red-500' : 
-                   type === 'warning' ? 'bg-yellow-500' : 'bg-blue-500';
-    
+
+    const bgColor = type === 'success' ? 'bg-green-500' :
+        type === 'error' ? 'bg-red-500' :
+            type === 'warning' ? 'bg-yellow-500' : 'bg-blue-500';
+
     notification.className = `notification ${bgColor} text-white px-6 py-4 rounded-lg shadow-lg mb-4`;
     notification.innerHTML = `
         <div class="flex items-center">
@@ -212,9 +226,9 @@ function showNotification(message, type = 'info') {
             <span>${message}</span>
         </div>
     `;
-    
+
     container.appendChild(notification);
-    
+
     // Remove notification after 5 seconds
     setTimeout(() => {
         notification.remove();
