@@ -756,6 +756,100 @@ class System {
             ]);
         }
     }
+    
+    // ==================== PRACTICUM SUBJECTS ====================
+    
+    // Read all practicum subjects
+    function readPracticumSubjects($json) {
+        include "connection.php";
+        
+        try {
+            $sql = "SELECT id, subject_name, total_hours_required, shift_hours_required, practicum_startDate 
+                    FROM practicum_subjects 
+                    ORDER BY subject_name";
+            
+            $stmt = $conn->prepare($sql);
+            $stmt->execute();
+            $subjects = $stmt->fetchAll(PDO::FETCH_ASSOC);
+            
+            return json_encode([
+                'success' => true,
+                'data' => $subjects
+            ]);
+            
+        } catch(PDOException $e) {
+            return json_encode([
+                'success' => false,
+                'message' => 'Database error: ' . $e->getMessage()
+            ]);
+        }
+    }
+    
+    // Update practicum subject
+    function updatePracticumSubject($json) {
+        include "connection.php";
+        
+        $data = json_decode($json, true);
+        
+        if (empty($data['id'])) {
+            return json_encode([
+                'success' => false,
+                'message' => 'Subject ID is required'
+            ]);
+        }
+        
+        try {
+            // Validate required fields
+            $required_fields = ['subject_name', 'total_hours_required', 'shift_hours_required', 'practicum_startDate'];
+            $errors = [];
+            
+            foreach ($required_fields as $field) {
+                if (empty($data[$field])) {
+                    $errors[$field] = ucfirst(str_replace('_', ' ', $field)) . ' is required';
+                }
+            }
+            
+            if (!empty($errors)) {
+                return json_encode([
+                    'success' => false,
+                    'message' => 'Validation errors occurred',
+                    'errors' => $errors
+                ]);
+            }
+            
+            // Update practicum subject
+            $sql = "UPDATE practicum_subjects 
+                    SET subject_name = ?, total_hours_required = ?, shift_hours_required = ?, practicum_startDate = ?
+                    WHERE id = ?";
+            
+            $stmt = $conn->prepare($sql);
+            $result = $stmt->execute([
+                $data['subject_name'],
+                $data['total_hours_required'],
+                $data['shift_hours_required'],
+                $data['practicum_startDate'],
+                $data['id']
+            ]);
+            
+            if ($result) {
+                return json_encode([
+                    'success' => true,
+                    'message' => 'Practicum subject updated successfully'
+                ]);
+            } else {
+                return json_encode([
+                    'success' => false,
+                    'message' => 'Failed to update practicum subject'
+                ]);
+            }
+            
+        } catch(PDOException $e) {
+            return json_encode([
+                'success' => false,
+                'message' => 'Database error: ' . $e->getMessage()
+            ]);
+        }
+    }
 }
 
 $operation = isset($_POST["operation"]) ? $_POST["operation"] : "0";
@@ -830,6 +924,15 @@ switch ($operation) {
         
     case 'delete_email_domain':
         echo $system->deleteEmailDomain($json);
+        break;
+
+    // Practicum Subjects operations
+    case 'read_practicum_subjects':
+        echo $system->readPracticumSubjects($json);
+        break;
+        
+    case 'update_practicum_subject':
+        echo $system->updatePracticumSubject($json);
         break;
         
     default:

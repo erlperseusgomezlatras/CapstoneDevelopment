@@ -295,6 +295,80 @@ $current_page = 'attendance';
     </div>
 
     <!-- Scripts -->
+    <!-- Attendance Details Modal -->
+    <div id="attendanceModal" class="fixed inset-0 z-50 hidden" role="dialog" aria-modal="true">
+        <!-- Backdrop -->
+        <div id="modalOverlay" class="fixed inset-0 bg-gray-900 bg-opacity-60 transition-opacity" onclick="closeAttendanceModal()"></div>
+        
+        <!-- Modal Positioner -->
+        <div class="fixed inset-0 flex items-center justify-center p-4 sm:p-6">
+            <!-- Modal Content -->
+            <div class="bg-white rounded-xl shadow-2xl w-full max-w-4xl h-[90vh] flex flex-col overflow-hidden transform transition-all">
+                <!-- Modal Header (Fixed) -->
+                <div class="px-6 py-4 border-b border-gray-200 flex justify-between items-center bg-white">
+                    <h3 class="text-xl font-bold text-gray-900" id="modal-title">
+                        Student Attendance Details
+                    </h3>
+                    <button onclick="closeAttendanceModal()" class="text-gray-400 hover:text-gray-500 transition-colors p-2">
+                        <i class="fas fa-times text-xl"></i>
+                    </button>
+                </div>
+                
+                <!-- Modal Body (Scrollable) -->
+                <div class="p-6 overflow-y-auto flex-1">
+                    <div id="modalStudentInfo" class="mb-6 bg-blue-50 p-4 rounded-lg grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-6 border border-blue-100">
+                        <div>
+                            <span class="text-xs font-semibold text-blue-600 uppercase tracking-wider block">Student Name</span>
+                            <span id="modalStudentName" class="text-sm font-medium text-gray-900">--</span>
+                        </div>
+                        <div>
+                            <span class="text-xs font-semibold text-blue-600 uppercase tracking-wider block">Student ID</span>
+                            <span id="modalStudentId" class="text-sm font-medium text-gray-900">--</span>
+                        </div>
+                        <div>
+                            <span class="text-xs font-semibold text-blue-600 uppercase tracking-wider block">Required Hours</span>
+                            <span id="modalRequiredHours" class="text-sm font-medium text-gray-900">360.00 hrs</span>
+                        </div>
+                        <div>
+                            <span class="text-xs font-semibold text-blue-600 uppercase tracking-wider block">Current Rendered</span>
+                            <span id="modalRenderedHours" class="text-sm font-bold text-green-600">-- hrs</span>
+                        </div>
+                        <div>
+                            <span class="text-xs font-semibold text-blue-600 uppercase tracking-wider block">Remaining Hours</span>
+                            <span id="modalRemainingHours" class="text-sm font-bold text-orange-600">-- hrs</span>
+                        </div>
+                    </div>
+
+                    <div class="mt-4">
+                        <div class="flex items-center justify-between mb-4">
+                            <h4 class="text-lg font-semibold text-gray-900">Attendance History</h4>
+                            <div class="text-xs text-gray-500 italic">
+                                <i class="fas fa-info-circle mr-1"></i>
+                                Live calculation for ongoing sessions
+                            </div>
+                        </div>
+                        <div class="overflow-x-auto border border-gray-100 rounded-lg">
+                            <table class="min-w-full divide-y divide-gray-200">
+                                <thead class="bg-gray-50 sticky top-0 z-10">
+                                    <tr>
+                                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Date</th>
+                                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Time In</th>
+                                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Time Out</th>
+                                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
+                                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Hours</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="modalAttendanceHistory" class="bg-white divide-y divide-gray-200">
+                                    <!-- Data will be populated here -->
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <script src="../js/attendance.js"></script>
     <script>
         // Mobile menu toggle
@@ -308,6 +382,18 @@ $current_page = 'attendance';
 
         document.getElementById('mobileSidebarOverlay').addEventListener('click', function() {
             document.getElementById('mobileSidebar').classList.add('hidden');
+        });
+
+        // Close modal on escape key
+        document.addEventListener('keydown', function(event) {
+            if (event.key === "Escape") {
+                closeAttendanceModal();
+            }
+        });
+
+        // Close modal on overlay click
+        document.getElementById('modalOverlay')?.addEventListener('click', function() {
+            closeAttendanceModal();
         });
 
         // Custom date change handlers - auto-apply

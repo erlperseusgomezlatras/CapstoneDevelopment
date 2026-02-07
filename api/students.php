@@ -280,10 +280,11 @@ class Students {
         
         try {
             // Get student information
-            $sql = "SELECT s.geofencing_radius, sc.latitude, sc.longitude 
-                    FROM students s 
-                    JOIN partnered_schools sc ON s.partnered_school_id = sc.id 
-                    WHERE s.school_id = ?";
+            $sql = "SELECT ps.geofencing_radius, ps.latitude, ps.longitude 
+                    FROM users u
+                    JOIN sections s ON u.section_id = s.id
+                    JOIN partnered_schools ps ON s.school_id = ps.id
+                    WHERE u.school_id = ? AND u.level_id = 4";
             $stmt = $conn->prepare($sql);
             $stmt->execute([$student_id]);
             $student_info = $stmt->fetch(PDO::FETCH_ASSOC);
@@ -392,7 +393,8 @@ class Students {
                     'data' => [
                         'distance' => round($distance, 2),
                         'geofence_radius' => $student_info['geofencing_radius'],
-                        'period_id' => $period_id
+                        'period_id' => $period_id,
+                        'time' => date('H:i:s')
                     ]
                 ]);
             } else {
@@ -426,7 +428,7 @@ class Students {
         
         try {
             // Get attendance records for the current month
-            $sql = "SELECT attendance_date, attendance_timeIn, attendance_timeOut 
+            $sql = "SELECT attendance_date, attendance_timeIn, attendance_timeOut, hours_rendered 
                     FROM attendance 
                     WHERE student_id = ? 
                     AND attendance_date >= DATE_FORMAT(CURDATE(), '%Y-%m-01')
@@ -593,13 +595,15 @@ class Students {
                 ]);
             }
             
-            // Check if 8 hours have passed since time in
+            // Calculate hours rendered
             $time_in = new DateTime($existing_attendance['attendance_timeIn']);
             $current_time = new DateTime();
             $time_diff = $current_time->diff($time_in);
-            $hours_diff = $time_diff->h + ($time_diff->days * 24);
             
-            if ($hours_diff < 8) {
+            // Total hours as a decimal (hours + minutes/60)
+            $hours_rendered = $time_diff->h + ($time_diff->days * 24) + ($time_diff->i / 60);
+            
+            if ($hours_rendered < 8) {
                 // Calculate exact time out time (8 hours after time in)
                 $time_out_time = clone $time_in;
                 $time_out_time->add(new DateInterval('PT8H'));
@@ -611,10 +615,10 @@ class Students {
                 ]);
             }
             
-            // Update time out
-            $update_sql = "UPDATE attendance SET attendance_timeOut = CURTIME() WHERE id = ?";
+            // Update time out and hours_rendered
+            $update_sql = "UPDATE attendance SET attendance_timeOut = CURTIME(), hours_rendered = ? WHERE id = ?";
             $stmt = $conn->prepare($update_sql);
-            $result = $stmt->execute([$existing_attendance['id']]);
+            $result = $stmt->execute([round($hours_rendered, 2), $existing_attendance['id']]);
             
             if ($result) {
                 return json_encode([
@@ -624,7 +628,8 @@ class Students {
                         'distance' => round($distance, 2),
                         'geofence_radius' => $student_info['geofencing_radius'],
                         'time_in' => $existing_attendance['attendance_timeIn'],
-                        'time_out' => date('H:i:s')
+                        'time_out' => date('H:i:s'),
+                        'hours_rendered' => round($hours_rendered, 2)
                     ]
                 ]);
             } else {
@@ -679,7 +684,7 @@ class Students {
             $session_id = $active_session['academic_session_id'];
 
             // Check today's attendance status for the active session
-            $sql = "SELECT attendance_timeIn, attendance_timeOut 
+            $sql = "SELECT attendance_timeIn, attendance_timeOut, hours_rendered 
                     FROM attendance 
                     WHERE student_id = ? AND attendance_date = CURDATE() AND session_id = ?";
             $stmt = $conn->prepare($sql);
@@ -690,7 +695,8 @@ class Students {
                 'has_time_in' => false,
                 'has_time_out' => false,
                 'time_in' => null,
-                'time_out' => null
+                'time_out' => null,
+                'hours_rendered' => null
             ];
             
             if ($attendance) {
@@ -698,6 +704,7 @@ class Students {
                 $status['has_time_out'] = !empty($attendance['attendance_timeOut']);
                 $status['time_in'] = $attendance['attendance_timeIn'];
                 $status['time_out'] = $attendance['attendance_timeOut'];
+                $status['hours_rendered'] = $attendance['hours_rendered'];
             }
             
             return json_encode([
@@ -1374,7 +1381,7 @@ switch ($operation) {
         break;
         
     case 'get_student_period_info':
-        echo getStudentPeriodInfo($json);
+        echo $students->getStudentPeriodInfo($json);
         break;
         
     case 'get_current_period':

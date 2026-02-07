@@ -1,11 +1,13 @@
 // Global variables
 let currentEditingSchool = null;
 let currentEditingSection = null;
+let currentEditingPracticumSubject = null;
 let map = null;
 let marker = null;
 let geofenceCircle = null;
 let allPartneredSchools = [];
 let allSections = [];
+let allPracticumSubjects = [];
 let allAcademicSessions = [];
 let currentActiveSession = null;
 
@@ -13,22 +15,25 @@ let currentActiveSession = null;
 const ITEMS_PER_PAGE = 10;
 let partneredCurrentPage = 1;
 let sectionsCurrentPage = 1;
+let practicumCurrentPage = 1;
 let academicCurrentPage = 1;
 
 // Global filtered arrays for pagination
 let filteredSchools = [];
 let filteredSectionsData = [];
+let filteredPracticumData = [];
 let filteredAcademicData = [];
 
 // Initialize page
 document.addEventListener('DOMContentLoaded', function () {
     loadPartneredSchools();
     loadSections();
+    loadPracticumSubjects();
     initializeMap();
 
     // Check URL hash for tab persistence
     const currentHash = window.location.hash.replace('#', '');
-    const validTabs = ['partnered-schools', 'sections', 'email-domains', 'system-settings'];
+    const validTabs = ['partnered-schools', 'sections', 'practicum-subjects', 'email-domains', 'system-settings'];
 
     if (currentHash && validTabs.includes(currentHash)) {
         // Delay slightly to ensure tabs are ready
@@ -45,6 +50,12 @@ document.addEventListener('DOMContentLoaded', function () {
     document.getElementById('sectionsSearchInput').addEventListener('input', () => {
         sectionsCurrentPage = 1;
         filterSections();
+    });
+
+    // Auto-search functionality for practicum subjects
+    document.getElementById('practicumSearchInput').addEventListener('input', () => {
+        practicumCurrentPage = 1;
+        filterPracticumSubjects();
     });
 
     // Address input geocoding
@@ -75,6 +86,12 @@ document.addEventListener('DOMContentLoaded', function () {
     document.getElementById('sectionForm').addEventListener('submit', function (e) {
         e.preventDefault();
         saveSection();
+    });
+
+    // Form submission for practicum subjects
+    document.getElementById('practicumForm').addEventListener('submit', function (e) {
+        e.preventDefault();
+        savePracticumSubject();
     });
 
     // Mobile sidebar
@@ -1484,6 +1501,234 @@ async function deleteSection(id) {
         }
     } catch (error) {
         showNotification('An error occurred while deleting section', 'error');
+        console.error('Error:', error);
+    }
+}
+
+// ==================== PRACTICUM SUBJECTS FUNCTIONS ====================
+
+// Load all practicum subjects once
+async function loadPracticumSubjects() {
+    try {
+        const formData = new FormData();
+        formData.append('operation', 'read_practicum_subjects');
+        formData.append('json', JSON.stringify({}));
+
+        const response = await fetch(window.APP_CONFIG.API_BASE_URL + 'system.php', {
+            method: 'POST',
+            body: formData
+        });
+
+        const result = await response.json();
+
+        if (result.success) {
+            allPracticumSubjects = result.data;
+            filterPracticumSubjects();
+        } else {
+            showNotification(result.message, 'error');
+            allPracticumSubjects = [];
+            filterPracticumSubjects();
+        }
+    } catch (error) {
+        showNotification('An error occurred while loading practicum subjects', 'error');
+        console.error('Error:', error);
+        allPracticumSubjects = [];
+        filterPracticumSubjects();
+    }
+}
+
+// Filter practicum subjects based on search term
+function filterPracticumSubjects() {
+    const searchTerm = document.getElementById('practicumSearchInput').value.trim().toLowerCase();
+
+    filteredPracticumData = allPracticumSubjects;
+
+    // Filter by search term
+    if (searchTerm) {
+        filteredPracticumData = filteredPracticumData.filter(subject => {
+            return subject.subject_name.toLowerCase().includes(searchTerm) ||
+                subject.total_hours_required.toString().includes(searchTerm) ||
+                subject.shift_hours_required.toString().includes(searchTerm) ||
+                (subject.practicum_startDate && subject.practicum_startDate.toLowerCase().includes(searchTerm));
+        });
+    }
+
+    renderPracticumSubjectsTable();
+}
+
+// Render practicum subjects table
+function renderPracticumSubjectsTable() {
+    const tableBody = document.getElementById('practicumTableBody');
+    const noDataMessage = document.getElementById('practicumNoDataMessage');
+    const paginationContainer = document.getElementById('practicumPagination');
+
+    if (filteredPracticumData.length === 0) {
+        tableBody.innerHTML = '';
+        noDataMessage.classList.remove('hidden');
+        paginationContainer.classList.add('hidden');
+        return;
+    }
+
+    noDataMessage.classList.add('hidden');
+    paginationContainer.classList.remove('hidden');
+
+    // Safety check: ensure current page is within bounds
+    const totalPages = Math.ceil(filteredPracticumData.length / ITEMS_PER_PAGE);
+    if (practicumCurrentPage > totalPages && totalPages > 0) {
+        practicumCurrentPage = totalPages;
+    }
+
+    // Calculate pagination slice
+    const startIndex = (practicumCurrentPage - 1) * ITEMS_PER_PAGE;
+    const endIndex = startIndex + ITEMS_PER_PAGE;
+    const paginatedSubjects = filteredPracticumData.slice(startIndex, endIndex);
+
+    tableBody.innerHTML = paginatedSubjects.map(subject => {
+        let formattedDate = '<span class="text-gray-400 italic">Not set</span>';
+        if (subject.practicum_startDate) {
+            const date = new Date(subject.practicum_startDate);
+            formattedDate = date.toLocaleDateString('en-US', {
+                month: 'long',
+                day: '2-digit',
+                year: 'numeric'
+            });
+        }
+
+        return `
+        <tr>
+            <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
+                ${subject.subject_name}
+            </td>
+            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                ${subject.total_hours_required} hours
+            </td>
+            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                ${subject.shift_hours_required} hours
+            </td>
+            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                ${formattedDate}
+            </td>
+            <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                <button onclick="openEditPracticumModal(${JSON.stringify(subject).replace(/"/g, '&quot;')})" 
+                        class="text-green-600 hover:text-green-900 bg-green-50 px-3 py-1 rounded-md">
+                    <i class="fas fa-edit mr-1"></i> Edit
+                </button>
+            </td>
+        </tr>
+    `}).join('');
+
+    renderPagination(
+        'practicumPaginationNav',
+        filteredPracticumData.length,
+        practicumCurrentPage,
+        'goToPracticumPage',
+        { start: 'practicumStart', end: 'practicumEnd', total: 'practicumTotal' }
+    );
+}
+
+// Practicum Pagination Navigation
+function goToPracticumPage(page) {
+    const totalPages = Math.ceil(filteredPracticumData.length / ITEMS_PER_PAGE);
+    if (page < 1 || page > totalPages) return;
+    practicumCurrentPage = page;
+    renderPracticumSubjectsTable();
+}
+
+function previousPracticumPage() {
+    goToPracticumPage(practicumCurrentPage - 1);
+}
+
+function nextPracticumPage() {
+    goToPracticumPage(practicumCurrentPage + 1);
+}
+
+// Open edit practicum modal
+function openEditPracticumModal(subject) {
+    currentEditingPracticumSubject = subject;
+    document.getElementById('practicumModalTitle').textContent = 'Edit Practicum Subject';
+
+    // Fill form with subject data
+    document.getElementById('practicumSubjectName').value = subject.subject_name;
+    document.getElementById('practicumTotalHours').value = subject.total_hours_required;
+    document.getElementById('practicumShiftHours').value = subject.shift_hours_required;
+    document.getElementById('practicumStartDate').value = subject.practicum_startDate || '';
+
+    document.getElementById('practicumModal').classList.add('show');
+}
+
+// Close practicum modal
+function closePracticumModal() {
+    document.getElementById('practicumModal').classList.remove('show');
+    clearPracticumValidationErrors();
+}
+
+// Clear practicum validation errors
+function clearPracticumValidationErrors() {
+    const fields = ['practicumSubjectName', 'practicumTotalHours', 'practicumShiftHours', 'practicumStartDate'];
+    fields.forEach(field => {
+        const errorEl = document.getElementById(field + 'Error');
+        if (errorEl) errorEl.textContent = '';
+    });
+}
+
+// Save practicum subject
+async function savePracticumSubject() {
+    clearPracticumValidationErrors();
+    let isValid = true;
+
+    const subjectName = document.getElementById('practicumSubjectName').value.trim();
+    const totalHours = document.getElementById('practicumTotalHours').value;
+    const shiftHours = document.getElementById('practicumShiftHours').value;
+    const startDate = document.getElementById('practicumStartDate').value;
+
+    if (!subjectName) {
+        document.getElementById('practicumSubjectNameError').textContent = 'Subject Name is required';
+        isValid = false;
+    }
+    if (!totalHours || totalHours < 1) {
+        document.getElementById('practicumTotalHoursError').textContent = 'Valid Total Hours is required';
+        isValid = false;
+    }
+    if (!shiftHours || shiftHours < 1) {
+        document.getElementById('practicumShiftHoursError').textContent = 'Valid Shift Hours is required';
+        isValid = false;
+    }
+    if (!startDate) {
+        document.getElementById('practicumStartDateError').textContent = 'Start Date is required';
+        isValid = false;
+    }
+
+    if (!isValid) return;
+
+    try {
+        const formData = {
+            id: currentEditingPracticumSubject.id,
+            subject_name: subjectName,
+            total_hours_required: parseInt(totalHours),
+            shift_hours_required: parseInt(shiftHours),
+            practicum_startDate: startDate
+        };
+
+        const apiFormData = new FormData();
+        apiFormData.append('operation', 'update_practicum_subject');
+        apiFormData.append('json', JSON.stringify(formData));
+
+        const response = await fetch(window.APP_CONFIG.API_BASE_URL + 'system.php', {
+            method: 'POST',
+            body: apiFormData
+        });
+
+        const result = await response.json();
+
+        if (result.success) {
+            showNotification(result.message, 'success');
+            closePracticumModal();
+            loadPracticumSubjects();
+        } else {
+            showNotification(result.message, 'error');
+        }
+    } catch (error) {
+        showNotification('An error occurred while saving practicum subject', 'error');
         console.error('Error:', error);
     }
 }

@@ -87,12 +87,6 @@ $base_url = "http://localhost/CapstoneDevelopment";
                         Data & Backups
                     </a>
                 </li>
-                <li>
-                    <a href="#" class="sidebar-item <?php echo $current_page === 'subjects' ? 'active' : ''; ?> flex items-center px-3 py-2 text-sm font-medium rounded-md <?php echo $current_page === 'subjects' ? 'text-white bg-white/10' : 'text-gray-300 hover:text-white hover:bg-white/10'; ?>">
-                        <i class="fas fa-graduation-cap mr-3 h-4 w-4"></i>
-                        Practicum Subjects
-                    </a>
-                </li>
             </ul>
         </nav>
         

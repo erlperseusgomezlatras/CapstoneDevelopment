@@ -176,6 +176,11 @@ $current_page = 'system';
                                 <i class="fas fa-users mr-2"></i>
                                 Sections
                             </button>
+                            <button onclick="switchTab('practicum-subjects')" 
+                                    class="tab-button px-6 py-3 text-sm font-medium text-gray-500 hover:text-gray-700 focus:outline-none focus:text-gray-700">
+                                <i class="fas fa-book mr-2"></i>
+                                Practicum Subjects
+                            </button>
                             <button onclick="switchTab('email-domains')" 
                                     class="tab-button px-6 py-3 text-sm font-medium text-gray-500 hover:text-gray-700 focus:outline-none focus:text-gray-700">
                                 <i class="fas fa-envelope mr-2"></i>
@@ -202,6 +207,12 @@ $current_page = 'system';
                                     <i class="fas fa-users mr-1"></i>
                                     <span class="hidden sm:inline">Sections</span>
                                     <span class="sm:hidden">Sections</span>
+                                </button>
+                                <button onclick="switchTab('practicum-subjects')" 
+                                        class="mobile-tab-button flex-shrink-0 px-4 py-3 text-sm font-medium text-gray-500 hover:text-gray-700 focus:outline-none focus:text-gray-700 border-b-2 border-transparent">
+                                    <i class="fas fa-book mr-1"></i>
+                                    <span class="hidden sm:inline">Practicum</span>
+                                    <span class="sm:hidden">Practicum</span>
                                 </button>
                                 <button onclick="switchTab('email-domains')" 
                                         class="mobile-tab-button flex-shrink-0 px-4 py-3 text-sm font-medium text-gray-500 hover:text-gray-700 focus:outline-none focus:text-gray-700 border-b-2 border-transparent">
@@ -380,6 +391,82 @@ $current_page = 'system';
                                 </div>
                                 <div>
                                     <nav class="relative z-0 inline-flex rounded-md shadow-sm -space-x-px" aria-label="Pagination" id="sectionsPaginationNav">
+                                        <!-- Pagination buttons will be inserted here -->
+                                    </nav>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Practicum Subjects Tab Content -->
+                <div id="practicum-subjects" class="tab-content">
+                    <!-- Search and Actions -->
+                    <div class="bg-white rounded-lg shadow p-4 mb-6">
+                        <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+                            <div class="flex-1 max-w-lg">
+                                <div class="relative">
+                                    <input type="text" id="practicumSearchInput" placeholder="Search practicum subjects..." 
+                                           class="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500">
+                                    <i class="fas fa-search absolute left-3 top-3 text-gray-400"></i>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Practicum Subjects Table -->
+                    <div class="bg-white rounded-lg shadow overflow-hidden relative">
+                        <div class="overflow-x-auto min-h-[600px] max-h-[800px] overflow-y-auto">
+                            <table class="min-w-full divide-y divide-gray-200">
+                                <thead class="bg-gray-50">
+                                    <tr>
+                                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                            Subject Name
+                                        </th>
+                                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                            Total Hours Required
+                                        </th>
+                                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                            Shift Hours Required
+                                        </th>
+                                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                            Start Date
+                                        </th>
+                                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                            Actions
+                                        </th>
+                                    </tr>
+                                </thead>
+                                <tbody id="practicumTableBody" class="bg-white divide-y divide-gray-200">
+                                    <!-- Practicum subjects will be loaded here -->
+                                </tbody>
+                            </table>
+                        </div>
+                        <div id="practicumNoDataMessage" class="hidden absolute inset-0 flex items-center justify-center bg-white">
+                            <div class="text-center text-gray-500">
+                                <i class="fas fa-book text-4xl mb-4 text-gray-300"></i>
+                                <p class="text-lg font-medium mb-2">No practicum subjects found</p>
+                            </div>
+                        </div>
+                        
+                        <!-- Pagination -->
+                        <div id="practicumPagination" class="bg-white px-4 py-3 flex items-center justify-between border-t border-gray-200 sm:px-6">
+                            <div class="flex-1 flex justify-between sm:hidden">
+                                <button onclick="previousPracticumPage()" class="relative inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50">
+                                    Previous
+                                </button>
+                                <button onclick="nextPracticumPage()" class="ml-3 relative inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50">
+                                    Next
+                                </button>
+                            </div>
+                            <div class="hidden sm:flex-1 sm:flex sm:items-center sm:justify-between">
+                                <div>
+                                    <p class="text-sm text-gray-700">
+                                        Showing <span id="practicumStart" class="font-medium">0</span> to <span id="practicumEnd" class="font-medium">0</span> of <span id="practicumTotal" class="font-medium">0</span> results
+                                    </p>
+                                </div>
+                                <div>
+                                    <nav class="relative z-0 inline-flex rounded-md shadow-sm -space-x-px" aria-label="Pagination" id="practicumPaginationNav">
                                         <!-- Pagination buttons will be inserted here -->
                                     </nav>
                                 </div>
@@ -649,6 +736,62 @@ $current_page = 'system';
                                 class="px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700">
                             <i class="fas fa-save mr-2"></i>
                             Save Section
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Edit Practicum Subject Modal -->
+    <div id="practicumModal" class="modal">
+        <div class="flex items-center justify-center min-h-screen p-4">
+            <div class="bg-white rounded-lg shadow-xl w-[600px] max-w-[90vw] max-h-[90vh] overflow-y-auto relative">
+                <div class="px-6 py-4 border-b border-gray-200 sticky top-0 bg-white z-10">
+                    <h3 class="text-lg font-semibold text-gray-900" id="practicumModalTitle">Edit Practicum Subject</h3>
+                </div>
+                
+                <form id="practicumForm" class="p-6">
+                    <div class="space-y-6">
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">Subject Name *</label>
+                            <input type="text" id="practicumSubjectName" name="subject_name" required
+                                   class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500">
+                            <span class="text-xs text-red-500" id="practicumSubjectNameError"></span>
+                        </div>
+                        
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">Total Hours Required *</label>
+                            <input type="number" id="practicumTotalHours" name="total_hours_required" required min="1"
+                                   class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500">
+                            <span class="text-xs text-red-500" id="practicumTotalHoursError"></span>
+                        </div>
+
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">Shift Hours Required *</label>
+                            <input type="number" id="practicumShiftHours" name="shift_hours_required" required min="1"
+                                   class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500">
+                            <span class="text-xs text-red-500" id="practicumShiftHoursError"></span>
+                        </div>
+
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">Start Date *</label>
+                            <input type="date" id="practicumStartDate" name="practicum_startDate" required
+                                   class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500">
+                            <span class="text-xs text-red-500" id="practicumStartDateError"></span>
+                        </div>
+                    </div>
+                    
+                    <!-- Form Actions -->
+                    <div class="flex justify-end space-x-3 mt-6">
+                        <button type="button" onclick="closePracticumModal()" 
+                                class="px-4 py-2 border border-gray-300 rounded-md text-gray-700 hover:bg-gray-50">
+                            Cancel
+                        </button>
+                        <button type="submit" 
+                                class="px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700">
+                            <i class="fas fa-save mr-2"></i>
+                            Update Subject
                         </button>
                     </div>
                 </form>

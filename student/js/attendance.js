@@ -7,15 +7,16 @@ let userLocation = null;
 let partneredSchool = null;
 let hasSection = false;
 let canMarkAttendance = false;
+let currentStudentId = null;
 
 // Helper function to convert 24-hour time to 12-hour format
 function formatTimeTo12Hour(time24) {
     if (!time24) return '';
-    
+
     const [hour, minute, second] = time24.split(':');
     const date = new Date();
     date.setHours(parseInt(hour), parseInt(minute), parseInt(second));
-    
+
     let hours = date.getHours();
     let minutes = date.getMinutes();
     let seconds = date.getSeconds();
@@ -32,17 +33,18 @@ function formatTimeTo12Hour(time24) {
 // Helper function to get today's date in readable format
 function getTodayDate() {
     const today = new Date();
-    const options = { 
-        weekday: 'long', 
-        year: 'numeric', 
-        month: 'long', 
-        day: 'numeric' 
+    const options = {
+        weekday: 'long',
+        year: 'numeric',
+        month: 'long',
+        day: 'numeric'
     };
     return today.toLocaleDateString('en-US', options);
 }
 
 // Initialize attendance functionality
 function initializeAttendance(studentId) {
+    currentStudentId = studentId;
     loadStudentInfo(studentId);
 }
 
@@ -60,26 +62,26 @@ function loadStudentInfo(studentSchoolId) {
             })
         })
     })
-    .then(response => response.json())
-    .then(data => {
-        if (data.success) {
-            hasSection = data.data.has_section;
-            partneredSchool = data.data.partnered_school;
-            renderAttendanceContent();
-        } else {
-            showError('Failed to load student information');
-        }
-    })
-    .catch(error => {
-        console.error('Error:', error);
-        showError('Error loading student information');
-    });
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                hasSection = data.data.has_section;
+                partneredSchool = data.data.partnered_school;
+                renderAttendanceContent();
+            } else {
+                showError('Failed to load student information');
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            showError('Error loading student information');
+        });
 }
 
 // Render attendance content based on student info
 function renderAttendanceContent() {
     const attendanceContent = document.getElementById('attendanceContent');
-    
+
     if (!hasSection) {
         attendanceContent.innerHTML = `
             <div class="bg-white rounded-lg shadow p-8 text-center">
@@ -179,11 +181,11 @@ function renderAttendanceContent() {
                 </p>
             </div>
         `;
-        
+
         // Initialize map and location services
         initializeMap();
         getUserLocation();
-        
+
         // Check attendance status to show correct button
         checkAttendanceStatus();
     }
@@ -235,14 +237,14 @@ function initializeMap() {
     // Add navigation controls
     map.addControl(new maplibregl.NavigationControl());
 
-    map.on('load', function() {
+    map.on('load', function () {
         // Add school marker
         schoolMarker = new maplibregl.Marker({
             color: '#10b981',
             scale: 1.2
         })
-        .setLngLat([partneredSchool.longitude, partneredSchool.latitude])
-        .addTo(map);
+            .setLngLat([partneredSchool.longitude, partneredSchool.latitude])
+            .addTo(map);
 
         // Add geofence circle
         addGeofenceCircle();
@@ -256,7 +258,7 @@ function initializeMap() {
                 <p class="text-sm text-gray-600">Geofence: ${partneredSchool.geofencing_radius}m</p>
             </div>
         `);
-        
+
         schoolMarker.setPopup(popup);
     });
 }
@@ -352,7 +354,7 @@ function getUserLocation() {
     const locationText = document.getElementById('locationText');
     const networkStatus = document.getElementById('networkStatus');
     const networkText = document.getElementById('networkText');
-    
+
     locationSpinner.classList.remove('hidden');
     locationText.textContent = 'Checking network connectivity...';
     networkStatus.classList.remove('hidden');
@@ -407,23 +409,23 @@ function checkNetworkConnectivity() {
             cache: 'no-cache',
             timeout: 5000
         })
-        .then(response => {
-            const responseTime = Date.now() - startTime;
-            if (response.ok) {
-                // Update network status with response time
-                const networkText = document.getElementById('networkText');
-                if (networkText) {
-                    networkText.textContent = `Connected (${responseTime}ms)`;
-                    networkText.classList.add('text-green-600');
+            .then(response => {
+                const responseTime = Date.now() - startTime;
+                if (response.ok) {
+                    // Update network status with response time
+                    const networkText = document.getElementById('networkText');
+                    if (networkText) {
+                        networkText.textContent = `Connected (${responseTime}ms)`;
+                        networkText.classList.add('text-green-600');
+                    }
+                    resolve(true);
+                } else {
+                    resolve(false);
                 }
-                resolve(true);
-            } else {
+            })
+            .catch(() => {
                 resolve(false);
-            }
-        })
-        .catch(() => {
-            resolve(false);
-        });
+            });
 
         // Fallback timeout
         setTimeout(() => resolve(false), 5000);
@@ -439,10 +441,10 @@ function tryHighAccuracyLocation() {
     };
 
     navigator.geolocation.getCurrentPosition(
-        function(position) {
+        function (position) {
             handleLocationSuccess(position);
         },
-        function(error) {
+        function (error) {
             if (error.code === error.TIMEOUT) {
                 // Fallback to lower accuracy
                 tryLowAccuracyLocation();
@@ -466,10 +468,10 @@ function tryLowAccuracyLocation() {
     };
 
     navigator.geolocation.getCurrentPosition(
-        function(position) {
+        function (position) {
             handleLocationSuccess(position);
         },
-        function(error) {
+        function (error) {
             handleLocationError(error);
         },
         options
@@ -480,7 +482,7 @@ function tryLowAccuracyLocation() {
 function handleLocationSuccess(position) {
     const locationSpinner = document.getElementById('locationSpinner');
     const locationText = document.getElementById('locationText');
-    
+
     locationSpinner.classList.add('hidden');
     userLocation = {
         lat: position.coords.latitude,
@@ -491,18 +493,18 @@ function handleLocationSuccess(position) {
         heading: position.coords.heading,
         speed: position.coords.speed
     };
-    
+
     // Show accuracy info
     const accuracyInMeters = Math.round(position.coords.accuracy);
     const accuracyLevel = position.coords.accuracy < 50 ? 'High' : position.coords.accuracy < 100 ? 'Medium' : 'Low';
     locationText.textContent = `Location found (${accuracyLevel} accuracy: ±${accuracyInMeters}m)`;
-    
+
     updateUserLocation();
     checkGeofence();
-    
+
     // Check attendance status to show correct button
     checkAttendanceStatus();
-    
+
     // Start watching position for real-time updates
     startLocationWatching();
 }
@@ -512,12 +514,12 @@ function handleLocationError(error) {
     const locationSpinner = document.getElementById('locationSpinner');
     const locationText = document.getElementById('locationText');
     const networkStatus = document.getElementById('networkStatus');
-    
+
     locationSpinner.classList.add('hidden');
     let message = 'Unable to get your location';
     let suggestion = '';
-    
-    switch(error.code) {
+
+    switch (error.code) {
         case error.PERMISSION_DENIED:
             message = 'Location access denied';
             suggestion = 'Please allow location access in your browser settings and refresh.';
@@ -531,10 +533,10 @@ function handleLocationError(error) {
             suggestion = 'Try again or check your internet connection and GPS settings.';
             break;
     }
-    
+
     locationText.innerHTML = `${message}. <span class="text-xs">${suggestion}</span>`;
     locationText.classList.add('text-red-600');
-    
+
     // Keep network status visible for troubleshooting
     if (networkStatus) {
         networkStatus.classList.remove('hidden');
@@ -552,17 +554,17 @@ function startLocationWatching() {
     };
 
     navigator.geolocation.watchPosition(
-        function(position) {
+        function (position) {
             userLocation = {
                 lat: position.coords.latitude,
                 lng: position.coords.longitude,
                 accuracy: position.coords.accuracy
             };
-            
+
             updateUserLocation();
             checkGeofence();
         },
-        function(error) {
+        function (error) {
             console.error('Watch position error:', error);
         },
         watchOptions
@@ -583,8 +585,8 @@ function updateUserLocation() {
         color: '#3b82f6',
         scale: 1
     })
-    .setLngLat([userLocation.lng, userLocation.lat])
-    .addTo(map);
+        .setLngLat([userLocation.lng, userLocation.lat])
+        .addTo(map);
 
     // Add accuracy circle if accuracy is available
     if (userLocation.accuracy && map.getLayer('user-accuracy')) {
@@ -595,7 +597,7 @@ function updateUserLocation() {
     if (userLocation.accuracy) {
         // Create accuracy circle
         const accuracyCircle = createAccuracyCircle(userLocation.lat, userLocation.lng, userLocation.accuracy);
-        
+
         map.addSource('user-accuracy', {
             type: 'geojson',
             data: {
@@ -640,14 +642,14 @@ function updateUserLocation() {
 function createAccuracyCircle(lat, lng, radiusInMeters) {
     const points = [];
     const numPoints = 32;
-    
+
     for (let i = 0; i <= numPoints; i++) {
         const angle = (i / numPoints) * 2 * Math.PI;
         const latOffset = (radiusInMeters / 111320) * Math.cos(angle);
         const lngOffset = (radiusInMeters / (111320 * Math.cos(lat * Math.PI / 180))) * Math.sin(angle);
         points.push([lng + lngOffset, lat + latOffset]);
     }
-    
+
     return points;
 }
 
@@ -683,14 +685,14 @@ function checkGeofence() {
         locationText.textContent = 'You are within the attendance area';
         locationText.classList.remove('text-red-600');
         locationText.classList.add('text-green-600');
-        
+
         // Check attendance status to determine which button to show
         checkAttendanceStatus();
     } else {
         locationText.textContent = 'You are outside the attendance area';
         locationText.classList.remove('text-green-600');
         locationText.classList.add('text-red-600');
-        
+
         attendanceButton.innerHTML = `
             <button disabled class="w-full px-4 py-3 bg-gray-400 text-white rounded-md cursor-not-allowed font-medium">
                 <i class="fas fa-times-circle mr-2"></i>
@@ -708,10 +710,10 @@ function calculateDistance(lat1, lon1, lat2, lon2) {
     const Δφ = (lat2 - lat1) * Math.PI / 180;
     const Δλ = (lon2 - lon1) * Math.PI / 180;
 
-    const a = Math.sin(Δφ/2) * Math.sin(Δφ/2) +
-            Math.cos(φ1) * Math.cos(φ2) *
-            Math.sin(Δλ/2) * Math.sin(Δλ/2);
-    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+    const a = Math.sin(Δφ / 2) * Math.sin(Δφ / 2) +
+        Math.cos(φ1) * Math.cos(φ2) *
+        Math.sin(Δλ / 2) * Math.sin(Δλ / 2);
+    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
 
     return R * c; // Distance in meters
 }
@@ -726,37 +728,37 @@ function checkAttendanceStatus() {
         body: new URLSearchParams({
             operation: 'check_attendance_status',
             json: JSON.stringify({
-                student_id: studentSchoolId
+                student_id: currentStudentId
             })
         })
     })
-    .then(response => response.json())
-    .then(data => {
-        if (data.success) {
-            updateAttendanceButton(data.data);
-        } else {
-            console.error('Failed to check attendance status:', data.message);
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                updateAttendanceButton(data.data);
+            } else {
+                console.error('Failed to check attendance status:', data.message);
+                // Fallback to time in button
+                showTimeInButton();
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
             // Fallback to time in button
             showTimeInButton();
-        }
-    })
-    .catch(error => {
-        console.error('Error:', error);
-        // Fallback to time in button
-        showTimeInButton();
-    });
+        });
 }
 
 // Update attendance button based on status
 function updateAttendanceButton(status) {
     const attendanceButton = document.getElementById('attendanceButton');
-    
+
     if (status.has_time_in && !status.has_time_out) {
         // Show time out button
         showTimeOutButton(status.time_in);
     } else if (status.has_time_in && status.has_time_out) {
         // Show completed attendance
-        showCompletedAttendance(status.time_in, status.time_out);
+        showCompletedAttendance(status.time_in, status.time_out, status.hours_rendered);
     } else {
         // Show time in button
         showTimeInButton();
@@ -767,7 +769,7 @@ function updateAttendanceButton(status) {
 function showTimeInButton() {
     const attendanceButton = document.getElementById('attendanceButton');
     attendanceButton.innerHTML = `
-        <button onclick="markAttendance('${studentSchoolId}')" class="w-full px-4 py-3 bg-green-600 text-white rounded-md hover:bg-green-700 font-medium">
+        <button onclick="markAttendance('${currentStudentId}')" class="w-full px-4 py-3 bg-green-600 text-white rounded-md hover:bg-green-700 font-medium">
             <i class="fas fa-sign-in-alt mr-2"></i>
             Time In
         </button>
@@ -776,30 +778,35 @@ function showTimeInButton() {
 
 // Show time out button
 function showTimeOutButton(timeIn) {
+    if (!timeIn) {
+        console.error('showTimeOutButton called with empty timeIn');
+        checkAttendanceStatus();
+        return;
+    }
     const attendanceButton = document.getElementById('attendanceButton');
     const formattedTimeIn = formatTimeTo12Hour(timeIn);
-    
+
     // Calculate remaining time until 8 hours have passed
     const timeInDate = new Date();
     const [hours, minutes, seconds] = timeIn.split(':');
     timeInDate.setHours(parseInt(hours), parseInt(minutes), parseInt(seconds), 0);
-    
+
     const currentTime = new Date();
     const hoursDiff = (currentTime - timeInDate) / (1000 * 60 * 60);
-    
+
     let buttonHtml = `
         <div class="mb-2 p-2 bg-green-50 border border-green-200 rounded text-sm">
             <i class="fas fa-clock text-green-600 mr-1"></i>
             Time In: ${formattedTimeIn}
         </div>
     `;
-    
+
     if (hoursDiff < 8) {
         // Calculate exact time out time (8 hours after time in)
         const timeOutTime = new Date(timeInDate);
         timeOutTime.setHours(timeOutTime.getHours() + 8);
         const formattedTimeOut = formatTimeTo12Hour(timeOutTime.toTimeString().split(' ')[0]);
-        
+
         // Calculate remaining duration
         const remainingTotalMinutes = Math.ceil((8 - hoursDiff) * 60);
         const remainingHours = Math.floor(remainingTotalMinutes / 60);
@@ -810,9 +817,9 @@ function showTimeOutButton(timeIn) {
         } else {
             durationText = `~${remainingMinutes}m`;
         }
-        
+
         let timeMessage = `You can time out at ${formattedTimeOut}. `;
-        
+
         buttonHtml += `
             <div class="mb-2 p-2 bg-yellow-50 border border-yellow-200 rounded text-sm text-yellow-800">
                 <div class="flex justify-between items-center">
@@ -832,28 +839,30 @@ function showTimeOutButton(timeIn) {
         `;
     } else {
         buttonHtml += `
-            <button onclick="markTimeOut('${studentSchoolId}')" class="w-full px-4 py-3 bg-orange-600 text-white rounded-md hover:bg-orange-700 font-medium">
+            <button onclick="markTimeOut('${currentStudentId}')" class="w-full px-4 py-3 bg-orange-600 text-white rounded-md hover:bg-orange-700 font-medium">
                 <i class="fas fa-sign-out-alt mr-2"></i>
                 Time Out
             </button>
         `;
     }
-    
+
     attendanceButton.innerHTML = buttonHtml;
 }
 
 // Show completed attendance
-function showCompletedAttendance(timeIn, timeOut) {
+function showCompletedAttendance(timeIn, timeOut, hoursRendered) {
     const attendanceButton = document.getElementById('attendanceButton');
     const formattedTimeIn = formatTimeTo12Hour(timeIn);
     const formattedTimeOut = formatTimeTo12Hour(timeOut);
+    const displayHours = hoursRendered ? parseFloat(hoursRendered).toFixed(2) : '--';
+
     attendanceButton.innerHTML = `
         <div class="p-3 bg-gray-50 border border-gray-200 rounded">
             <div class="flex items-center justify-between mb-2">
                 <span class="text-sm font-medium text-gray-600">Today's Attendance</span>
                 <span class="text-xs px-2 py-1 bg-green-100 text-green-800 rounded-full">Complete</span>
             </div>
-            <div class="grid grid-cols-2 gap-2 text-sm">
+            <div class="grid grid-cols-2 gap-2 text-sm mb-2">
                 <div>
                     <span class="text-gray-500">Time In:</span>
                     <div class="font-medium">${formattedTimeIn}</div>
@@ -861,6 +870,12 @@ function showCompletedAttendance(timeIn, timeOut) {
                 <div>
                     <span class="text-gray-500">Time Out:</span>
                     <div class="font-medium">${formattedTimeOut}</div>
+                </div>
+            </div>
+            <div class="pt-2 border-t border-gray-200">
+                <div class="flex justify-between items-center">
+                    <span class="text-sm text-gray-500">Rendered Hours:</span>
+                    <span class="text-sm font-bold text-green-600">${displayHours} hrs</span>
                 </div>
             </div>
         </div>
@@ -887,37 +902,41 @@ function markTimeOut(studentSchoolId) {
             })
         })
     })
-    .then(response => response.json())
-    .then(statusData => {
-        if (statusData.success && statusData.data.has_time_in && !statusData.data.has_time_out) {
-            const timeIn = new Date();
-            const [hours, minutes, seconds] = statusData.data.time_in.split(':');
-            timeIn.setHours(parseInt(hours), parseInt(minutes), parseInt(seconds), 0);
-            
-            const currentTime = new Date();
-            const hoursDiff = (currentTime - timeIn) / (1000 * 60 * 60);
-            
-            if (hoursDiff < 8) {
-                // Calculate exact time out time (8 hours after time in)
-                const timeOutTime = new Date(timeIn);
-                timeOutTime.setHours(timeOutTime.getHours() + 8);
-                const formattedTimeOut = formatTimeTo12Hour(timeOutTime.toTimeString().split(' ')[0]);
-                
-                let timeMessage = `You can time out at ${formattedTimeOut}. Please wait until then.`;
-                
-                showNotification(timeMessage, 'warning');
-                return;
+        .then(response => response.json())
+        .then(statusData => {
+            if (statusData.success && statusData.data.has_time_in && !statusData.data.has_time_out) {
+                if (!statusData.data.time_in) {
+                    proceedWithTimeOut(studentSchoolId);
+                    return;
+                }
+                const timeIn = new Date();
+                const [hours, minutes, seconds] = statusData.data.time_in.split(':');
+                timeIn.setHours(parseInt(hours), parseInt(minutes), parseInt(seconds), 0);
+
+                const currentTime = new Date();
+                const hoursDiff = (currentTime - timeIn) / (1000 * 60 * 60);
+
+                if (hoursDiff < 8) {
+                    // Calculate exact time out time (8 hours after time in)
+                    const timeOutTime = new Date(timeIn);
+                    timeOutTime.setHours(timeOutTime.getHours() + 8);
+                    const formattedTimeOut = formatTimeTo12Hour(timeOutTime.toTimeString().split(' ')[0]);
+
+                    let timeMessage = `You can time out at ${formattedTimeOut}. Please wait until then.`;
+
+                    showNotification(timeMessage, 'warning');
+                    return;
+                }
             }
-        }
-        
-        // If validation passes, proceed with time out
-        proceedWithTimeOut(studentSchoolId);
-    })
-    .catch(error => {
-        console.error('Error checking attendance status:', error);
-        // If status check fails, still proceed with time out (server will validate)
-        proceedWithTimeOut(studentSchoolId);
-    });
+
+            // If validation passes, proceed with time out
+            proceedWithTimeOut(studentSchoolId);
+        })
+        .catch(error => {
+            console.error('Error checking attendance status:', error);
+            // If status check fails, still proceed with time out (server will validate)
+            proceedWithTimeOut(studentSchoolId);
+        });
 }
 
 // Proceed with time out after validation
@@ -946,23 +965,23 @@ function proceedWithTimeOut(studentSchoolId) {
             })
         })
     })
-    .then(response => response.json())
-    .then(data => {
-        if (data.success) {
-            showNotification('Time out marked successfully!', 'success');
-            showCompletedAttendance(data.data.time_in, data.data.time_out);
-        } else {
-            showNotification(data.message || 'Failed to mark time out', 'error');
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                showNotification('Time out marked successfully!', 'success');
+                showCompletedAttendance(data.data.time_in, data.data.time_out, data.data.hours_rendered);
+            } else {
+                showNotification(data.message || 'Failed to mark time out', 'error');
+                // Reset button
+                checkAttendanceStatus();
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            showNotification('Error marking time out. Please try again.', 'error');
             // Reset button
             checkAttendanceStatus();
-        }
-    })
-    .catch(error => {
-        console.error('Error:', error);
-        showNotification('Error marking time out. Please try again.', 'error');
-        // Reset button
-        checkAttendanceStatus();
-    });
+        });
 }
 
 // Mark attendance
@@ -996,21 +1015,21 @@ function markAttendance(studentSchoolId) {
             })
         })
     })
-    .then(response => response.json())
-    .then(data => {
-        if (data.success) {
-            showNotification('Time in marked successfully!', 'success');
-            showTimeOutButton(data.data.time);
-        } else {
-            showNotification(data.message || 'Failed to mark time in', 'error');
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                showNotification('Time in marked successfully!', 'success');
+                showTimeOutButton(data.data.time);
+            } else {
+                showNotification(data.message || 'Failed to mark time in', 'error');
+                // Reset button
+                checkAttendanceStatus();
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            showNotification('Error marking time in. Please try again.', 'error');
             // Reset button
             checkAttendanceStatus();
-        }
-    })
-    .catch(error => {
-        console.error('Error:', error);
-        showNotification('Error marking time in. Please try again.', 'error');
-        // Reset button
-        checkAttendanceStatus();
-    });
+        });
 }

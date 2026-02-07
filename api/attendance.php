@@ -29,6 +29,14 @@ class Attendance {
             if ($academicSessionFilter !== 'all') {
                 $academicSessionCondition = "AND a.session_id = " . intval($academicSessionFilter);
             }
+
+            // Build coordinator condition
+            $coordinatorId = $filters['coordinator_id'] ?? null;
+            $coordinatorCondition = '';
+            if ($coordinatorId) {
+                $coordinatorCondition = " AND (s.id IN (SELECT section_id FROM users WHERE school_id = '$coordinatorId') 
+                                           OR s.school_id IN (SELECT school_id FROM assignments WHERE assigner_id = '$coordinatorId' AND isCurrent = 1))";
+            }
             
             // Query to get sections with actual attendance statistics and school information
             $sql = "
@@ -55,6 +63,7 @@ class Attendance {
                 LEFT JOIN attendance a ON u.school_id = a.student_id AND $dateCondition $academicSessionCondition
                 WHERE 1=1
                 $sectionCondition
+                $coordinatorCondition
                 GROUP BY s.id, s.section_name, s.school_id, ps.name
                 ORDER BY s.section_name
             ";
@@ -115,10 +124,20 @@ class Attendance {
     function getSections($json) {
         include "connection.php";
         
+        $data = json_decode($json, true);
+        $coordinatorId = $data['coordinator_id'] ?? null;
+        
         try {
+            $coordinatorCondition = '';
+            if ($coordinatorId) {
+                $coordinatorCondition = " WHERE (id IN (SELECT section_id FROM users WHERE school_id = '$coordinatorId') 
+                                           OR school_id IN (SELECT school_id FROM assignments WHERE assigner_id = '$coordinatorId' AND isCurrent = 1))";
+            }
+
             $sql = "
                 SELECT id as section_id, section_name 
                 FROM sections 
+                $coordinatorCondition
                 ORDER BY section_name
             ";
             
@@ -172,6 +191,8 @@ class Attendance {
                             AND ($dateCondition OR '$dateFilter' = 'all') $academicSessionCondition THEN a.hours_rendered ELSE 0 END), 
                         0
                     ) as rendered_hours,
+                    MAX(CASE WHEN a.attendance_timeOut IS NULL AND a.attendance_date = CURDATE() THEN a.attendance_timeIn END) as current_time_in,
+                    MAX(CASE WHEN a.attendance_timeOut IS NULL AND a.attendance_date = CURDATE() THEN a.attendance_date END) as ongoing_date,
                     COALESCE(ps.name, 'Not Assigned') as school_name
                 FROM users u
                 LEFT JOIN attendance a ON u.school_id = a.student_id
