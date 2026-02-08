@@ -3,7 +3,7 @@
 -- https://www.phpmyadmin.net/
 --
 -- Host: localhost
--- Generation Time: Feb 08, 2026 at 07:26 AM
+-- Generation Time: Feb 08, 2026 at 02:06 PM
 -- Server version: 10.4.17-MariaDB
 -- PHP Version: 7.2.34
 
@@ -144,7 +144,8 @@ CREATE TABLE `attendance` (
 --
 
 INSERT INTO `attendance` (`id`, `student_id`, `attendance_date`, `attendance_timeIn`, `attendance_timeOut`, `session_id`, `period_id`, `hours_rendered`, `school_id`) VALUES
-(1, 'STU-2026-5287', '2026-02-07', '10:10:43', '19:34:55', 2, 1, '9.40', 1);
+(1, 'STU-2026-5287', '2026-02-07', '10:10:43', '19:34:55', 2, 1, '9.40', 1),
+(2, 'STU-2026-5287', '2026-02-08', '16:45:53', NULL, 2, 1, '0.00', 1);
 
 -- --------------------------------------------------------
 
@@ -770,7 +771,7 @@ ALTER TABLE `assignments`
 -- AUTO_INCREMENT for table `attendance`
 --
 ALTER TABLE `attendance`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=2;
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=3;
 
 --
 -- AUTO_INCREMENT for table `checklist`

@@ -480,10 +480,78 @@ $current_page = 'system';
                 
                 <!-- Email Domains Tab Content -->
                 <div id="email-domains" class="tab-content">
-                    <div class="bg-white rounded-lg shadow p-8 text-center">
-                        <i class="fas fa-envelope text-6xl text-gray-300 mb-4"></i>
-                        <h3 class="text-xl font-semibold text-gray-700 mb-2">Email Domains Management</h3>
-                        <p class="text-gray-500">This feature is coming soon...</p>
+                    <!-- Search and Actions -->
+                    <div class="bg-white rounded-lg shadow p-4 mb-6">
+                        <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+                            <div class="flex-1 max-w-lg">
+                                <div class="relative">
+                                    <input type="text" id="emailDomainsSearchInput" placeholder="Search email domains..." 
+                                           class="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500">
+                                    <i class="fas fa-search absolute left-3 top-3 text-gray-400"></i>
+                                </div>
+                            </div>
+                            <div class="flex items-center space-x-2">
+                                <button onclick="openAddEmailDomainModal()" class="px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700">
+                                    <i class="fas fa-plus mr-2"></i>
+                                    Add Email Domain
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Email Domains Table -->
+                    <div class="bg-white rounded-lg shadow overflow-hidden relative">
+                        <div class="overflow-x-auto min-h-[600px] max-h-[800px] overflow-y-auto">
+                            <table class="min-w-full divide-y divide-gray-200">
+                                <thead class="bg-gray-50">
+                                    <tr>
+                                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                            Domain Name
+                                        </th>
+                                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                            Description
+                                        </th>
+                                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                            Actions
+                                        </th>
+                                    </tr>
+                                </thead>
+                                <tbody id="emailDomainsTableBody" class="bg-white divide-y divide-gray-200">
+                                    <!-- Email domains will be loaded here -->
+                                </tbody>
+                            </table>
+                        </div>
+                        <div id="emailDomainsNoDataMessage" class="hidden absolute inset-0 flex items-center justify-center bg-white">
+                            <div class="text-center text-gray-500">
+                                <i class="fas fa-envelope text-4xl mb-4 text-gray-300"></i>
+                                <p class="text-lg font-medium mb-2">No email domains found</p>
+                                <p class="text-sm text-gray-400">Start by adding an allowed email domain</p>
+                            </div>
+                        </div>
+                        
+                        <!-- Pagination -->
+                        <div id="emailDomainsPagination" class="bg-white px-4 py-3 flex items-center justify-between border-t border-gray-200 sm:px-6">
+                            <div class="flex-1 flex justify-between sm:hidden">
+                                <button onclick="previousEmailDomainsPage()" class="relative inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50">
+                                    Previous
+                                </button>
+                                <button onclick="nextEmailDomainsPage()" class="ml-3 relative inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50">
+                                    Next
+                                </button>
+                            </div>
+                            <div class="hidden sm:flex-1 sm:flex sm:items-center sm:justify-between">
+                                <div>
+                                    <p class="text-sm text-gray-700">
+                                        Showing <span id="emailDomainsStart" class="font-medium">0</span> to <span id="emailDomainsEnd" class="font-medium">0</span> of <span id="emailDomainsTotal" class="font-medium">0</span> results
+                                    </p>
+                                </div>
+                                <div>
+                                    <nav class="relative z-0 inline-flex rounded-md shadow-sm -space-x-px" aria-label="Pagination" id="emailDomainsPaginationNav">
+                                        <!-- Pagination buttons will be inserted here -->
+                                    </nav>
+                                </div>
+                            </div>
+                        </div>
                     </div>
                 </div>
                 
@@ -831,5 +899,52 @@ $current_page = 'system';
     
     <script src="../../assets/js/config.js"></script>
     <script src="../js/system.js"></script>
-    </body>
+    
+    <!-- Add/Edit Email Domain Modal -->
+    <div id="emailDomainModal" class="modal">
+        <div class="flex items-center justify-center min-h-screen p-4">
+            <div class="bg-white rounded-lg shadow-xl w-[500px] max-w-[90vw] max-h-[90vh] overflow-y-auto relative">
+                <div class="px-6 py-4 border-b border-gray-200 sticky top-0 bg-white z-10">
+                    <h3 class="text-lg font-semibold text-gray-900" id="emailDomainModalTitle">Add Email Domain</h3>
+                </div>
+                
+                <form id="emailDomainForm" class="p-6">
+                    <div class="space-y-6">
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">Domain Name *</label>
+                            <div class="relative">
+                                <span class="absolute left-3 top-2 text-gray-500">@</span>
+                                <input type="text" id="domainName" name="domain_name" required
+                                       class="w-full pl-8 pr-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500"
+                                       placeholder="example.com">
+                            </div>
+                            <span class="text-xs text-gray-500 mt-1">Enter the domain without '@' (e.g. gmail.com)</span>
+                            <span class="text-xs text-red-500 block" id="domainNameError"></span>
+                        </div>
+                        
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">Description</label>
+                            <textarea id="domainDescription" name="description" rows="3"
+                                      class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500"
+                                      placeholder="Optional description (e.g. University Email)"></textarea>
+                        </div>
+                    </div>
+                    
+                    <!-- Form Actions -->
+                    <div class="flex justify-end space-x-3 mt-6">
+                        <button type="button" onclick="closeEmailDomainModal()" 
+                                class="px-4 py-2 border border-gray-300 rounded-md text-gray-700 hover:bg-gray-50">
+                            Cancel
+                        </button>
+                        <button type="submit" 
+                                class="px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700">
+                            <i class="fas fa-save mr-2"></i>
+                            Save Domain
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</body>
 </html>

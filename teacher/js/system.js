@@ -23,12 +23,19 @@ let filteredSchools = [];
 let filteredSectionsData = [];
 let filteredPracticumData = [];
 let filteredAcademicData = [];
+let filteredEmailDomains = [];
+
+// Global variables
+let allEmailDomains = [];
+let currentEditingEmailDomain = null;
+let emailDomainsCurrentPage = 1;
 
 // Initialize page
 document.addEventListener('DOMContentLoaded', function () {
     loadPartneredSchools();
     loadSections();
     loadPracticumSubjects();
+    loadEmailDomains();
     initializeMap();
 
     // Check URL hash for tab persistence
@@ -56,6 +63,12 @@ document.addEventListener('DOMContentLoaded', function () {
     document.getElementById('practicumSearchInput').addEventListener('input', () => {
         practicumCurrentPage = 1;
         filterPracticumSubjects();
+    });
+
+    // Auto-search functionality for email domains
+    document.getElementById('emailDomainsSearchInput').addEventListener('input', () => {
+        emailDomainsCurrentPage = 1;
+        filterEmailDomains();
     });
 
     // Address input geocoding
@@ -92,6 +105,12 @@ document.addEventListener('DOMContentLoaded', function () {
     document.getElementById('practicumForm').addEventListener('submit', function (e) {
         e.preventDefault();
         savePracticumSubject();
+    });
+
+    // Form submission for email domains
+    document.getElementById('emailDomainForm').addEventListener('submit', function (e) {
+        e.preventDefault();
+        saveEmailDomain();
     });
 
     // Mobile sidebar
@@ -250,6 +269,246 @@ function switchTab(tabName) {
     // Close mobile dropdown if open
     closeMobileTabDropdown();
 }
+
+// ==================== EMAIL DOMAINS FUNCTIONS ====================
+
+// Load all email domains
+async function loadEmailDomains() {
+    try {
+        const formData = new FormData();
+        formData.append('operation', 'read_email_domains');
+        formData.append('json', JSON.stringify({}));
+
+        const response = await fetch(window.APP_CONFIG.API_BASE_URL + 'system.php', {
+            method: 'POST',
+            body: formData
+        });
+
+        const result = await response.json();
+
+        if (result.success) {
+            allEmailDomains = result.data;
+            filterEmailDomains();
+        } else {
+            showNotification(result.message, 'error');
+            allEmailDomains = [];
+            filterEmailDomains();
+        }
+    } catch (error) {
+        showNotification('An error occurred while loading email domains', 'error');
+        console.error('Error:', error);
+        allEmailDomains = [];
+        filterEmailDomains();
+    }
+}
+
+// Filter email domains
+function filterEmailDomains() {
+    const searchTerm = document.getElementById('emailDomainsSearchInput').value.trim().toLowerCase();
+
+    filteredEmailDomains = allEmailDomains;
+
+    if (searchTerm) {
+        filteredEmailDomains = filteredEmailDomains.filter(domain => {
+            return domain.domain_name.toLowerCase().includes(searchTerm) ||
+                (domain.description && domain.description.toLowerCase().includes(searchTerm));
+        });
+    }
+
+    renderEmailDomainsTable();
+}
+
+// Render email domains table
+function renderEmailDomainsTable() {
+    const tableBody = document.getElementById('emailDomainsTableBody');
+    const noDataMessage = document.getElementById('emailDomainsNoDataMessage');
+    const paginationContainer = document.getElementById('emailDomainsPagination');
+
+    if (filteredEmailDomains.length === 0) {
+        tableBody.innerHTML = '';
+        noDataMessage.classList.remove('hidden');
+        paginationContainer.classList.add('hidden');
+        return;
+    }
+
+    noDataMessage.classList.add('hidden');
+    paginationContainer.classList.remove('hidden');
+
+    const totalPages = Math.ceil(filteredEmailDomains.length / ITEMS_PER_PAGE);
+    if (emailDomainsCurrentPage > totalPages && totalPages > 0) {
+        emailDomainsCurrentPage = totalPages;
+    }
+
+    const startIndex = (emailDomainsCurrentPage - 1) * ITEMS_PER_PAGE;
+    const endIndex = startIndex + ITEMS_PER_PAGE;
+    const paginatedDomains = filteredEmailDomains.slice(startIndex, endIndex);
+
+    tableBody.innerHTML = paginatedDomains.map(domain => `
+        <tr>
+            <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
+                @${domain.domain_name}
+            </td>
+            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                ${domain.description || '<span class="italic text-gray-400">No description</span>'}
+            </td>
+            <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                <button onclick="openEditEmailDomainModal(${JSON.stringify(domain).replace(/"/g, '&quot;')})" 
+                        class="text-indigo-600 hover:text-indigo-900 mr-3">
+                    <i class="fas fa-edit"></i>
+                </button>
+                <button onclick="deleteEmailDomain(${domain.id})" 
+                        class="text-red-600 hover:text-red-900">
+                    <i class="fas fa-trash"></i>
+                </button>
+            </td>
+        </tr>
+    `).join('');
+
+    renderPagination(
+        'emailDomainsPaginationNav',
+        filteredEmailDomains.length,
+        emailDomainsCurrentPage,
+        'goToEmailDomainsPage',
+        { start: 'emailDomainsStart', end: 'emailDomainsEnd', total: 'emailDomainsTotal' }
+    );
+}
+
+// Pagination Navigation
+function goToEmailDomainsPage(page) {
+    const totalPages = Math.ceil(filteredEmailDomains.length / ITEMS_PER_PAGE);
+    if (page < 1 || page > totalPages) return;
+    emailDomainsCurrentPage = page;
+    renderEmailDomainsTable();
+}
+
+function previousEmailDomainsPage() {
+    goToEmailDomainsPage(emailDomainsCurrentPage - 1);
+}
+
+function nextEmailDomainsPage() {
+    goToEmailDomainsPage(emailDomainsCurrentPage + 1);
+}
+
+// Modal functions
+function openAddEmailDomainModal() {
+    currentEditingEmailDomain = null;
+    document.getElementById('emailDomainModalTitle').textContent = 'Add Email Domain';
+    document.getElementById('emailDomainForm').reset();
+    document.getElementById('emailDomainModal').classList.add('show');
+    clearEmailDomainValidationErrors();
+}
+
+function openEditEmailDomainModal(domain) {
+    currentEditingEmailDomain = domain;
+    document.getElementById('emailDomainModalTitle').textContent = 'Edit Email Domain';
+    document.getElementById('domainName').value = domain.domain_name;
+    document.getElementById('domainDescription').value = domain.description || '';
+    document.getElementById('emailDomainModal').classList.add('show');
+    clearEmailDomainValidationErrors();
+}
+
+function closeEmailDomainModal() {
+    document.getElementById('emailDomainModal').classList.remove('show');
+    clearEmailDomainValidationErrors();
+}
+
+function clearEmailDomainValidationErrors() {
+    document.getElementById('domainNameError').textContent = '';
+}
+
+// Save email domain
+async function saveEmailDomain() {
+    clearEmailDomainValidationErrors();
+
+    const domainNameInput = document.getElementById('domainName');
+    const domainName = domainNameInput.value.trim();
+    const description = document.getElementById('domainDescription').value.trim();
+
+    // Basic validation
+    if (!domainName) {
+        document.getElementById('domainNameError').textContent = 'Domain name is required';
+        return;
+    }
+
+    // Validate domain format (simple regex for domain part)
+    // Allows: example.com, sub.example.co.uk, etc.
+    // Disallows: @example.com, spaces, invalid chars
+    const domainRegex = /^[a-zA-Z0-9][a-zA-Z0-9-]{0,61}[a-zA-Z0-9](?:\.[a-zA-Z]{2,})+$/;
+    if (!domainRegex.test(domainName)) {
+        document.getElementById('domainNameError').textContent = 'Please enter a valid domain name (e.g. gmail.com)';
+        return;
+    }
+
+    try {
+        const formData = {
+            domain_name: domainName,
+            description: description
+        };
+
+        if (currentEditingEmailDomain) {
+            formData.id = currentEditingEmailDomain.id;
+        }
+
+        const apiFormData = new FormData();
+        apiFormData.append('operation', currentEditingEmailDomain ? 'update_email_domain' : 'create_email_domain');
+        apiFormData.append('json', JSON.stringify(formData));
+
+        const response = await fetch(window.APP_CONFIG.API_BASE_URL + 'system.php', {
+            method: 'POST',
+            body: apiFormData
+        });
+
+        const result = await response.json();
+
+        if (result.success) {
+            showNotification(result.message, 'success');
+            closeEmailDomainModal();
+            loadEmailDomains();
+        } else {
+            showNotification(result.message, 'error');
+            if (result.message.includes('Domain name already exists')) {
+                document.getElementById('domainNameError').textContent = 'This domain is already in the list';
+            }
+        }
+    } catch (error) {
+        showNotification('An error occurred while saving email domain', 'error');
+        console.error('Error:', error);
+    }
+}
+
+// Delete email domain
+async function deleteEmailDomain(id) {
+    if (!confirm('Are you sure you want to delete this email domain? Users with this email domain may still exist but new users won\'t be able to register with it.')) {
+        return;
+    }
+
+    try {
+        const formData = new FormData();
+        formData.append('operation', 'delete_email_domain');
+        formData.append('json', JSON.stringify({ id: id }));
+
+        const response = await fetch(window.APP_CONFIG.API_BASE_URL + 'system.php', {
+            method: 'POST',
+            body: formData
+        });
+
+        const result = await response.json();
+
+        if (result.success) {
+            showNotification(result.message, 'success');
+            loadEmailDomains();
+        } else {
+            showNotification(result.message, 'error');
+        }
+    } catch (error) {
+        showNotification('An error occurred while deleting email domain', 'error');
+        console.error('Error:', error);
+    }
+}
+
+// Mobile tab dropdown functions (ensure this is not duplicated if already exists)
+// ... existing code ...
+
 
 // Mobile tab dropdown functions
 function toggleMobileTabDropdown() {
