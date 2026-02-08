@@ -267,7 +267,7 @@ class Students {
         
         $data = json_decode($json, true);
         
-        if (!isset($data['student_id']) || !isset($data['latitude']) || !isset($data['longitude'])) {
+        if (!isset($data['student_id']) || !isset($data['latitude']) || !isset($data['longitude']) || !isset($data['school_id'])) {
             return json_encode([
                 'success' => false,
                 'message' => 'Missing required parameters'
@@ -275,24 +275,25 @@ class Students {
         }
         
         $student_id = $data['student_id'];
+        $school_id = $data['school_id'];
         $latitude = $data['latitude'];
         $longitude = $data['longitude'];
         
         try {
-            // Get student information
-            $sql = "SELECT ps.geofencing_radius, ps.latitude, ps.longitude 
+            // Get school information ensuring it's valid for student's section
+            $sql = "SELECT ps.geofencing_radius, ps.latitude, ps.longitude, ps.id as verified_school_id
                     FROM users u
-                    JOIN sections s ON u.section_id = s.id
-                    JOIN partnered_schools ps ON s.school_id = ps.id
-                    WHERE u.school_id = ? AND u.level_id = 4";
+                    JOIN section_schools ss ON u.section_id = ss.section_id
+                    JOIN partnered_schools ps ON ss.school_id = ps.id
+                    WHERE u.school_id = ? AND u.level_id = 4 AND ps.id = ?";
             $stmt = $conn->prepare($sql);
-            $stmt->execute([$student_id]);
+            $stmt->execute([$student_id, $school_id]);
             $student_info = $stmt->fetch(PDO::FETCH_ASSOC);
             
             if (!$student_info) {
                 return json_encode([
                     'success' => false,
-                    'message' => 'Student information not found'
+                    'message' => 'Invalid school selection or not assigned to your section'
                 ]);
             }
             
@@ -368,23 +369,26 @@ class Students {
                 $period_id = null;
             }
 
-            // Check if attendance already marked for today in this session
-            $check_sql = "SELECT id FROM attendance WHERE student_id = ? AND attendance_date = CURDATE() AND session_id = ?";
+            // Check if attendance already marked for today in this session (regardless of school, usually one attendance per day allowed, or allow multiple?)
+            // Assuming one attendance record per day per student for now, or per student/school combo?
+            // The requirement implies tracking hours for Public vs Private. So likely we need to allow attendance if they are at different schools at different times?
+            // Or just check if they have an ongoing session ANYWHERE?
+            $check_sql = "SELECT id, attendance_timeOut FROM attendance WHERE student_id = ? AND attendance_date = CURDATE() AND attendance_timeOut IS NULL";
             $stmt = $conn->prepare($check_sql);
-            $stmt->execute([$student_id, $session_id]);
-            $existing_attendance = $stmt->fetch(PDO::FETCH_ASSOC);
+            $stmt->execute([$student_id]);
+            $existing_ongoing = $stmt->fetch(PDO::FETCH_ASSOC);
             
-            if ($existing_attendance) {
-                return json_encode([
+            if ($existing_ongoing) {
+                 return json_encode([
                     'success' => false,
-                    'message' => 'Attendance already marked for today in the current session'
+                    'message' => 'You already have an ongoing attendance session. Please time out first.'
                 ]);
             }
 
-            // Mark attendance with period_id
-            $insert_sql = "INSERT INTO attendance (student_id, attendance_date, attendance_timeIn, attendance_timeOut, session_id, period_id) VALUES (?, CURDATE(), CURTIME(), NULL, ?, ?)";
+            // Mark attendance with period_id and school_id
+            $insert_sql = "INSERT INTO attendance (student_id, school_id, attendance_date, attendance_timeIn, attendance_timeOut, session_id, period_id) VALUES (?, ?, CURDATE(), CURTIME(), NULL, ?, ?)";
             $stmt = $conn->prepare($insert_sql);
-            $result = $stmt->execute([$student_id, $session_id, $period_id]);
+            $result = $stmt->execute([$student_id, $school_id, $session_id, $period_id]);
             
             if ($result) {
                 return json_encode([
@@ -465,41 +469,49 @@ class Students {
         }
         
         try {
-            // Get student's section and partnered school information
-            $sql = "SELECT u.section_id, s.section_name, s.school_id as partnered_school_id, 
-                           ps.name as school_name, ps.address, ps.latitude, ps.longitude, ps.geofencing_radius 
-                    FROM users u
-                    LEFT JOIN sections s ON u.section_id = s.id
-                    LEFT JOIN partnered_schools ps ON s.school_id = ps.id
-                    WHERE u.school_id = ? AND u.level_id = 4";
-            $stmt = $conn->prepare($sql);
+            // Get student's section and section's schools
+            // First get the student's section
+            $sql_student = "SELECT u.section_id, s.section_name 
+                            FROM users u 
+                            LEFT JOIN sections s ON u.section_id = s.id 
+                            WHERE u.school_id = ? AND u.level_id = 4";
+            $stmt = $conn->prepare($sql_student);
             $stmt->execute([$student_id]);
             $student_info = $stmt->fetch(PDO::FETCH_ASSOC);
             
-            if ($student_info) {
-                $has_section = !empty($student_info['section_id']);
-                $partnered_school = null;
-                
-                if ($has_section && !empty($student_info['partnered_school_id'])) {
-                    $partnered_school = $student_info;
-                }
-                
-                return json_encode([
-                    'success' => true,
-                    'data' => [
-                        'has_section' => $has_section,
-                        'partnered_school' => $partnered_school
-                    ]
-                ]);
-            } else {
-                return json_encode([
+            if (!$student_info || empty($student_info['section_id'])) {
+                 return json_encode([
                     'success' => true,
                     'data' => [
                         'has_section' => false,
-                        'partnered_school' => null
+                        'partnered_schools' => [],
+                        'section_info' => null
                     ]
                 ]);
             }
+
+            // Now get all schools associated with this section
+            $section_id = $student_info['section_id'];
+            $sql_schools = "SELECT ps.id as school_id, ps.name as school_name, ps.address, 
+                                   ps.latitude, ps.longitude, ps.geofencing_radius, ps.school_type
+                            FROM section_schools ss
+                            JOIN partnered_schools ps ON ss.school_id = ps.id
+                            WHERE ss.section_id = ?";
+            $stmt_schools = $conn->prepare($sql_schools);
+            $stmt_schools->execute([$section_id]);
+            $schools = $stmt_schools->fetchAll(PDO::FETCH_ASSOC);
+            
+            return json_encode([
+                'success' => true,
+                'data' => [
+                    'has_section' => true,
+                    'section_info' => [
+                        'id' => $section_id,
+                        'name' => $student_info['section_name']
+                    ],
+                    'partnered_schools' => $schools
+                ]
+            ]);
             
         } catch(PDOException $e) {
             return json_encode([
@@ -515,7 +527,7 @@ class Students {
         
         $data = json_decode($json, true);
         
-        if (!isset($data['student_id']) || !isset($data['latitude']) || !isset($data['longitude'])) {
+        if (!isset($data['student_id']) || !isset($data['latitude']) || !isset($data['longitude']) || !isset($data['school_id'])) {
             return json_encode([
                 'success' => false,
                 'message' => 'Missing required parameters'
@@ -523,31 +535,25 @@ class Students {
         }
         
         $student_id = $data['student_id'];
+        $school_id = $data['school_id'];
         $latitude = $data['latitude'];
         $longitude = $data['longitude'];
         
         try {
-            // Get student's section and partnered school information
-            $sql = "SELECT u.section_id, s.school_id as partnered_school_id, ps.latitude, ps.longitude, ps.geofencing_radius
+            // Get student's section and specific partnered school information
+             $sql = "SELECT ps.geofencing_radius, ps.latitude, ps.longitude, ps.id as partnered_school_id
                     FROM users u
-                    LEFT JOIN sections s ON u.section_id = s.id
-                    LEFT JOIN partnered_schools ps ON s.school_id = ps.id
-                    WHERE u.school_id = ? AND u.level_id = 4";
+                    JOIN section_schools ss ON u.section_id = ss.section_id
+                    JOIN partnered_schools ps ON ss.school_id = ps.id
+                    WHERE u.school_id = ? AND u.level_id = 4 AND ps.id = ?";
             $stmt = $conn->prepare($sql);
-            $stmt->execute([$student_id]);
+            $stmt->execute([$student_id, $school_id]);
             $student_info = $stmt->fetch(PDO::FETCH_ASSOC);
             
-            if (!$student_info || !$student_info['section_id']) {
+            if (!$student_info) {
                 return json_encode([
                     'success' => false,
-                    'message' => 'Student is not assigned to any section'
-                ]);
-            }
-            
-            if (!$student_info['partnered_school_id'] || !$student_info['latitude'] || !$student_info['longitude']) {
-                return json_encode([
-                    'success' => false,
-                    'message' => 'No partnered school assigned to your section'
+                    'message' => 'Student is not assigned to this school'
                 ]);
             }
             
@@ -582,16 +588,16 @@ class Students {
             
             $session_id = $active_session['academic_session_id'];
             
-            // Check if attendance exists for today with time in but no time out in this session
-            $check_sql = "SELECT id, attendance_timeIn FROM attendance WHERE student_id = ? AND attendance_date = CURDATE() AND session_id = ? AND attendance_timeOut IS NULL";
+            // Check if attendance exists for today with time in but no time out -- FOR THIS SPECIFIC SCHOOL
+            $check_sql = "SELECT id, attendance_timeIn FROM attendance WHERE student_id = ? AND school_id = ? AND attendance_date = CURDATE() AND session_id = ? AND attendance_timeOut IS NULL";
             $stmt = $conn->prepare($check_sql);
-            $stmt->execute([$student_id, $session_id]);
+            $stmt->execute([$student_id, $school_id, $session_id]);
             $existing_attendance = $stmt->fetch(PDO::FETCH_ASSOC);
             
             if (!$existing_attendance) {
                 return json_encode([
                     'success' => false,
-                    'message' => 'No active time in found for today. Please mark your time in first.'
+                    'message' => 'No active time in found for this school today.'
                 ]);
             }
             
@@ -603,6 +609,12 @@ class Students {
             // Total hours as a decimal (hours + minutes/60)
             $hours_rendered = $time_diff->h + ($time_diff->days * 24) + ($time_diff->i / 60);
             
+            // Optional: enforce 8 hours checks if needed, but for now allow timeout any time if logic permits
+            // Removing the strict < 8 hours block unless explicitly requested to BLOCK it. 
+            // The previous code had a return here. Let's keep it but make it just a warning if we want to enforce full days? 
+            // The prompt didn't say to change rules, just support multiple schools. 
+            // BUT, usually practicum hours vary. If we want to keep the 8 hour warning/block:
+            /*
             if ($hours_rendered < 8) {
                 // Calculate exact time out time (8 hours after time in)
                 $time_out_time = clone $time_in;
@@ -610,6 +622,21 @@ class Students {
                 $formatted_time_out = $time_out_time->format('g:i A');
                 
                 return json_encode([
+                    'success' => false,
+                    'message' => "You can time out at {$formatted_time_out}. Please wait until then."
+                ]);
+            }
+            */ 
+            // Actually, let's keep the existing logic: if user tries to timeout early, let's warn them or block them as per original code.
+            // Original code BLOCKED it.
+            if ($hours_rendered < 8) {
+                  $time_out_time = clone $time_in;
+                $time_out_time->add(new DateInterval('PT8H'));
+                $formatted_time_out = $time_out_time->format('g:i A');
+                
+                // Allow force timeout? Or just return error? Original returned error.
+                // We will stick to original logic to be safe, unless user asks otherwise.
+                 return json_encode([
                     'success' => false,
                     'message' => "You can time out at {$formatted_time_out}. Please wait until then."
                 ]);
@@ -653,6 +680,7 @@ class Students {
         
         $data = json_decode($json, true);
         $student_id = isset($data['student_id']) ? $data['student_id'] : '';
+        $school_id = isset($data['school_id']) ? $data['school_id'] : null;
         
         if (empty($student_id)) {
             return json_encode([
@@ -683,12 +711,26 @@ class Students {
             
             $session_id = $active_session['academic_session_id'];
 
-            // Check today's attendance status for the active session
+            // Build query parameters
             $sql = "SELECT attendance_timeIn, attendance_timeOut, hours_rendered 
                     FROM attendance 
                     WHERE student_id = ? AND attendance_date = CURDATE() AND session_id = ?";
+            $params = [$student_id, $session_id];
+
+            // If a school_id is provided, filter by it. If not, maybe just check generally?
+            // Usually, the student checks status FOR the currently selected school tab.
+            if ($school_id) {
+                $sql .= " AND school_id = ?";
+                $params[] = $school_id;
+            } else {
+                // If no school specified, maybe pull the most recent active one?
+                // Or just the first one found?
+                // Let's just limit 1 to avoid errors if there are multiples which shouldn't happen theoretically in one day unless multiple shifts
+                $sql .= " ORDER BY attendance_timeIn DESC LIMIT 1";
+            }
+
             $stmt = $conn->prepare($sql);
-            $stmt->execute([$student_id, $session_id]);
+            $stmt->execute($params);
             $attendance = $stmt->fetch(PDO::FETCH_ASSOC);
             
             $status = [
@@ -705,6 +747,33 @@ class Students {
                 $status['time_in'] = $attendance['attendance_timeIn'];
                 $status['time_out'] = $attendance['attendance_timeOut'];
                 $status['hours_rendered'] = $attendance['hours_rendered'];
+            }
+
+            // Check for conflict: If user is checking status for School A, check if they have active time-in at School B
+            if ($school_id) {
+                $conflict_sql = "SELECT ps.name as school_name 
+                                FROM attendance a
+                                JOIN partnered_schools ps ON a.school_id = ps.id
+                                WHERE a.student_id = ? 
+                                AND a.attendance_date = CURDATE() 
+                                AND a.school_id != ? 
+                                AND a.attendance_timeOut IS NULL
+                                AND a.session_id = ?
+                                LIMIT 1";
+                $conflict_stmt = $conn->prepare($conflict_sql);
+                $conflict_stmt->execute([$student_id, $school_id, $session_id]);
+                $conflict = $conflict_stmt->fetch(PDO::FETCH_ASSOC);
+
+                if ($conflict) {
+                    $status['has_conflict'] = true;
+                    $status['conflict_school_name'] = $conflict['school_name'];
+                } else {
+                    $status['has_conflict'] = false;
+                    $status['conflict_school_name'] = null;
+                }
+            } else {
+                 $status['has_conflict'] = false;
+                 $status['conflict_school_name'] = null;
             }
             
             return json_encode([

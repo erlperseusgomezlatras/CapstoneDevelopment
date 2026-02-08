@@ -4,10 +4,12 @@ let userMarker = null;
 let schoolMarker = null;
 let geofenceCircle = null;
 let userLocation = null;
-let partneredSchool = null;
+let partneredSchools = [];
+let selectedSchool = null;
 let hasSection = false;
 let canMarkAttendance = false;
 let currentStudentId = null;
+let sectionInfo = null;
 
 // Helper function to convert 24-hour time to 12-hour format
 function formatTimeTo12Hour(time24) {
@@ -66,7 +68,15 @@ function loadStudentInfo(studentSchoolId) {
         .then(data => {
             if (data.success) {
                 hasSection = data.data.has_section;
-                partneredSchool = data.data.partnered_school;
+                sectionInfo = data.data.section_info;
+                partneredSchools = data.data.partnered_schools || [];
+
+                // Set default school to Public if available, otherwise first one
+                if (partneredSchools.length > 0) {
+                    const publicSchool = partneredSchools.find(s => s.school_type === 'Public');
+                    selectedSchool = publicSchool || partneredSchools[0];
+                }
+
                 renderAttendanceContent();
             } else {
                 showError('Failed to load student information');
@@ -90,48 +100,74 @@ function renderAttendanceContent() {
                 <p class="text-gray-500">You haven't been assigned to a section yet. Please contact your coordinator for assistance.</p>
             </div>
         `;
-    } else if (!partneredSchool) {
+    } else if (partneredSchools.length === 0) {
         attendanceContent.innerHTML = `
             <div class="bg-white rounded-lg shadow p-8 text-center">
                 <i class="fas fa-school text-6xl text-gray-300 mb-4"></i>
                 <h3 class="text-xl font-semibold text-gray-700 mb-2">No Partnered School Assigned</h3>
-                <p class="text-gray-500">Your section doesn't have a partnered school assigned yet. Please contact your coordinator.</p>
+                <p class="text-gray-500">Your section doesn't have any partnered schools assigned yet. Please contact your coordinator.</p>
             </div>
         `;
     } else {
         const todayDate = getTodayDate();
+
+        // Generate school tabs or dropdown if multiple schools
+        let schoolSelectorHtml = '';
+        if (partneredSchools.length > 1) {
+            schoolSelectorHtml = `
+                <div class="mb-6 grid grid-cols-${partneredSchools.length} gap-3">
+                    ${partneredSchools.map(school => `
+                        <button onclick="switchSchool(${school.school_id})" 
+                                class="flex items-center justify-center px-3 py-2 rounded-lg text-sm font-medium transition-all shadow-sm border ${selectedSchool && selectedSchool.school_id === school.school_id ? 'bg-green-600 text-white border-green-600 shadow-md' : 'bg-white text-gray-600 border-gray-200 hover:bg-gray-50'}">
+                            <i class="fas ${school.school_type === 'Public' ? 'fa-landmark' : 'fa-building'} mr-2"></i>
+                            <span class="uppercase tracking-wide text-xs">${school.school_type}</span>
+                        </button>
+                    `).join('')}
+                </div>
+            `;
+        }
+
+        const currentSchool = selectedSchool;
+
         attendanceContent.innerHTML = `
             <div class="mb-6">
-                <div class="bg-white rounded-lg shadow p-4 text-center">
-                    <h2 class="text-lg font-semibold text-gray-900">
+                <div class="bg-white rounded-lg shadow p-4 flex flex-col md:flex-row justify-between items-center">
+                   <h2 class="text-lg font-semibold text-gray-900 mb-2 md:mb-0">
                         <i class="fas fa-calendar-day mr-2 text-green-600"></i>
                         ${todayDate}
                     </h2>
+                    <div class="text-sm text-gray-500">
+                        Section: <span class="font-medium text-gray-900">${sectionInfo.name}</span>
+                    </div>
                 </div>
             </div>
+
+            ${schoolSelectorHtml}
+
             <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
                 <!-- School Information -->
                 <div class="bg-white rounded-lg shadow p-6">
-                    <h3 class="text-lg font-semibold text-gray-900 mb-4">
-                        <i class="fas fa-school mr-2 text-green-600"></i>
-                        Assigned School
+                    <h3 class="text-lg font-semibold text-gray-900 mb-4 flex items-center justify-between">
+                        <span>
+                            <i class="fas fa-school mr-2 text-green-600"></i>
+                            Assigned School
+                        </span>
+                        <span class="text-xs px-2 py-1 bg-gray-100 rounded-full text-gray-600 border border-gray-200">
+                            ${currentSchool.school_type}
+                        </span>
                     </h3>
                     <div class="space-y-3">
                         <div>
-                            <label class="text-sm font-medium text-gray-500">Section</label>
-                            <p class="text-gray-900">${partneredSchool.section_name || 'N/A'}</p>
-                        </div>
-                        <div>
                             <label class="text-sm font-medium text-gray-500">School Name</label>
-                            <p class="text-gray-900">${partneredSchool.school_name || 'N/A'}</p>
+                            <p class="text-gray-900 font-medium">${currentSchool.school_name || 'N/A'}</p>
                         </div>
                         <div>
                             <label class="text-sm font-medium text-gray-500">Address</label>
-                            <p class="text-gray-900">${partneredSchool.address || 'N/A'}</p>
+                            <p class="text-gray-900 text-sm whitespace-normal">${currentSchool.address || 'N/A'}</p>
                         </div>
                         <div>
                             <label class="text-sm font-medium text-gray-500">Geofence Radius</label>
-                            <p class="text-gray-900">${partneredSchool.geofencing_radius || 0} meters</p>
+                            <p class="text-gray-900">${currentSchool.geofencing_radius || 0} meters</p>
                         </div>
                     </div>
                 </div>
@@ -146,22 +182,28 @@ function renderAttendanceContent() {
                         <div class="flex items-center justify-between">
                             <div class="flex items-center">
                                 <div id="locationSpinner" class="spinner mr-3 hidden"></div>
-                                <span id="locationText" class="text-gray-600">Getting your location...</span>
+                                <span id="locationText" class="text-gray-600 text-sm">Getting location...</span>
                             </div>
-                            <button onclick="refreshLocation()" class="text-blue-600 hover:text-blue-800 text-sm font-medium">
-                                <i class="fas fa-sync-alt mr-1"></i>
-                                Refresh
+                            <button onclick="refreshLocation()" class="text-blue-600 hover:text-blue-800 text-xs font-medium uppercase tracking-wide">
+                                <i class="fas fa-sync-alt mr-1"></i> Refresh
                             </button>
                         </div>
-                        <div id="distanceInfo" class="hidden">
-                            <label class="text-sm font-medium text-gray-500">Distance from School</label>
-                            <p id="distanceText" class="text-gray-900">--</p>
+                        <div id="distanceInfo" class="hidden bg-gray-50 p-3 rounded border border-gray-200">
+                            <div class="flex justify-between items-center mb-1">
+                                <label class="text-xs font-medium text-gray-500 uppercase">Distance</label>
+                                <span id="distanceText" class="text-gray-900 font-bold">--</span>
+                            </div>
+                             <div class="w-full bg-gray-200 rounded-full h-1.5 mt-2">
+                                <div id="distanceBar" class="bg-blue-500 h-1.5 rounded-full" style="width: 0%"></div>
+                            </div>
                         </div>
                         <div id="networkStatus" class="hidden mt-3">
-                            <label class="text-sm font-medium text-gray-500">Network Status</label>
-                            <p id="networkText" class="text-gray-900">Checking connectivity...</p>
+                             <div class="flex items-center text-xs">
+                                <span class="font-medium text-gray-500 mr-2">Network:</span>
+                                <span id="networkText" class="text-gray-900">Checking...</span>
+                            </div>
                         </div>
-                        <div id="attendanceButton" class="mt-4">
+                        <div id="attendanceButton" class="mt-4 pt-4 border-t border-gray-100">
                             <!-- Attendance button will be inserted here -->
                         </div>
                     </div>
@@ -169,15 +211,15 @@ function renderAttendanceContent() {
             </div>
 
             <!-- Map -->
-            <div class="bg-white rounded-lg shadow p-6 mt-6">
+            <div class="bg-white rounded-lg shadow p-4 mt-6">
                 <h3 class="text-lg font-semibold text-gray-900 mb-4">
                     <i class="fas fa-map mr-2 text-green-600"></i>
                     Attendance Location
                 </h3>
-                <div id="map"></div>
-                <p class="text-sm text-gray-500 mt-2">
-                    <i class="fas fa-info-circle mr-1"></i>
-                    You must be within the geofence radius to mark your attendance.
+                <div id="map" class="h-64 w-full rounded-lg border border-gray-200"></div>
+                <p class="text-xs text-gray-500 mt-2 flex items-start">
+                    <i class="fas fa-info-circle mr-1 mt-0.5"></i>
+                    <span>You must be within the geofence (green circle) to mark your attendance.</span>
                 </p>
             </div>
         `;
@@ -188,6 +230,15 @@ function renderAttendanceContent() {
 
         // Check attendance status to show correct button
         checkAttendanceStatus();
+    }
+}
+
+// Switch selected school
+function switchSchool(schoolId) {
+    const newSchool = partneredSchools.find(s => s.school_id == schoolId);
+    if (newSchool && newSchool !== selectedSchool) {
+        selectedSchool = newSchool;
+        renderAttendanceContent();
     }
 }
 
@@ -205,7 +256,7 @@ function showError(message) {
 
 // Initialize map
 function initializeMap() {
-    if (!partneredSchool || !partneredSchool.latitude || !partneredSchool.longitude) {
+    if (!selectedSchool || !selectedSchool.latitude || !selectedSchool.longitude) {
         return;
     }
 
@@ -230,7 +281,7 @@ function initializeMap() {
                 }
             ]
         },
-        center: [partneredSchool.longitude, partneredSchool.latitude],
+        center: [selectedSchool.longitude, selectedSchool.latitude],
         zoom: 15
     });
 
@@ -243,7 +294,7 @@ function initializeMap() {
             color: '#10b981',
             scale: 1.2
         })
-            .setLngLat([partneredSchool.longitude, partneredSchool.latitude])
+            .setLngLat([selectedSchool.longitude, selectedSchool.latitude])
             .addTo(map);
 
         // Add geofence circle
@@ -254,8 +305,8 @@ function initializeMap() {
             offset: 25
         }).setHTML(`
             <div class="p-2">
-                <h4 class="font-semibold">${partneredSchool.school_name}</h4>
-                <p class="text-sm text-gray-600">Geofence: ${partneredSchool.geofencing_radius}m</p>
+                <h4 class="font-semibold text-sm">${selectedSchool.school_name}</h4>
+                <p class="text-xs text-gray-600">Geofence: ${selectedSchool.geofencing_radius}m</p>
             </div>
         `);
 
@@ -265,20 +316,20 @@ function initializeMap() {
 
 // Add geofence circle to map
 function addGeofenceCircle() {
-    if (!map || !partneredSchool) return;
+    if (!map || !selectedSchool) return;
 
     // Ensure latitude and longitude are numbers
-    const schoolLat = parseFloat(partneredSchool.latitude);
-    const schoolLng = parseFloat(partneredSchool.longitude);
-    const radius = parseFloat(partneredSchool.geofencing_radius) || 80; // Default to 80m if not set
+    const schoolLat = parseFloat(selectedSchool.latitude);
+    const schoolLng = parseFloat(selectedSchool.longitude);
+    const radius = parseFloat(selectedSchool.geofencing_radius) || 80; // Default to 80m if not set
 
     // Validate radius and coordinates
     if (isNaN(radius) || radius <= 0) {
-        console.error('Invalid geofence radius:', partneredSchool.geofencing_radius);
+        console.error('Invalid geofence radius:', selectedSchool.geofencing_radius);
         return;
     }
     if (isNaN(schoolLat) || isNaN(schoolLng)) {
-        console.error('Invalid school coordinates:', partneredSchool.latitude, partneredSchool.longitude);
+        console.error('Invalid school coordinates:', selectedSchool.latitude, selectedSchool.longitude);
         return;
     }
 
@@ -633,9 +684,9 @@ function updateUserLocation() {
 
     // Center map on user and school
     const bounds = new maplibregl.LngLatBounds();
-    bounds.extend([partneredSchool.longitude, partneredSchool.latitude]);
+    bounds.extend([selectedSchool.longitude, selectedSchool.latitude]);
     bounds.extend([userLocation.lng, userLocation.lat]);
-    map.fitBounds(bounds, { padding: 100 });
+    map.fitBounds(bounds, { padding: 50 });
 }
 
 // Create accuracy circle points
@@ -662,41 +713,54 @@ function refreshLocation() {
 
 // Check if user is within geofence
 function checkGeofence() {
-    if (!userLocation || !partneredSchool) return;
+    if (!userLocation || !selectedSchool) return;
 
     const distance = calculateDistance(
         userLocation.lat,
         userLocation.lng,
-        partneredSchool.latitude,
-        partneredSchool.longitude
+        selectedSchool.latitude,
+        selectedSchool.longitude
     );
 
     const locationText = document.getElementById('locationText');
     const distanceInfo = document.getElementById('distanceInfo');
     const distanceText = document.getElementById('distanceText');
+    const distanceBar = document.getElementById('distanceBar');
     const attendanceButton = document.getElementById('attendanceButton');
 
     distanceInfo.classList.remove('hidden');
-    distanceText.textContent = `${distance.toFixed(2)} meters`;
+    distanceText.textContent = `${distance.toFixed(2)}m`;
 
-    canMarkAttendance = distance <= partneredSchool.geofencing_radius;
+    // Update distance bar
+    const radius = parseFloat(selectedSchool.geofencing_radius);
+    const percentage = Math.min((distance / (radius * 2)) * 100, 100);
+    const isWithin = distance <= radius;
+
+    if (distanceBar) {
+        distanceBar.style.width = `${percentage}%`;
+        distanceBar.className = `h-1.5 rounded-full ${isWithin ? 'bg-green-500' : 'bg-red-500'}`;
+    }
+
+    canMarkAttendance = isWithin;
 
     if (canMarkAttendance) {
-        locationText.textContent = 'You are within the attendance area';
+        locationText.textContent = 'You are within range';
         locationText.classList.remove('text-red-600');
         locationText.classList.add('text-green-600');
+        locationText.classList.add('font-medium');
 
         // Check attendance status to determine which button to show
         checkAttendanceStatus();
     } else {
-        locationText.textContent = 'You are outside the attendance area';
+        locationText.textContent = 'You are outside range';
         locationText.classList.remove('text-green-600');
         locationText.classList.add('text-red-600');
+        locationText.classList.add('font-medium');
 
         attendanceButton.innerHTML = `
-            <button disabled class="w-full px-4 py-3 bg-gray-400 text-white rounded-md cursor-not-allowed font-medium">
-                <i class="fas fa-times-circle mr-2"></i>
-                Outside Attendance Area (${(partneredSchool.geofencing_radius - distance).toFixed(0)}m away)
+            <button disabled class="w-full px-4 py-3 bg-gray-100 text-gray-500 rounded-lg cursor-not-allowed font-medium text-sm flex items-center justify-center border border-gray-200">
+                <i class="fas fa-map-marker-slash mr-2"></i>
+                Too Far (${(distance - radius).toFixed(0)}m outside)
             </button>
         `;
     }
@@ -720,6 +784,8 @@ function calculateDistance(lat1, lon1, lat2, lon2) {
 
 // Check attendance status for today
 function checkAttendanceStatus() {
+    if (!selectedSchool) return;
+
     fetch(window.APP_CONFIG.API_BASE_URL + 'students.php', {
         method: 'POST',
         headers: {
@@ -728,7 +794,8 @@ function checkAttendanceStatus() {
         body: new URLSearchParams({
             operation: 'check_attendance_status',
             json: JSON.stringify({
-                student_id: currentStudentId
+                student_id: currentStudentId,
+                school_id: selectedSchool.school_id // Send current school ID
             })
         })
     })
@@ -753,6 +820,12 @@ function checkAttendanceStatus() {
 function updateAttendanceButton(status) {
     const attendanceButton = document.getElementById('attendanceButton');
 
+    // Check for cross-school conflict first
+    if (status.has_conflict) {
+        showConflictButton(status.conflict_school_name);
+        return;
+    }
+
     if (status.has_time_in && !status.has_time_out) {
         // Show time out button
         showTimeOutButton(status.time_in);
@@ -763,6 +836,26 @@ function updateAttendanceButton(status) {
         // Show time in button
         showTimeInButton();
     }
+}
+
+// Show conflict button
+function showConflictButton(schoolName) {
+    const attendanceButton = document.getElementById('attendanceButton');
+    attendanceButton.innerHTML = `
+        <div class="mb-3 p-3 bg-red-50 border border-red-200 rounded-lg">
+            <div class="flex items-start">
+                <i class="fas fa-exclamation-circle text-red-600 mt-0.5 mr-2"></i>
+                <div class="text-xs text-red-800">
+                    <span class="font-bold block mb-1">Active Session Detected</span>
+                    You are currently timed in at <span class="font-semibold underline">${schoolName}</span>. Please time out there first before checking in here.
+                </div>
+            </div>
+        </div>
+        <button disabled class="w-full px-4 py-3 bg-gray-100 text-gray-400 rounded-lg cursor-not-allowed font-medium text-sm flex items-center justify-center border border-gray-200">
+            <i class="fas fa-ban mr-2"></i>
+            Action Unavailable
+        </button>
+    `;
 }
 
 // Show time in button
@@ -898,7 +991,8 @@ function markTimeOut(studentSchoolId) {
         body: new URLSearchParams({
             operation: 'check_attendance_status',
             json: JSON.stringify({
-                student_id: studentSchoolId
+                student_id: studentSchoolId,
+                school_id: selectedSchool.school_id
             })
         })
     })
@@ -960,6 +1054,7 @@ function proceedWithTimeOut(studentSchoolId) {
             operation: 'mark_timeout',
             json: JSON.stringify({
                 student_id: studentSchoolId,
+                school_id: selectedSchool.school_id, // Pass selected school
                 latitude: userLocation.lat,
                 longitude: userLocation.lng
             })
@@ -1010,6 +1105,7 @@ function markAttendance(studentSchoolId) {
             operation: 'mark_attendance',
             json: JSON.stringify({
                 student_id: studentSchoolId,
+                school_id: selectedSchool.school_id, // Pass selected school
                 latitude: userLocation.lat,
                 longitude: userLocation.lng
             })

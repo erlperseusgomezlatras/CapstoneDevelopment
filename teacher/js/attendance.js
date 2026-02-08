@@ -305,15 +305,18 @@ function displayStudentAttendance(students) {
         let privateRendered = parseFloat(student.private_rendered_hours || 0);
 
         if (student.current_time_in && student.ongoing_date) {
-            const extraHours = calculateLiveHours(student.ongoing_date, student.current_time_in, null, 0);
-            const extra = parseFloat(extraHours);
-            liveRendered += extra;
+            const ongoingDate = new Date(student.ongoing_date);
+            const today = new Date();
+            if (ongoingDate.toDateString() === today.toDateString()) {
+                const extraHours = parseFloat(calculateLiveHours(student.ongoing_date, student.current_time_in, null, 0));
+                liveRendered += extraHours;
 
-            // Add live hours to appropriate school type
-            if (student.ongoing_school_type === 'Public') {
-                publicRendered += extra;
-            } else if (student.ongoing_school_type === 'Private') {
-                privateRendered += extra;
+                // Add live hours to appropriate school type
+                if (student.ongoing_school_type === 'Public') {
+                    publicRendered += extraHours;
+                } else if (student.ongoing_school_type === 'Private') {
+                    privateRendered += extraHours;
+                }
             }
         }
 
@@ -434,15 +437,33 @@ function viewStudentDetails(studentId) {
         document.getElementById('modalStudentName').textContent = `${studentInfo.firstname} ${studentInfo.lastname}`;
 
         // Get live data if updated
-        const renderedTotal = parseFloat(studentInfo.total_rendered_hours || 0);
+        let renderedTotal = parseFloat(studentInfo.total_rendered_hours || 0);
+        let publicRendered = parseFloat(studentInfo.public_rendered_hours || 0);
+        let privateRendered = parseFloat(studentInfo.private_rendered_hours || 0);
+
+        // Add live hours if ongoing
+        if (studentInfo.current_time_in && studentInfo.ongoing_date) {
+            const ongoingDate = new Date(studentInfo.ongoing_date);
+            const today = new Date();
+            if (ongoingDate.toDateString() === today.toDateString()) {
+                const extraHours = parseFloat(calculateLiveHours(studentInfo.ongoing_date, studentInfo.current_time_in, null, 0));
+                renderedTotal += extraHours;
+                if (studentInfo.ongoing_school_type === 'Public') {
+                    publicRendered += extraHours;
+                } else if (studentInfo.ongoing_school_type === 'Private') {
+                    privateRendered += extraHours;
+                }
+            }
+        }
+
         const requiredTotal = parseFloat(studentInfo.total_required_hours || 360);
         const remainingTotal = Math.max(0, requiredTotal - renderedTotal);
 
         document.getElementById('modalRenderedHours').innerHTML = `
             ${renderedTotal.toFixed(2)} hrs<br>
             <span class="text-xs font-normal text-gray-500">
-                Pub: ${(parseFloat(studentInfo.public_rendered_hours || 0)).toFixed(2)} | 
-                Priv: ${(parseFloat(studentInfo.private_rendered_hours || 0)).toFixed(2)}
+                Pub: ${publicRendered.toFixed(2)} | 
+                Priv: ${privateRendered.toFixed(2)}
             </span>
         `;
         document.getElementById('modalRequiredHours').innerHTML = `
@@ -452,8 +473,8 @@ function viewStudentDetails(studentId) {
         document.getElementById('modalRemainingHours').innerHTML = `
             ${remainingTotal.toFixed(2)} hrs<br>
             <span class="text-xs font-normal text-gray-500">
-                Pub: ${Math.max(0, 180 - (parseFloat(studentInfo.public_rendered_hours || 0))).toFixed(2)} | 
-                Priv: ${Math.max(0, 180 - (parseFloat(studentInfo.private_rendered_hours || 0))).toFixed(2)}
+                Pub: ${Math.max(0, 180 - publicRendered).toFixed(2)} | 
+                Priv: ${Math.max(0, 180 - privateRendered).toFixed(2)}
             </span>
         `;
     } else {
@@ -564,26 +585,18 @@ function calculateLiveHours(dateStr, checkInTime, checkOutTime, hoursRendered) {
     if (!checkInTime) return '0.00';
 
     try {
-        // Parse dates
         const now = new Date();
-        const [year, month, day] = dateStr.split('-').map(Number);
-        const [hours, minutes, seconds] = checkInTime.split(':').map(Number);
+        const [y, m, d] = dateStr.split('-').map(Number);
+        const [h, mi, s] = checkInTime.split(':').map(Number);
 
-        const inDate = new Date(year, month - 1, day, hours, minutes, seconds);
+        // Month is 0-indexed in JS Date
+        const inDate = new Date(y, m - 1, d, h, mi, s);
 
-        // If it's a future date (shouldn't happen) or if it's more than 24h old, don't show live calc
         const diffMs = now - inDate;
+        if (diffMs < 0 || diffMs > 24 * 60 * 60 * 1000) return parseFloat(hoursRendered || 0).toFixed(2);
 
-        if (diffMs < 0) return '0.00';
-
-        // Only calculate live if it's within the last 24 hours (for ongoing graveyard or long shifts)
-        if (diffMs > 24 * 60 * 60 * 1000) return parseFloat(hoursRendered || 0).toFixed(2);
-
-        const diffHours = diffMs / (1000 * 60 * 60);
-        return diffHours.toFixed(2);
-
+        return (diffMs / (1000 * 60 * 60)).toFixed(2);
     } catch (e) {
-        console.error('Error calculating live hours:', e);
         return parseFloat(hoursRendered || 0).toFixed(2);
     }
 }

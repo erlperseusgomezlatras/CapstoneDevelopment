@@ -35,8 +35,7 @@ class Journal {
                 SELECT 
                     s.id as section_id,
                     s.section_name,
-                    s.school_id as school_id,
-                    COALESCE(ps.name, 'Not Assigned') as school_name,
+                    GROUP_CONCAT(DISTINCT CONCAT(ps.name, ' (', ps.school_type, ')') SEPARATOR ', ') as school_name,
                     COUNT(DISTINCT u.school_id) as total_students,
                     COUNT(DISTINCT j.student_id) as students_submitted,
                     COUNT(DISTINCT CASE WHEN j.week IS NOT NULL THEN j.student_id END) as total_entries,
@@ -50,14 +49,15 @@ class Journal {
                     MAX(j.week) as latest_week,
                     COUNT(DISTINCT j.week) as weeks_covered
                 FROM sections s
-                LEFT JOIN users u ON s.id = u.section_id AND u.level_id = 4 AND u.isApproved = 1
-                LEFT JOIN partnered_schools ps ON s.school_id = ps.id
+                LEFT JOIN users u ON s.id = u.section_id AND u.level_id = 4 AND u.isActive = 1
+                LEFT JOIN section_schools ss ON s.id = ss.section_id
+                LEFT JOIN partnered_schools ps ON ss.school_id = ps.id
                 LEFT JOIN journal j ON u.school_id = j.student_id 
                     $dateCondition 
                     $academicSessionCondition
                 WHERE 1=1 
                     $sectionCondition
-                GROUP BY s.id, s.section_name, s.school_id, ps.name
+                GROUP BY s.id, s.section_name
                 ORDER BY s.section_name
             ";
             
@@ -113,14 +113,18 @@ class Journal {
                     u.lastname,
                     u.email,
                     s.section_name,
-                    COALESCE(ps.name, 'Not Assigned') as school_name,
+                    (
+                        SELECT GROUP_CONCAT(DISTINCT CONCAT(ps.name, ' (', ps.school_type, ')') SEPARATOR ', ')
+                        FROM section_schools ss
+                        JOIN partnered_schools ps ON ss.school_id = ps.id
+                        WHERE ss.section_id = s.id
+                    ) as school_name,
                     GROUP_CONCAT(DISTINCT wi.inspire_words SEPARATOR '|') as inspire_words,
                     GROUP_CONCAT(DISTINCT wa.affirmation_word SEPARATOR '|') as affirmation_words,
                     CONCAT(sy.school_year, ' - ', sem.semester_name) as session_name
                 FROM journal j
                 LEFT JOIN users u ON j.student_id = u.school_id
                 LEFT JOIN sections s ON u.section_id = s.id
-                LEFT JOIN partnered_schools ps ON s.school_id = ps.id
                 LEFT JOIN words_inspire wi ON j.id = wi.journal_id
                 LEFT JOIN words_affirmation wa ON j.id = wa.journal_id
                 LEFT JOIN academic_sessions acs ON j.session_id = acs.academic_session_id
@@ -130,7 +134,7 @@ class Journal {
                     $dateCondition 
                     $academicSessionCondition
                 GROUP BY j.id, j.student_id, j.week, j.grateful, j.proud_of, j.look_forward, j.felt_this_week, 
-                         j.createdAt, u.firstname, u.lastname, u.email, s.section_name, ps.name, session_name
+                         j.createdAt, u.firstname, u.lastname, u.email, s.section_name, s.id, session_name
                 ORDER BY j.week DESC, j.createdAt DESC
             ";
             
@@ -173,12 +177,16 @@ class Journal {
                     u.lastname,
                     u.email,
                     s.section_name,
-                    COALESCE(ps.name, 'Not Assigned') as school_name,
+                    (
+                        SELECT GROUP_CONCAT(DISTINCT CONCAT(ps.name, ' (', ps.school_type, ')') SEPARATOR ', ')
+                        FROM section_schools ss
+                        JOIN partnered_schools ps ON ss.school_id = ps.id
+                        WHERE ss.section_id = s.id
+                    ) as school_name,
                     CONCAT(sy.school_year, ' - ', sem.semester_name) as session_name
                 FROM journal j
                 LEFT JOIN users u ON j.student_id = u.school_id
                 LEFT JOIN sections s ON u.section_id = s.id
-                LEFT JOIN partnered_schools ps ON s.school_id = ps.id
                 LEFT JOIN academic_sessions acs ON j.session_id = acs.academic_session_id
                 LEFT JOIN school_years sy ON acs.school_year_id = sy.school_year_id
                 LEFT JOIN semesters sem ON acs.semester_id = sem.semester_id
@@ -265,9 +273,14 @@ class Journal {
         
         try {
             $sql = "
-                SELECT s.id, s.section_name, ps.name as school_name 
+                SELECT 
+                    s.id, 
+                    s.section_name, 
+                    GROUP_CONCAT(DISTINCT CONCAT(ps.name, ' (', ps.school_type, ')') SEPARATOR ', ') as school_name 
                 FROM sections s
-                LEFT JOIN partnered_schools ps ON s.school_id = ps.id
+                LEFT JOIN section_schools ss ON s.id = ss.section_id
+                LEFT JOIN partnered_schools ps ON ss.school_id = ps.id
+                GROUP BY s.id, s.section_name
                 ORDER BY s.section_name
             ";
             
