@@ -35,7 +35,7 @@ class Attendance {
             $coordinatorCondition = '';
             if ($coordinatorId) {
                 $coordinatorCondition = " AND (s.id IN (SELECT section_id FROM users WHERE school_id = '$coordinatorId') 
-                                           OR s.school_id IN (SELECT school_id FROM assignments WHERE assigner_id = '$coordinatorId' AND isCurrent = 1))";
+                                           OR s.id IN (SELECT section_id FROM section_schools WHERE school_id IN (SELECT school_id FROM assignments WHERE assigner_id = '$coordinatorId' AND isCurrent = 1)))";
             }
             
             // Query to get sections with actual attendance statistics and school information
@@ -43,8 +43,7 @@ class Attendance {
                 SELECT 
                     s.id as section_id,
                     s.section_name,
-                    s.school_id as school_id,
-                    COALESCE(ps.name, 'Not Assigned') as school_name,
+                    GROUP_CONCAT(DISTINCT ps.name SEPARATOR ', ') as school_name,
                     COUNT(DISTINCT u.school_id) as total_students,
                     COUNT(DISTINCT CASE WHEN a.attendance_timeIn IS NOT NULL THEN u.school_id END) as present_today,
                     COUNT(DISTINCT CASE WHEN a.attendance_timeIn IS NULL THEN u.school_id END) as absent_today,
@@ -58,13 +57,14 @@ class Attendance {
                         )
                     END as attendance_rate
                 FROM sections s
-                LEFT JOIN partnered_schools ps ON s.school_id = ps.id
+                LEFT JOIN section_schools ss ON s.id = ss.section_id
+                LEFT JOIN partnered_schools ps ON ss.school_id = ps.id
                 LEFT JOIN users u ON s.id = u.section_id AND u.level_id = 4 AND u.isActive = 1
                 LEFT JOIN attendance a ON u.school_id = a.student_id AND $dateCondition $academicSessionCondition
                 WHERE 1=1
                 $sectionCondition
                 $coordinatorCondition
-                GROUP BY s.id, s.section_name, s.school_id, ps.name
+                GROUP BY s.id, s.section_name
                 ORDER BY s.section_name
             ";
             
@@ -131,7 +131,7 @@ class Attendance {
             $coordinatorCondition = '';
             if ($coordinatorId) {
                 $coordinatorCondition = " WHERE (id IN (SELECT section_id FROM users WHERE school_id = '$coordinatorId') 
-                                           OR school_id IN (SELECT school_id FROM assignments WHERE assigner_id = '$coordinatorId' AND isCurrent = 1))";
+                                           OR id IN (SELECT section_id FROM section_schools WHERE school_id IN (SELECT school_id FROM assignments WHERE assigner_id = '$coordinatorId' AND isCurrent = 1)))";
             }
 
             $sql = "
@@ -178,28 +178,46 @@ class Attendance {
                 $academicSessionCondition = "AND a.session_id = " . intval($academicSessionFilter);
             }
             
-            // Query to get students with their attendance and hours data, including school name
+            // Query to get students with their attendance and hours data
+            // Use subquery for section school names to avoid Cartesian product
             $sql = "
                 SELECT 
                     u.school_id as student_id,
                     u.firstname,
                     u.lastname,
                     u.email,
-                    360 as required_hours,
+                    360 as total_required_hours,
+                    180 as public_required_hours,
+                    180 as private_required_hours,
                     COALESCE(
                         SUM(CASE WHEN a.hours_rendered IS NOT NULL AND a.hours_rendered > 0 
                             AND ($dateCondition OR '$dateFilter' = 'all') $academicSessionCondition THEN a.hours_rendered ELSE 0 END), 
                         0
-                    ) as rendered_hours,
+                    ) as total_rendered_hours,
+                    COALESCE(
+                        SUM(CASE WHEN ps.school_type = 'Public' AND a.hours_rendered IS NOT NULL AND a.hours_rendered > 0 
+                            AND ($dateCondition OR '$dateFilter' = 'all') $academicSessionCondition THEN a.hours_rendered ELSE 0 END), 
+                        0
+                    ) as public_rendered_hours,
+                    COALESCE(
+                        SUM(CASE WHEN ps.school_type = 'Private' AND a.hours_rendered IS NOT NULL AND a.hours_rendered > 0 
+                            AND ($dateCondition OR '$dateFilter' = 'all') $academicSessionCondition THEN a.hours_rendered ELSE 0 END), 
+                        0
+                    ) as private_rendered_hours,
                     MAX(CASE WHEN a.attendance_timeOut IS NULL AND a.attendance_date = CURDATE() THEN a.attendance_timeIn END) as current_time_in,
                     MAX(CASE WHEN a.attendance_timeOut IS NULL AND a.attendance_date = CURDATE() THEN a.attendance_date END) as ongoing_date,
-                    COALESCE(ps.name, 'Not Assigned') as school_name
+                    MAX(CASE WHEN a.attendance_timeOut IS NULL AND a.attendance_date = CURDATE() THEN ps.school_type END) as ongoing_school_type,
+                    (
+                        SELECT GROUP_CONCAT(ps_sub.name SEPARATOR ', ')
+                        FROM section_schools ss_sub
+                        JOIN partnered_schools ps_sub ON ss_sub.school_id = ps_sub.id
+                        WHERE ss_sub.section_id = u.section_id
+                    ) as section_school_names
                 FROM users u
                 LEFT JOIN attendance a ON u.school_id = a.student_id
-                LEFT JOIN sections s ON u.section_id = s.id
-                LEFT JOIN partnered_schools ps ON s.school_id = ps.id
+                LEFT JOIN partnered_schools ps ON a.school_id = ps.id
                 WHERE u.section_id = :section_id AND u.level_id = 4 AND u.isActive = 1
-                GROUP BY u.school_id, u.firstname, u.lastname, u.email, ps.name
+                GROUP BY u.school_id, u.firstname, u.lastname, u.email, u.section_id
                 ORDER BY u.lastname, u.firstname
             ";
             
@@ -210,9 +228,9 @@ class Attendance {
             
             // Calculate remaining hours for each student
             foreach ($students as &$student) {
-                $requiredHours = 360; // Default for both public and private schools
-                $student['required_hours'] = $requiredHours;
-                $student['remaining_hours'] = max(0, $requiredHours - $student['rendered_hours']);
+                $student['remaining_public_hours'] = max(0, 180 - $student['public_rendered_hours']);
+                $student['remaining_private_hours'] = max(0, 180 - $student['private_rendered_hours']);
+                $student['remaining_total_hours'] = max(0, 360 - $student['total_rendered_hours']);
             }
             
             return json_encode([
@@ -233,7 +251,7 @@ class Attendance {
         include "connection.php";
         
         $data = json_decode($json, true);
-        $studentId = intval($data['student_id']);
+        $studentId = $data['student_id']; // Keep as string (e.g. STU-2026-XXXX)
         $filters = $data['filters'] ?? [];
         
         try {
@@ -260,17 +278,17 @@ class Attendance {
                     END as status,
                     a.hours_rendered,
                     '' as remarks,
-                    COALESCE(ps.name, 'Not Assigned') as school_name
+                    COALESCE(ps.name, 'Unknown School') as school_name,
+                    ps.school_type
                 FROM attendance a
                 LEFT JOIN users u ON a.student_id = u.school_id
-                LEFT JOIN sections s ON u.section_id = s.id
-                LEFT JOIN partnered_schools ps ON s.school_id = ps.id
+                LEFT JOIN partnered_schools ps ON a.school_id = ps.id
                 WHERE a.student_id = :student_id AND $dateCondition $academicSessionCondition
                 ORDER BY a.attendance_date DESC, a.attendance_timeIn DESC
             ";
             
             $stmt = $conn->prepare($sql);
-            $stmt->bindParam(':student_id', $studentId, PDO::PARAM_INT);
+            $stmt->bindParam(':student_id', $studentId, PDO::PARAM_STR);
             $stmt->execute();
             $attendanceHistory = $stmt->fetchAll(PDO::FETCH_ASSOC);
             

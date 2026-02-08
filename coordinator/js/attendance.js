@@ -271,15 +271,26 @@ function displayStudentAttendance(students) {
     }
 
     studentTable.innerHTML = students.map(student => {
-        let liveRendered = parseFloat(student.rendered_hours || 0);
+        let liveRendered = parseFloat(student.total_rendered_hours || 0);
+        let publicRendered = parseFloat(student.public_rendered_hours || 0);
+        let privateRendered = parseFloat(student.private_rendered_hours || 0);
+
         if (student.current_time_in && student.ongoing_date) {
             const extraHours = calculateLiveHours(student.ongoing_date, student.current_time_in, null, 0);
-            liveRendered += parseFloat(extraHours);
+            const extra = parseFloat(extraHours);
+            liveRendered += extra;
+
+            // Add live hours to appropriate school type
+            if (student.ongoing_school_type === 'Public') {
+                publicRendered += extra;
+            } else if (student.ongoing_school_type === 'Private') {
+                privateRendered += extra;
+            }
         }
 
-        const required = parseFloat(student.required_hours || 360);
-        const remaining = Math.max(0, required - liveRendered);
-        const progressPercentage = required > 0 ? (liveRendered / required * 100) : 0;
+        const requiredTotal = parseFloat(student.total_required_hours || 360);
+        const remainingTotal = Math.max(0, requiredTotal - liveRendered);
+        const progressPercentage = requiredTotal > 0 ? (liveRendered / requiredTotal * 100) : 0;
 
         const progressColor = progressPercentage >= 80 ? 'bg-green-500' :
             progressPercentage >= 50 ? 'bg-yellow-500' : 'bg-red-500';
@@ -303,16 +314,31 @@ function displayStudentAttendance(students) {
                     ${student.student_id}
                 </td>
                 <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                    <span class="font-medium ${student.current_time_in ? 'text-blue-600' : ''}">${liveRendered.toFixed(2)}</span> hrs
-                    ${student.current_time_in ? '<i class="fas fa-sync-alt fa-spin text-blue-500 text-xs ml-1"></i>' : ''}
+                   <div class="flex flex-col">
+                        <span class="font-bold ${student.current_time_in ? 'text-blue-600' : ''}">
+                            ${liveRendered.toFixed(2)} hrs
+                            ${student.current_time_in ? '<i class="fas fa-sync-alt fa-spin text-blue-500 text-xs ml-1"></i>' : ''}
+                        </span>
+                        <span class="text-xs text-gray-500">
+                            Pub: ${publicRendered.toFixed(2)} | Priv: ${privateRendered.toFixed(2)}
+                        </span>
+                    </div>
                 </td>
                 <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                    <span class="font-medium">${required.toFixed(2)}</span> hrs
+                    <div class="flex flex-col">
+                        <span class="font-medium">${requiredTotal.toFixed(2)} hrs</span>
+                        <span class="text-xs text-gray-500">Pub: 180.00 | Priv: 180.00</span>
+                    </div>
                 </td>
                 <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                    <span class="font-medium ${remaining <= 0 ? 'text-green-600' : 'text-orange-600'}">
-                        ${remaining.toFixed(2)} hrs
-                    </span>
+                    <div class="flex flex-col">
+                        <span class="font-bold ${remainingTotal <= 0 ? 'text-green-600' : 'text-orange-600'}">
+                            ${remainingTotal.toFixed(2)} hrs
+                        </span>
+                         <span class="text-xs text-gray-500">
+                            Pub: ${Math.max(0, 180 - publicRendered).toFixed(2)} | Priv: ${Math.max(0, 180 - privateRendered).toFixed(2)}
+                        </span>
+                    </div>
                 </td>
                 <td class="px-6 py-4 whitespace-nowrap">
                     <div class="flex items-center">
@@ -341,30 +367,55 @@ function closeStudentDetails() {
 function viewStudentDetails(studentId) {
     openAttendanceModal();
 
-    // Find student info
-    let studentInfo = null;
-    for (const sectionId in allStudentsData) {
-        const student = allStudentsData[sectionId].find(s => s.student_id == studentId);
-        if (student) {
-            studentInfo = student;
-            break;
-        }
-    }
-
-    if (studentInfo) {
-        const rendered = parseFloat(studentInfo.rendered_hours || 0);
-        const required = parseFloat(studentInfo.required_hours || 360);
-        const remaining = Math.max(0, required - rendered);
-
-        document.getElementById('modalStudentName').textContent = `${studentInfo.firstname} ${studentInfo.lastname}`;
-        document.getElementById('modalStudentId').textContent = studentId;
-        document.getElementById('modalRenderedHours').textContent = `${rendered.toFixed(2)} hrs`;
-        document.getElementById('modalRequiredHours').textContent = `${required.toFixed(2)} hrs`;
-        document.getElementById('modalRemainingHours').textContent = `${remaining.toFixed(2)} hrs`;
-    }
+    // Reset modal content
+    document.getElementById('modalStudentName').textContent = 'Loading...';
+    document.getElementById('modalStudentId').textContent = studentId;
+    document.getElementById('modalRenderedHours').textContent = '-- hrs';
+    document.getElementById('modalRequiredHours').textContent = '360.00 hrs';
+    document.getElementById('modalRemainingHours').textContent = '-- hrs';
 
     const historyTable = document.getElementById('modalAttendanceHistory');
     historyTable.innerHTML = `<tr><td colspan="5" class="px-6 py-4 text-center"><i class="fas fa-spinner fa-spin mr-2"></i>Loading...</td></tr>`;
+
+    // Find student info - robust search
+    let studentInfo = null;
+    // Iterate through all sections in the data store
+    Object.values(allStudentsData).forEach(students => {
+        if (studentInfo) return; // Already found
+        const found = students.find(s => String(s.student_id).trim() === String(studentId).trim());
+        if (found) studentInfo = found;
+    });
+
+    if (studentInfo) {
+        document.getElementById('modalStudentName').textContent = `${studentInfo.firstname} ${studentInfo.lastname}`;
+
+        // Get live data if updated
+        const renderedTotal = parseFloat(studentInfo.total_rendered_hours || 0);
+        const requiredTotal = parseFloat(studentInfo.total_required_hours || 360);
+        const remainingTotal = Math.max(0, requiredTotal - renderedTotal);
+
+        document.getElementById('modalRenderedHours').innerHTML = `
+            ${renderedTotal.toFixed(2)} hrs<br>
+            <span class="text-xs font-normal text-gray-500">
+                Pub: ${(parseFloat(studentInfo.public_rendered_hours || 0)).toFixed(2)} | 
+                Priv: ${(parseFloat(studentInfo.private_rendered_hours || 0)).toFixed(2)}
+            </span>
+        `;
+        document.getElementById('modalRequiredHours').innerHTML = `
+            ${requiredTotal.toFixed(2)} hrs<br>
+            <span class="text-xs font-normal text-gray-500">Pub: 180.00 | Priv: 180.00</span>
+        `;
+        document.getElementById('modalRemainingHours').innerHTML = `
+            ${remainingTotal.toFixed(2)} hrs<br>
+            <span class="text-xs font-normal text-gray-500">
+                Pub: ${Math.max(0, 180 - (parseFloat(studentInfo.public_rendered_hours || 0))).toFixed(2)} | 
+                Priv: ${Math.max(0, 180 - (parseFloat(studentInfo.private_rendered_hours || 0))).toFixed(2)}
+            </span>
+        `;
+    } else {
+        console.warn('Student info not found for ID:', studentId);
+        document.getElementById('modalStudentName').textContent = 'Student Not Found';
+    }
 
     const formData = new FormData();
     formData.append('operation', 'get_student_attendance_history');
@@ -377,12 +428,18 @@ function viewStudentDetails(studentId) {
         method: 'POST',
         body: formData
     })
-        .then(response => response.json())
-        .then(data => {
-            if (data.success) {
-                displayModalHistory(data.attendance_history);
-            } else {
-                historyTable.innerHTML = `<tr><td colspan="5" class="px-6 py-4 text-center text-red-500">Error: ${data.message}</td></tr>`;
+        .then(response => response.text())
+        .then(text => {
+            try {
+                const data = JSON.parse(text);
+                if (data.success) {
+                    displayModalHistory(data.attendance_history);
+                } else {
+                    historyTable.innerHTML = `<tr><td colspan="5" class="px-6 py-4 text-center text-red-500">Error: ${data.message}</td></tr>`;
+                }
+            } catch (e) {
+                console.error('JSON Parse Error:', e, text);
+                historyTable.innerHTML = `<tr><td colspan="5" class="px-6 py-4 text-center text-red-500">Failed to load data. Server response invalid.</td></tr>`;
             }
         })
         .catch(error => {
@@ -407,28 +464,35 @@ function displayModalHistory(history) {
         const liveHours = calculateLiveHours(record.attendance_date, record.check_in_time, record.check_out_time, record.hours_rendered);
         totalLiveHours += parseFloat(liveHours);
         const isOngoing = !record.check_out_time && record.status === 'Present';
+        const schoolType = record.school_type || 'Public';
+        const schoolTypeBadge = schoolType === 'Public'
+            ? '<span class="px-2 py-0.5 inline-flex text-xs leading-5 font-semibold rounded-full bg-green-50 text-green-700 border border-green-200">Public</span>'
+            : '<span class="px-2 py-0.5 inline-flex text-xs leading-5 font-semibold rounded-full bg-blue-50 text-blue-700 border border-blue-200">Private</span>';
 
         return `
             <tr class="hover:bg-gray-50">
-                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900 font-medium">${formatDate(record.attendance_date)}</td>
+                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900 font-medium">
+                    ${formatDate(record.attendance_date)}
+                    <div class="mt-1">${schoolTypeBadge}</div>
+                </td>
                 <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">${formatTimeTo12Hour(record.check_in_time)}</td>
                 <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">${record.check_out_time ? formatTimeTo12Hour(record.check_out_time) : (isOngoing ? '<span class="text-blue-500 italic"><i class="fas fa-sync-alt fa-spin mr-1"></i>In Progress</span>' : '--')}</td>
                 <td class="px-6 py-4 whitespace-nowrap">
                     <span class="px-2 py-1 text-xs font-semibold rounded-full ${record.status === 'Present' ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}">
                         ${record.status}
                     </span>
+                    <div class="text-xs text-gray-500 mt-1 truncate max-w-[150px]" title="${record.school_name}">${record.school_name}</div>
                 </td>
                 <td class="px-6 py-4 whitespace-nowrap text-sm font-bold text-gray-900">${liveHours} hrs</td>
             </tr>
         `;
     }).join('');
 
-    // Update the total summary fields with live totals
-    const required = parseFloat(document.getElementById('modalRequiredHours').textContent) || 360;
-    const remaining = Math.max(0, required - totalLiveHours);
-
-    document.getElementById('modalRenderedHours').textContent = `${totalLiveHours.toFixed(2)} hrs`;
-    document.getElementById('modalRemainingHours').textContent = `${remaining.toFixed(2)} hrs`;
+    // Update the total summary fields with live totals - OPTIONAL since we have detail split
+    // const required = parseFloat(document.getElementById('modalRequiredHours').textContent) || 360;
+    // const remaining = Math.max(0, required - totalLiveHours);
+    // document.getElementById('modalRenderedHours').textContent = `${totalLiveHours.toFixed(2)} hrs`;
+    // document.getElementById('modalRemainingHours').textContent = `${remaining.toFixed(2)} hrs`;
 }
 
 // Helpers

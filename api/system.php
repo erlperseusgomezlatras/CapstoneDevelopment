@@ -167,8 +167,8 @@ class System {
             }
             
             // Insert partnered school
-            $sql = "INSERT INTO partnered_schools (name, address, latitude, longitude, geofencing_radius, isActive) 
-                    VALUES (?, ?, ?, ?, ?, ?)";
+            $sql = "INSERT INTO partnered_schools (name, address, latitude, longitude, geofencing_radius, school_type, isActive) 
+                    VALUES (?, ?, ?, ?, ?, ?, ?)";
             
             $stmt = $conn->prepare($sql);
             $geofencing_radius = isset($data['geofencing_radius']) ? $data['geofencing_radius'] : 80;
@@ -180,6 +180,7 @@ class System {
                 $data['latitude'],
                 $data['longitude'],
                 $geofencing_radius,
+                isset($data['school_type']) ? $data['school_type'] : 'Public',
                 $isActive
             ]);
             
@@ -274,7 +275,7 @@ class System {
             
             // Update partnered school
             $sql = "UPDATE partnered_schools 
-                    SET name = ?, address = ?, latitude = ?, longitude = ?, geofencing_radius = ?
+                    SET name = ?, address = ?, latitude = ?, longitude = ?, geofencing_radius = ?, school_type = ?
                     WHERE id = ?";
             
             $stmt = $conn->prepare($sql);
@@ -286,6 +287,7 @@ class System {
                 $data['latitude'],
                 $data['longitude'],
                 $geofencing_radius,
+                isset($data['school_type']) ? $data['school_type'] : 'Public',
                 $data['id']
             ]);
             
@@ -324,7 +326,7 @@ class System {
         
         try {
             // Check if school is being used by sections
-            $check_sql = "SELECT COUNT(*) as count FROM sections WHERE school_id = ?";
+            $check_sql = "SELECT COUNT(*) as count FROM section_schools WHERE school_id = ?";
             $stmt = $conn->prepare($check_sql);
             $stmt->execute([$data['id']]);
             $result = $stmt->fetch(PDO::FETCH_ASSOC);
@@ -366,7 +368,7 @@ class System {
         include "connection.php";
         
         try {
-            $sql = "SELECT id, name FROM partnered_schools WHERE isActive = 1 ORDER BY name";
+            $sql = "SELECT id, name, school_type FROM partnered_schools WHERE isActive = 1 ORDER BY name";
             $stmt = $conn->prepare($sql);
             $stmt->execute();
             $schools = $stmt->fetchAll(PDO::FETCH_ASSOC);
@@ -411,17 +413,6 @@ class System {
                 $errors['section_name'] = 'Section name already exists';
             }
             
-            // Check if partnered school is already assigned to another section
-            if (!empty($data['school_id'])) {
-                $school_check_sql = "SELECT section_name FROM sections WHERE school_id = ?";
-                $stmt = $conn->prepare($school_check_sql);
-                $stmt->execute([$data['school_id']]);
-                $existing_section = $stmt->fetch(PDO::FETCH_ASSOC);
-                if ($existing_section) {
-                    $errors['school_id'] = 'This partnered school is already assigned to section: ' . $existing_section['section_name'];
-                }
-            }
-            
             if (!empty($errors)) {
                 return json_encode([
                     'success' => false,
@@ -430,21 +421,39 @@ class System {
                 ]);
             }
             
+            $conn->beginTransaction();
+
             // Insert new section
-            $sql = "INSERT INTO sections (section_name, school_id) VALUES (?, ?)";
+            $sql = "INSERT INTO sections (section_name) VALUES (?)";
             $stmt = $conn->prepare($sql);
-            $stmt->execute([
-                $data['section_name'],
-                !empty($data['school_id']) ? $data['school_id'] : null
-            ]);
+            $stmt->execute([$data['section_name']]);
+            $section_id = $conn->lastInsertId();
+
+            // Insert schools
+            $school_ids = [];
+            if (!empty($data['public_school_id'])) $school_ids[] = $data['public_school_id'];
+            if (!empty($data['private_school_id'])) $school_ids[] = $data['private_school_id'];
             
+            if (!empty($school_ids)) {
+                $school_sql = "INSERT INTO section_schools (section_id, school_id) VALUES (?, ?)";
+                $school_stmt = $conn->prepare($school_sql);
+                foreach ($school_ids as $sid) {
+                     $school_stmt->execute([$section_id, $sid]);
+                }
+            }
+            
+            $conn->commit();
+
             return json_encode([
                 'success' => true,
                 'message' => 'Section created successfully',
-                'id' => $conn->lastInsertId()
+                'id' => $section_id
             ]);
             
         } catch(PDOException $e) {
+            if ($conn->inTransaction()) {
+                $conn->rollBack();
+            }
             return json_encode([
                 'success' => false,
                 'message' => 'Database error: ' . $e->getMessage()
@@ -457,15 +466,55 @@ class System {
         include "connection.php";
         
         try {
-            $sql = "SELECT s.id, s.section_name, s.school_id,
-                           ps.name as school_name
+            // Updated query to fetch associated schools and their types
+            $sql = "SELECT s.id, s.section_name,
+                           GROUP_CONCAT(CONCAT(ps.id, ':', ps.school_type, ':', ps.name) SEPARATOR '||') as school_info
                     FROM sections s
-                    LEFT JOIN partnered_schools ps ON s.school_id = ps.id
+                    LEFT JOIN section_schools ss ON s.id = ss.section_id
+                    LEFT JOIN partnered_schools ps ON ss.school_id = ps.id
+                    GROUP BY s.id
                     ORDER BY s.section_name";
             
             $stmt = $conn->prepare($sql);
             $stmt->execute();
             $sections = $stmt->fetchAll(PDO::FETCH_ASSOC);
+            
+            // Process the school_info to create a structured array of schools
+            foreach ($sections as &$section) {
+                $section['schools'] = [];
+                $section['public_school'] = null;
+                $section['private_school'] = null;
+
+                if (!empty($section['school_info'])) {
+                    $entries = explode('||', $section['school_info']);
+                    foreach ($entries as $entry) {
+                        $parts = explode(':', $entry);
+                        if (count($parts) >= 3) {
+                            $school = [
+                                'id' => $parts[0],
+                                'type' => $parts[1],
+                                'name' => $parts[2] // This might be truncated if name has colons, but usually names don't start with colons. 
+                                // Better: implode the rest if name has colons? For now assume no colons or simple split.
+                                // Actually, separating by '||' and ':' is risky if data defaults contain those char.
+                                // However, names usually don't contain ||.
+                            ];
+                            // Re-assemble name if split happened
+                            if (count($parts) > 3) {
+                                $school['name'] = implode(':', array_slice($parts, 2));
+                            }
+                            
+                            $section['schools'][] = $school;
+                            
+                            if ($school['type'] === 'Public') {
+                                $section['public_school'] = $school;
+                            } else if ($school['type'] === 'Private') {
+                                $section['private_school'] = $school;
+                            }
+                        }
+                    }
+                }
+                unset($section['school_info']);
+            }
             
             return json_encode([
                 'success' => true,
@@ -512,17 +561,6 @@ class System {
                 $errors['section_name'] = 'Section name already exists';
             }
             
-            // Check if partnered school is already assigned to another section (excluding current section)
-            if (!empty($data['school_id'])) {
-                $school_check_sql = "SELECT section_name FROM sections WHERE school_id = ? AND id != ?";
-                $stmt = $conn->prepare($school_check_sql);
-                $stmt->execute([$data['school_id'], $data['id']]);
-                $existing_section = $stmt->fetch(PDO::FETCH_ASSOC);
-                if ($existing_section) {
-                    $errors['school_id'] = 'This partnered school is already assigned to section: ' . $existing_section['section_name'];
-                }
-            }
-            
             if (!empty($errors)) {
                 return json_encode([
                     'success' => false,
@@ -531,14 +569,35 @@ class System {
                 ]);
             }
             
+            $conn->beginTransaction();
+
             // Update section
-            $sql = "UPDATE sections SET section_name = ?, school_id = ? WHERE id = ?";
+            $sql = "UPDATE sections SET section_name = ? WHERE id = ?";
             $stmt = $conn->prepare($sql);
             $stmt->execute([
                 $data['section_name'],
-                !empty($data['school_id']) ? $data['school_id'] : null,
                 $data['id']
             ]);
+            
+            // Update schools: Delete old for this section
+            $del_sql = "DELETE FROM section_schools WHERE section_id = ?";
+            $del_stmt = $conn->prepare($del_sql);
+            $del_stmt->execute([$data['id']]);
+            
+            // Insert new schools logic
+            $school_ids = [];
+            if (!empty($data['public_school_id'])) $school_ids[] = $data['public_school_id'];
+            if (!empty($data['private_school_id'])) $school_ids[] = $data['private_school_id'];
+            
+            if (!empty($school_ids)) {
+                $school_sql = "INSERT INTO section_schools (section_id, school_id) VALUES (?, ?)";
+                $school_stmt = $conn->prepare($school_sql);
+                foreach ($school_ids as $sid) {
+                     $school_stmt->execute([$data['id'], $sid]);
+                }
+            }
+
+            $conn->commit();
             
             return json_encode([
                 'success' => true,
@@ -546,6 +605,9 @@ class System {
             ]);
             
         } catch(PDOException $e) {
+            if ($conn->inTransaction()) {
+                $conn->rollBack();
+            }
             return json_encode([
                 'success' => false,
                 'message' => 'Database error: ' . $e->getMessage()
@@ -567,6 +629,8 @@ class System {
         }
         
         try {
+            $conn->beginTransaction();
+
             // Check if section is being used by users
             $check_sql = "SELECT COUNT(*) as count FROM users WHERE section_id = ?";
             $stmt = $conn->prepare($check_sql);
@@ -574,16 +638,24 @@ class System {
             $result = $stmt->fetch(PDO::FETCH_ASSOC);
             
             if ($result['count'] > 0) {
+                $conn->rollBack();
                 return json_encode([
                     'success' => false,
                     'message' => 'Cannot delete section. It is assigned to ' . $result['count'] . ' user(s).'
                 ]);
             }
             
+            // Delete related entries in section_schools first
+            $del_ss_sql = "DELETE FROM section_schools WHERE section_id = ?";
+            $stmt = $conn->prepare($del_ss_sql);
+            $stmt->execute([$data['id']]);
+
             // Delete section
             $sql = "DELETE FROM sections WHERE id = ?";
             $stmt = $conn->prepare($sql);
             $stmt->execute([$data['id']]);
+            
+            $conn->commit();
             
             return json_encode([
                 'success' => true,
@@ -591,6 +663,9 @@ class System {
             ]);
             
         } catch(PDOException $e) {
+            if ($conn->inTransaction()) {
+                $conn->rollBack();
+            }
             return json_encode([
                 'success' => false,
                 'message' => 'Database error: ' . $e->getMessage()

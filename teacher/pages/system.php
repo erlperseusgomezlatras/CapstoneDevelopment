@@ -271,6 +271,9 @@ $current_page = 'system';
                                             School Name
                                         </th>
                                         <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                            Type
+                                        </th>
+                                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                                             Address
                                         </th>
                                         <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
@@ -352,7 +355,7 @@ $current_page = 'system';
                                             Section Name
                                         </th>
                                         <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                            Assigned Partnered School
+                                            Schools
                                         </th>
                                        
                                         <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
@@ -658,6 +661,22 @@ $current_page = 'system';
                                    class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500">
                             <span class="text-xs text-gray-500">Default: 80 meters</span>
                         </div>
+                        
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">School Type</label>
+                            <div class="flex space-x-4 mt-2">
+                                <label class="flex items-center space-x-2 cursor-pointer">
+                                    <input type="radio" name="school_type" value="Public" checked
+                                           class="text-green-600 focus:ring-green-500">
+                                    <span class="text-sm text-gray-700">Public</span>
+                                </label>
+                                <label class="flex items-center space-x-2 cursor-pointer">
+                                    <input type="radio" name="school_type" value="Private"
+                                           class="text-green-600 focus:ring-green-500">
+                                    <span class="text-sm text-gray-700">Private</span>
+                                </label>
+                            </div>
+                        </div>
                     </div>
                     
                     <!-- Map Preview -->
@@ -716,13 +735,21 @@ $current_page = 'system';
                         </div>
                         
                         <div>
-                            <label class="block text-sm font-medium text-gray-700 mb-1">Assigned Partnered School</label>
-                            <select id="sectionSchoolId" name="school_id" 
+                            <label class="block text-sm font-medium text-gray-700 mb-1">Public School</label>
+                            <select id="publicSchoolId" name="public_school_id" 
                                     class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500">
-                                <option value="">-- No Partnered School Assigned --</option>
-                                <!-- Partnered schools will be loaded here -->
+                                <option value="">-- Select Public School --</option>
+                                <!-- Public schools will be loaded here -->
                             </select>
-                            <span class="text-xs text-gray-500">Optional: Assign a partnered school to this section</span>
+                        </div>
+
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">Private School</label>
+                            <select id="privateSchoolId" name="private_school_id" 
+                                    class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500">
+                                <option value="">-- Select Private School --</option>
+                                <!-- Private schools will be loaded here -->
+                            </select>
                         </div>
                     </div>
                     

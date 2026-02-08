@@ -762,6 +762,10 @@ function openAddModal() {
     document.getElementById('partneredSchoolForm').reset();
     document.getElementById('geofencingRadius').value = '80';
 
+    // Set default school type to Public
+    const publicRadio = document.querySelector('input[name="school_type"][value="Public"]');
+    if (publicRadio) publicRadio.checked = true;
+
     document.getElementById('partneredSchoolModal').classList.add('show');
 
     // Initialize map after modal is shown
@@ -927,6 +931,11 @@ function renderPartneredSchoolsTable() {
                 ${school.name}
             </td>
             <td class="px-6 py-4 text-sm text-gray-900">
+                ${school.school_type === 'Public' ?
+            '<span class="px-2 py-1 inline-flex text-xs leading-5 font-semibold rounded-full bg-green-100 text-green-800">Public</span>' :
+            '<span class="px-2 py-1 inline-flex text-xs leading-5 font-semibold rounded-full bg-blue-100 text-blue-800">Private</span>'}
+            </td>
+            <td class="px-6 py-4 text-sm text-gray-900">
                 <div class="max-w-xs truncate" title="${school.address}">
                     ${school.address}
                 </div>
@@ -997,6 +1006,11 @@ function openEditModal(school) {
     document.getElementById('latitude').value = school.latitude;
     document.getElementById('longitude').value = school.longitude;
     document.getElementById('geofencingRadius').value = school.geofencing_radius || 80;
+
+    // Set school type radio
+    const typeValue = school.school_type || 'Public';
+    const typeRadio = document.querySelector(`input[name="school_type"][value="${typeValue}"]`);
+    if (typeRadio) typeRadio.checked = true;
 
     document.getElementById('partneredSchoolModal').classList.add('show');
 
@@ -1075,7 +1089,8 @@ async function savePartneredSchool() {
             address: document.getElementById('address').value.trim(),
             latitude: parseFloat(document.getElementById('latitude').value),
             longitude: parseFloat(document.getElementById('longitude').value),
-            geofencing_radius: parseInt(document.getElementById('geofencingRadius').value) || 80
+            geofencing_radius: parseInt(document.getElementById('geofencingRadius').value) || 80,
+            school_type: document.querySelector('input[name="school_type"]:checked').value
         };
 
         if (currentEditingSchool) {
@@ -1214,8 +1229,12 @@ function filterSections() {
     // Filter by search term
     if (searchTerm) {
         filteredSectionsData = filteredSectionsData.filter(section => {
+            const publicName = section.public_school ? section.public_school.name.toLowerCase() : '';
+            const privateName = section.private_school ? section.private_school.name.toLowerCase() : '';
+
             return section.section_name.toLowerCase().includes(searchTerm) ||
-                (section.school_name && section.school_name.toLowerCase().includes(searchTerm));
+                publicName.includes(searchTerm) ||
+                privateName.includes(searchTerm);
         });
     }
 
@@ -1254,8 +1273,20 @@ function renderSectionsTable() {
             <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
                 ${section.section_name}
             </td>
-            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                ${section.school_name || '<span class="text-gray-400 italic">No school assigned</span>'}
+            <td class="px-6 py-4 text-sm text-gray-900">
+                <div class="flex flex-col gap-1">
+                    ${section.public_school ?
+            `<div class="flex items-center text-green-700 bg-green-50 px-2 py-1 rounded-md text-xs w-fit">
+                            <i class="fas fa-university mr-1"></i> Public: ${section.public_school.name}
+                         </div>` :
+            '<span class="text-gray-400 italic text-xs">No Public School</span>'}
+                        
+                    ${section.private_school ?
+            `<div class="flex items-center text-blue-700 bg-blue-50 px-2 py-1 rounded-md text-xs w-fit">
+                            <i class="fas fa-school mr-1"></i> Private: ${section.private_school.name}
+                         </div>` :
+            '<span class="text-gray-400 italic text-xs">No Private School</span>'}
+                </div>
             </td>
             <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
                 <div class="dropdown" id="section-dropdown-${section.id}">
@@ -1344,10 +1375,13 @@ function openEditSectionModal(section) {
 
     // Fill form with section data
     document.getElementById('sectionName').value = section.section_name;
-    document.getElementById('sectionSchoolId').value = section.school_id || '';
+
+    // Get IDs from section object
+    const publicId = section.public_school ? section.public_school.id : null;
+    const privateId = section.private_school ? section.private_school.id : null;
 
     // Load partnered schools for dropdown
-    loadPartneredSchoolsForSectionDropdown(section.school_id);
+    loadPartneredSchoolsForSectionDropdown(publicId, privateId);
 
     document.getElementById('sectionModal').classList.add('show');
 }
@@ -1366,8 +1400,8 @@ function clearSectionValidationErrors() {
     });
 }
 
-// Load partnered schools for section dropdown
-async function loadPartneredSchoolsForSectionDropdown(selectedSchoolId = null) {
+// Load partnered schools for section dropdowns
+async function loadPartneredSchoolsForSectionDropdown(selectedPublicId = null, selectedPrivateId = null) {
     try {
         const formData = new FormData();
         formData.append('operation', 'get_partnered_schools_dropdown');
@@ -1381,28 +1415,43 @@ async function loadPartneredSchoolsForSectionDropdown(selectedSchoolId = null) {
         const result = await response.json();
 
         if (result.success) {
-            const select = $('#sectionSchoolId'); // Use jQuery for Select2
-            select.html('<option value="">-- No Partnered School Assigned --</option>');
+            const publicSelect = $('#publicSchoolId');
+            const privateSelect = $('#privateSchoolId');
+
+            publicSelect.html('<option value="">-- Select Public School --</option>');
+            privateSelect.html('<option value="">-- Select Private School --</option>');
 
             result.data.forEach(school => {
                 const option = $('<option></option>')
                     .val(school.id)
                     .text(`${school.name}`);
-                if (selectedSchoolId && school.id == selectedSchoolId) {
-                    option.prop('selected', true);
+
+                if (school.school_type === 'Public') {
+                    if (selectedPublicId && school.id == selectedPublicId) {
+                        option.prop('selected', true);
+                    }
+                    publicSelect.append(option);
+                } else if (school.school_type === 'Private') {
+                    if (selectedPrivateId && school.id == selectedPrivateId) {
+                        option.prop('selected', true);
+                    }
+                    privateSelect.append(option);
                 }
-                select.append(option);
             });
 
-            // Initialize or reinitialize Select2
-            if (select.hasClass('select2-hidden-accessible')) {
-                select.select2('destroy');
-            }
+            // Initialize select2 for both
+            [publicSelect, privateSelect].forEach(select => {
+                const placeholder = select.attr('id') === 'publicSchoolId' ? '-- Select Public School --' : '-- Select Private School --';
 
-            select.select2({
-                placeholder: '-- No Partnered School Assigned --',
-                allowClear: false,
-                width: '100%'
+                if (select.hasClass('select2-hidden-accessible')) {
+                    select.select2('destroy');
+                }
+
+                select.select2({
+                    placeholder: placeholder,
+                    allowClear: true,
+                    width: '100%'
+                });
             });
         }
     } catch (error) {
@@ -1434,7 +1483,8 @@ async function saveSection() {
     try {
         const formData = {
             section_name: document.getElementById('sectionName').value.trim(),
-            school_id: document.getElementById('sectionSchoolId').value || null
+            public_school_id: $('#publicSchoolId').val() || null,
+            private_school_id: $('#privateSchoolId').val() || null
         };
 
         if (currentEditingSection) {

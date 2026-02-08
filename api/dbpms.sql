@@ -3,7 +3,7 @@
 -- https://www.phpmyadmin.net/
 --
 -- Host: localhost
--- Generation Time: Feb 02, 2026 at 02:34 PM
+-- Generation Time: Feb 08, 2026 at 07:26 AM
 -- Server version: 10.4.17-MariaDB
 -- PHP Version: 7.2.34
 
@@ -135,16 +135,16 @@ CREATE TABLE `attendance` (
   `attendance_timeOut` time DEFAULT NULL,
   `session_id` int(11) NOT NULL,
   `period_id` int(11) DEFAULT NULL,
-  `hours_rendered` decimal(5,2) DEFAULT 0.00
+  `hours_rendered` decimal(5,2) DEFAULT 0.00,
+  `school_id` int(11) DEFAULT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 --
 -- Dumping data for table `attendance`
 --
 
-INSERT INTO `attendance` (`id`, `student_id`, `attendance_date`, `attendance_timeIn`, `attendance_timeOut`, `session_id`, `period_id`, `hours_rendered`) VALUES
-(3, 'STU-2026-5287', '2026-01-21', '21:09:32', '22:30:18', 2, NULL, '1.35'),
-(4, 'STU-2026-5287', '2026-01-23', '08:53:20', NULL, 2, NULL, '0.00');
+INSERT INTO `attendance` (`id`, `student_id`, `attendance_date`, `attendance_timeIn`, `attendance_timeOut`, `session_id`, `period_id`, `hours_rendered`, `school_id`) VALUES
+(1, 'STU-2026-5287', '2026-02-07', '10:10:43', '19:34:55', 2, 1, '9.40', 1);
 
 -- --------------------------------------------------------
 
@@ -167,7 +167,8 @@ CREATE TABLE `checklist` (
 
 INSERT INTO `checklist` (`id`, `category_id`, `type_id`, `checklist_criteria`, `points`, `created_at`) VALUES
 (1, 1, NULL, 'Well-pressed prescribed ST uniform', 3, '2026-01-29 13:34:52'),
-(2, 2, 1, 'Make-up (females) Loose Powder & Lipbalm (males)', 1, '2026-01-29 13:35:49');
+(2, 2, 1, 'Make-up (females) Loose Powder & Lipbalm (males)', 1, '2026-01-29 13:35:49'),
+(3, 2, 1, 'humot ug ilok', 1, '2026-02-07 11:47:35');
 
 -- --------------------------------------------------------
 
@@ -208,6 +209,14 @@ CREATE TABLE `checklist_results` (
   `date_checked` date NOT NULL,
   `created_at` timestamp NOT NULL DEFAULT current_timestamp()
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+--
+-- Dumping data for table `checklist_results`
+--
+
+INSERT INTO `checklist_results` (`id`, `student_id`, `checklist_id`, `session_id`, `period_id`, `points_earned`, `checked_by`, `date_checked`, `created_at`) VALUES
+(1, 'STU-2026-5287', 2, 2, 1, 1, '00000', '2026-02-07', '2026-02-07 11:42:22'),
+(2, 'STU-2026-5287', 1, 2, 1, 2, '00000', '2026-02-07', '2026-02-07 11:42:22');
 
 -- --------------------------------------------------------
 
@@ -253,7 +262,7 @@ CREATE TABLE `journal` (
 --
 
 INSERT INTO `journal` (`id`, `student_id`, `period_id`, `session_id`, `week`, `grateful`, `proud_of`, `look_forward`, `felt_this_week`, `createdAt`) VALUES
-(1, 'STU-2026-5287', NULL, 2, '1', 'for being disciplined', 'proud of being a disciplined person', 'to enhanced my coding skills', 'Good', '2026-01-23 23:48:27');
+(1, 'STU-2026-5287', 1, 2, '1', 'being consistent', 'blah blah', 'blah blah', 'Lean toward Good', '2026-02-07 19:39:35');
 
 -- --------------------------------------------------------
 
@@ -305,7 +314,9 @@ CREATE TABLE `partnered_schools` (
 --
 
 INSERT INTO `partnered_schools` (`id`, `name`, `address`, `latitude`, `longitude`, `geofencing_radius`, `school_type`, `isActive`) VALUES
-(1, 'Misamis Oriental General Comprehensive High School', 'Misamis Oriental General Comprehensive High School, Don Apolinar Velez Street, Barangay 16, Poblacion, Cagayan de Oro, Northern Mindanao, 9000, Philippines', '8.48325080', '124.64726280', 80, 'Public', 1);
+(1, 'Misamis Oriental General Comprehensive High School', 'Tower 2, Ramon Chavez Street, Barangay 33, Poblacion, Cagayan de Oro, Northern Mindanao, 9000, Philippines', '8.48072424', '124.64920916', 80, 'Public', 1),
+(2, 'Iponan Elementary School', 'Iponan Elementary School, Iponan, Cagayan de Oro, Northern Mindanao, 9000, Philippines', '8.49543940', '124.60250290', 80, 'Public', 1),
+(3, 'Macasandig Elementary School', 'Macasandig Elementary School, P. Chavez Street, Lower Tibasak, Macasandig, Cagayan de Oro, Northern Mindanao, 9000, Philippines', '8.46368840', '124.64364060', 80, 'Private', 1);
 
 -- --------------------------------------------------------
 
@@ -404,16 +415,36 @@ INSERT INTO `school_years` (`school_year_id`, `school_year`, `created_at`, `upda
 
 CREATE TABLE `sections` (
   `id` int(11) NOT NULL,
-  `section_name` varchar(100) NOT NULL,
-  `school_id` int(11) DEFAULT NULL
+  `section_name` varchar(100) NOT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 --
 -- Dumping data for table `sections`
 --
 
-INSERT INTO `sections` (`id`, `section_name`, `school_id`) VALUES
-(1, 'COC-EDUC-1', 1);
+INSERT INTO `sections` (`id`, `section_name`) VALUES
+(1, 'COC-EDUC-1');
+
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `section_schools`
+--
+
+CREATE TABLE `section_schools` (
+  `id` int(11) NOT NULL,
+  `section_id` int(11) DEFAULT NULL,
+  `school_id` int(11) DEFAULT NULL,
+  `created_at` timestamp NOT NULL DEFAULT current_timestamp()
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+--
+-- Dumping data for table `section_schools`
+--
+
+INSERT INTO `section_schools` (`id`, `section_id`, `school_id`, `created_at`) VALUES
+(2, 1, 1, '2026-02-08 06:21:49'),
+(3, 1, 3, '2026-02-08 06:21:49');
 
 -- --------------------------------------------------------
 
@@ -511,8 +542,8 @@ CREATE TABLE `words_affirmation` (
 --
 
 INSERT INTO `words_affirmation` (`id`, `journal_id`, `affirmation_word`, `createdAt`) VALUES
-(1, 1, 'always prayalways prayalways prayalways prayalways prayalways prayalways prayalways prayalways prayalways prayalways prayalways prayalways prayalways prayalways prayalways prayalways prayalways prayalways prayalways prayalways prayalways prayalways prayalways prayalways prayalways prayalways prayalways prayalways prayalways prayalways prayalways prayalways prayalways prayalways prayalways prayalways prayalways prayalways prayalways prayalways prayalways prayalways prayalways prayalways prayalways prayalways prayalways prayalways prayalways prayalways prayalways prayalways prayalways prayalways prayalways prayalways prayalways prayalways prayalways prayalways prayalways prayalways prayalways prayalways pray', '2026-01-23 23:51:17'),
-(2, 1, 'always do good things', '2026-01-23 23:51:17');
+(1, 1, 'blah blah', '2026-02-07 19:39:35'),
+(2, 1, 'blah blah', '2026-02-07 19:39:35');
 
 -- --------------------------------------------------------
 
@@ -532,8 +563,9 @@ CREATE TABLE `words_inspire` (
 --
 
 INSERT INTO `words_inspire` (`id`, `journal_id`, `inspire_words`, `createdAt`) VALUES
-(1, 1, 'be disciplinebe disciplinebe disciplinebe disciplinebe disciplinebe disciplinebe disciplinebe disciplinebe disciplinebe disciplinebe disciplinebe disciplinebe disciplinebe disciplinebe disciplinebe disciplinebe disciplinebe disciplinebe disciplinebe disciplinebe disciplinebe disciplinebe disciplinebe disciplinebe disciplinebe disciplinebe disciplinebe disciplinebe disciplinebe disciplinebe disciplinebe disciplinebe disciplinebe disciplinebe disciplinebe disciplinebe disciplinebe disciplinebe disciplinebe disciplinebe disciplinebe disciplinebe disciplinebe discipline', '2026-01-23 23:51:48'),
-(2, 1, 'be respectful', '2026-01-23 23:51:48');
+(1, 1, 'blah blah', '2026-02-07 19:39:35'),
+(2, 1, 'blah blah', '2026-02-07 19:39:35'),
+(3, 1, 'blah blah', '2026-02-07 19:39:35');
 
 --
 -- Indexes for dumped tables
@@ -571,7 +603,8 @@ ALTER TABLE `attendance`
   ADD PRIMARY KEY (`id`),
   ADD KEY `fk_attendance_student` (`student_id`),
   ADD KEY `fk_attendance_session` (`session_id`),
-  ADD KEY `fk_attendance_period` (`period_id`);
+  ADD KEY `fk_attendance_period` (`period_id`),
+  ADD KEY `attendance_relation_4` (`school_id`);
 
 --
 -- Indexes for table `checklist`
@@ -664,8 +697,15 @@ ALTER TABLE `school_years`
 -- Indexes for table `sections`
 --
 ALTER TABLE `sections`
+  ADD PRIMARY KEY (`id`);
+
+--
+-- Indexes for table `section_schools`
+--
+ALTER TABLE `section_schools`
   ADD PRIMARY KEY (`id`),
-  ADD KEY `school_id` (`school_id`);
+  ADD KEY `section_schools_relation_1` (`section_id`),
+  ADD KEY `section_schools_relation_2` (`school_id`);
 
 --
 -- Indexes for table `semesters`
@@ -730,13 +770,13 @@ ALTER TABLE `assignments`
 -- AUTO_INCREMENT for table `attendance`
 --
 ALTER TABLE `attendance`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=5;
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=2;
 
 --
 -- AUTO_INCREMENT for table `checklist`
 --
 ALTER TABLE `checklist`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=3;
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=4;
 
 --
 -- AUTO_INCREMENT for table `checklist_category`
@@ -748,7 +788,7 @@ ALTER TABLE `checklist_category`
 -- AUTO_INCREMENT for table `checklist_results`
 --
 ALTER TABLE `checklist_results`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT;
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=3;
 
 --
 -- AUTO_INCREMENT for table `checklist_type`
@@ -778,7 +818,7 @@ ALTER TABLE `modules`
 -- AUTO_INCREMENT for table `partnered_schools`
 --
 ALTER TABLE `partnered_schools`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=2;
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=4;
 
 --
 -- AUTO_INCREMENT for table `period`
@@ -811,6 +851,12 @@ ALTER TABLE `sections`
   MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=2;
 
 --
+-- AUTO_INCREMENT for table `section_schools`
+--
+ALTER TABLE `section_schools`
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=4;
+
+--
 -- AUTO_INCREMENT for table `semesters`
 --
 ALTER TABLE `semesters`
@@ -832,7 +878,7 @@ ALTER TABLE `words_affirmation`
 -- AUTO_INCREMENT for table `words_inspire`
 --
 ALTER TABLE `words_inspire`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=3;
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=4;
 
 --
 -- Constraints for dumped tables
@@ -857,6 +903,7 @@ ALTER TABLE `assignments`
 -- Constraints for table `attendance`
 --
 ALTER TABLE `attendance`
+  ADD CONSTRAINT `attendance_relation_4` FOREIGN KEY (`school_id`) REFERENCES `partnered_schools` (`id`) ON DELETE NO ACTION ON UPDATE NO ACTION,
   ADD CONSTRAINT `fk_attendance_period` FOREIGN KEY (`period_id`) REFERENCES `period` (`id`) ON DELETE SET NULL ON UPDATE CASCADE,
   ADD CONSTRAINT `fk_attendance_session` FOREIGN KEY (`session_id`) REFERENCES `academic_sessions` (`academic_session_id`) ON DELETE CASCADE ON UPDATE CASCADE,
   ADD CONSTRAINT `fk_attendance_student` FOREIGN KEY (`student_id`) REFERENCES `users` (`school_id`) ON DELETE CASCADE ON UPDATE CASCADE;
@@ -900,10 +947,11 @@ ALTER TABLE `practicum_checklist`
   ADD CONSTRAINT `practicum_checklist_ibfk_1` FOREIGN KEY (`practicum_id`) REFERENCES `practicum_subjects` (`id`);
 
 --
--- Constraints for table `sections`
+-- Constraints for table `section_schools`
 --
-ALTER TABLE `sections`
-  ADD CONSTRAINT `sections_ibfk_1` FOREIGN KEY (`school_id`) REFERENCES `partnered_schools` (`id`);
+ALTER TABLE `section_schools`
+  ADD CONSTRAINT `section_schools_relation_1` FOREIGN KEY (`section_id`) REFERENCES `sections` (`id`) ON DELETE NO ACTION ON UPDATE NO ACTION,
+  ADD CONSTRAINT `section_schools_relation_2` FOREIGN KEY (`school_id`) REFERENCES `partnered_schools` (`id`) ON DELETE NO ACTION ON UPDATE NO ACTION;
 
 --
 -- Constraints for table `users`
