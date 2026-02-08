@@ -124,10 +124,12 @@ class Teachers {
             $level_id = $user_level === 'coordinator' ? 3 : 2;
             
             // Base query for teachers/coordinators
-            $sql = "SELECT u.*, s.section_name, ps.name as partnered_school_name 
+            $sql = "SELECT u.*, s.section_name, 
+                           GROUP_CONCAT(DISTINCT CONCAT(ps.id, ':', ps.school_type, ':', ps.name) SEPARATOR '||') as partnered_school_name 
                     FROM users u 
                     LEFT JOIN sections s ON u.section_id = s.id 
-                    LEFT JOIN partnered_schools ps ON s.school_id = ps.id 
+                    LEFT JOIN section_schools ss ON s.id = ss.section_id
+                    LEFT JOIN partnered_schools ps ON ss.school_id = ps.id 
                     WHERE u.level_id = ?";
             
             $params = [$level_id];
@@ -145,6 +147,7 @@ class Teachers {
                 $params[] = $status_filter;
             }
             
+            $sql .= " GROUP BY u.school_id, u.firstname, u.lastname, u.email, u.section_id, u.isActive, s.section_name";
             $sql .= " ORDER BY u.firstname, u.lastname";
             
             $stmt = $conn->prepare($sql);
@@ -431,10 +434,10 @@ class Teachers {
         }
         
         try {
-            $sql = "SELECT ps.id, ps.name 
-                    FROM partnered_schools ps 
-                    INNER JOIN sections s ON s.school_id = ps.id 
-                    WHERE s.id = ?";
+            $sql = "SELECT GROUP_CONCAT(DISTINCT CONCAT(ps.id, ':', ps.school_type, ':', ps.name) SEPARATOR '||') as name 
+                    FROM section_schools ss
+                    JOIN partnered_schools ps ON ss.school_id = ps.id 
+                    WHERE ss.section_id = ?";
             
             $stmt = $conn->prepare($sql);
             $stmt->execute([$data['section_id']]);
@@ -486,8 +489,14 @@ class Teachers {
             }
             
             // Check if partnered school is already assigned to another section
+            // Note: With multiple schools support, this check might need to be less strict or removed
+            // For now, we'll skip this check or adapt it if necessary
+            /*
             if (!empty($data['school_id'])) {
-                $school_check_sql = "SELECT section_name FROM sections WHERE school_id = ?";
+                $school_check_sql = "SELECT s.section_name 
+                                     FROM sections s 
+                                     JOIN section_schools ss ON s.id = ss.section_id 
+                                     WHERE ss.school_id = ?";
                 $stmt = $conn->prepare($school_check_sql);
                 $stmt->execute([$data['school_id']]);
                 $existing_section = $stmt->fetch(PDO::FETCH_ASSOC);
@@ -495,6 +504,7 @@ class Teachers {
                     $errors['school_id'] = 'This partnered school is already assigned to section: ' . $existing_section['section_name'];
                 }
             }
+            */
             
             if (!empty($errors)) {
                 return json_encode([
@@ -505,12 +515,17 @@ class Teachers {
             }
             
             // Insert new section
-            $sql = "INSERT INTO sections (section_name, school_id) VALUES (?, ?)";
+            $sql = "INSERT INTO sections (section_name) VALUES (?)";
             $stmt = $conn->prepare($sql);
-            $stmt->execute([
-                $data['section_name'],
-                !empty($data['school_id']) ? $data['school_id'] : null
-            ]);
+            $stmt->execute([$data['section_name']]);
+            $section_id = $conn->lastInsertId();
+
+            // Insert school relation if provided
+            if (!empty($data['school_id'])) {
+                $sql_school = "INSERT INTO section_schools (section_id, school_id) VALUES (?, ?)";
+                $stmt_school = $conn->prepare($sql_school);
+                $stmt_school->execute([$section_id, $data['school_id']]);
+            }
             
             return json_encode([
                 'success' => true,
@@ -531,10 +546,12 @@ class Teachers {
         include "connection.php";
         
         try {
-            $sql = "SELECT s.id, s.section_name, s.school_id,
-                           ps.name as school_name
+            $sql = "SELECT s.id, s.section_name,
+                           GROUP_CONCAT(DISTINCT CONCAT(ps.name, ' (', ps.school_type, ')') SEPARATOR ', ') as school_name
                     FROM sections s
-                    LEFT JOIN partnered_schools ps ON s.school_id = ps.id
+                    LEFT JOIN section_schools ss ON s.id = ss.section_id
+                    LEFT JOIN partnered_schools ps ON ss.school_id = ps.id
+                    GROUP BY s.id, s.section_name
                     ORDER BY s.section_name";
             
             $stmt = $conn->prepare($sql);
@@ -587,8 +604,12 @@ class Teachers {
             }
             
             // Check if partnered school is already assigned to another section (excluding current section)
+            // Skipped strict check for now to allow flexible assignment or manual management
+            /*
             if (!empty($data['school_id'])) {
-                $school_check_sql = "SELECT section_name FROM sections WHERE school_id = ? AND id != ?";
+                $school_check_sql = "SELECT s.section_name FROM sections s 
+                                     JOIN section_schools ss ON s.id = ss.section_id 
+                                     WHERE ss.school_id = ? AND s.id != ?";
                 $stmt = $conn->prepare($school_check_sql);
                 $stmt->execute([$data['school_id'], $data['id']]);
                 $existing_section = $stmt->fetch(PDO::FETCH_ASSOC);
@@ -596,6 +617,7 @@ class Teachers {
                     $errors['school_id'] = 'This partnered school is already assigned to section: ' . $existing_section['section_name'];
                 }
             }
+            */
             
             if (!empty($errors)) {
                 return json_encode([
@@ -605,14 +627,26 @@ class Teachers {
                 ]);
             }
             
-            // Update section
-            $sql = "UPDATE sections SET section_name = ?, school_id = ? WHERE id = ?";
+            // Update section name
+            $sql = "UPDATE sections SET section_name = ? WHERE id = ?";
             $stmt = $conn->prepare($sql);
             $stmt->execute([
                 $data['section_name'],
-                !empty($data['school_id']) ? $data['school_id'] : null,
                 $data['id']
             ]);
+
+            // Update school relation
+            // First delete existing relations (simplified approach for single selection UI)
+            $delete_sql = "DELETE FROM section_schools WHERE section_id = ?";
+            $del_stmt = $conn->prepare($delete_sql);
+            $del_stmt->execute([$data['id']]);
+
+            // Insert new relation if provided
+            if (!empty($data['school_id'])) {
+                $insert_sql = "INSERT INTO section_schools (section_id, school_id) VALUES (?, ?)";
+                $ins_stmt = $conn->prepare($insert_sql);
+                $ins_stmt->execute([$data['id'], $data['school_id']]);
+            }
             
             return json_encode([
                 'success' => true,

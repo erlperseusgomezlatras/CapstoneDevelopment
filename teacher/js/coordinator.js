@@ -26,7 +26,7 @@ function toggleDropdown(schoolId) {
             dropdown.classList.remove('show');
         }
     });
-    
+
     // Toggle current dropdown
     const currentDropdown = document.getElementById(`dropdown-content-${schoolId}`);
     if (currentDropdown) {
@@ -42,7 +42,7 @@ function closeDropdown(schoolId) {
 }
 
 // Close dropdowns when clicking outside
-document.addEventListener('click', function(event) {
+document.addEventListener('click', function (event) {
     if (!event.target.matches('.dropdown button') && !event.target.closest('.dropdown-content')) {
         document.querySelectorAll('.dropdown-content').forEach(dropdown => {
             dropdown.classList.remove('show');
@@ -62,21 +62,21 @@ function openAddModal() {
     const resetPasswordBtn = document.getElementById('resetPasswordBtn');
     const schoolIdInput = document.getElementById('schoolId');
     const passwordHint = document.getElementById('passwordHint');
-    
+
     if (modalTitle) modalTitle.textContent = 'Add New Coordinator';
     if (coordinatorForm) coordinatorForm.reset();
     clearValidationErrors();
-    
+
     // Show password field for adding
     if (passwordField) passwordField.style.display = 'block';
     if (password) password.required = true;
-    
+
     // Hide reset password button for adding
     if (resetPasswordBtn) resetPasswordBtn.style.display = 'none';
-    
+
     // Auto-fill password with school_id when it's entered
     if (schoolIdInput) {
-        schoolIdInput.addEventListener('input', function() {
+        schoolIdInput.addEventListener('input', function () {
             const schoolId = this.value.trim();
             if (password) {
                 password.value = schoolId;
@@ -86,7 +86,7 @@ function openAddModal() {
             }
         });
     }
-    
+
     const coordinatorModal = document.getElementById('coordinatorModal');
     if (coordinatorModal) coordinatorModal.classList.add('show');
     loadSections();
@@ -98,16 +98,16 @@ function openEditModal(coordinator) {
     const resetPasswordBtn = document.getElementById('resetPasswordBtn');
     const passwordField = document.getElementById('passwordField');
     const password = document.getElementById('password');
-    
+
     if (modalTitle) modalTitle.textContent = 'Edit Coordinator';
-    
+
     // Show reset password button for editing
     if (resetPasswordBtn) resetPasswordBtn.style.display = 'inline-flex';
-    
+
     // Hide password field for editing (use separate reset modal)
     if (passwordField) passwordField.style.display = 'none';
     if (password) password.required = false;
-    
+
     // Populate form fields
     const schoolId = document.getElementById('schoolId');
     const firstname = document.getElementById('firstname');
@@ -115,14 +115,14 @@ function openEditModal(coordinator) {
     const middlename = document.getElementById('middlename');
     const email = document.getElementById('email');
     const isActive = document.getElementById('isActive');
-    
+
     if (schoolId) schoolId.value = coordinator.school_id;
     if (firstname) firstname.value = coordinator.firstname;
     if (lastname) lastname.value = coordinator.lastname;
     if (middlename) middlename.value = coordinator.middlename || '';
     if (email) email.value = coordinator.email || '';
     if (isActive) isActive.checked = coordinator.isActive == 1;
-    
+
     // Load sections and set selected section
     loadSections().then(() => {
         const section = document.getElementById('section');
@@ -131,7 +131,7 @@ function openEditModal(coordinator) {
             updatePartneredSchoolInfo(coordinator.section_id);
         }
     });
-    
+
     clearValidationErrors();
     const coordinatorModal = document.getElementById('coordinatorModal');
     if (coordinatorModal) coordinatorModal.classList.add('show');
@@ -140,7 +140,7 @@ function openEditModal(coordinator) {
 function closeModal() {
     const coordinatorModal = document.getElementById('coordinatorModal');
     const coordinatorForm = document.getElementById('coordinatorForm');
-    
+
     if (coordinatorModal) coordinatorModal.classList.remove('show');
     if (coordinatorForm) coordinatorForm.reset();
     clearValidationErrors();
@@ -154,12 +154,12 @@ function clearValidationErrors() {
 function showNotification(message, type = 'info') {
     const container = document.getElementById('notificationContainer');
     if (!container) return;
-    
+
     const notification = document.createElement('div');
-    
-    const bgColor = type === 'success' ? 'bg-green-500' : 
-                      type === 'error' ? 'bg-red-500' : 'bg-blue-500';
-    
+
+    const bgColor = type === 'success' ? 'bg-green-500' :
+        type === 'error' ? 'bg-red-500' : 'bg-blue-500';
+
     notification.className = `${bgColor} text-white px-4 py-3 rounded-md shadow-lg mb-2`;
     notification.innerHTML = `
         <div class="flex items-center">
@@ -167,9 +167,9 @@ function showNotification(message, type = 'info') {
             <span>${message}</span>
         </div>
     `;
-    
+
     container.appendChild(notification);
-    
+
     setTimeout(() => {
         notification.remove();
     }, 3000);
@@ -180,30 +180,30 @@ let currentResetCoordinator = null;
 
 function openResetPasswordModal() {
     if (!currentEditingCoordinator) return;
-    
+
     currentResetCoordinator = currentEditingCoordinator;
     const resetCoordinatorName = document.getElementById('resetCoordinatorName');
     const resetPassword = document.getElementById('resetPassword');
     const resetPasswordHint = document.getElementById('resetPasswordHint');
     const resetPasswordModal = document.getElementById('resetPasswordModal');
-    
+
     if (resetCoordinatorName) {
-        resetCoordinatorName.textContent = 
+        resetCoordinatorName.textContent =
             `${currentEditingCoordinator.firstname} ${currentEditingCoordinator.lastname}`;
     }
-    
+
     // Auto-fill password with school_id by default
     const schoolId = currentEditingCoordinator.school_id;
     if (resetPassword) resetPassword.value = schoolId;
-    
+
     // Clear previous values and set hints
     const resetPasswordError = document.getElementById('resetPasswordError');
     if (resetPasswordError) resetPasswordError.textContent = '';
     if (resetPasswordHint) {
-        resetPasswordHint.textContent = 
+        resetPasswordHint.textContent =
             `Password set to School ID: ${schoolId}. You can edit this if needed.`;
     }
-    
+
     if (resetPasswordModal) resetPasswordModal.classList.add('show');
 }
 
@@ -216,9 +216,9 @@ function closeResetPasswordModal() {
 function toggleResetPasswordVisibility() {
     const passwordInput = document.getElementById('resetPassword');
     const toggleIcon = document.getElementById('resetPasswordToggleIcon');
-    
+
     if (!passwordInput || !toggleIcon) return;
-    
+
     if (passwordInput.type === 'password') {
         passwordInput.type = 'text';
         toggleIcon.classList.remove('fa-eye');
@@ -236,7 +236,7 @@ function setResetPasswordToSchoolId() {
         const resetPassword = document.getElementById('resetPassword');
         const resetPasswordHint = document.getElementById('resetPasswordHint');
         const resetPasswordError = document.getElementById('resetPasswordError');
-        
+
         if (resetPassword) resetPassword.value = schoolId;
         if (resetPasswordHint) resetPasswordHint.textContent = `Password reset to School ID: ${schoolId}`;
         if (resetPasswordError) resetPasswordError.textContent = '';
@@ -246,19 +246,19 @@ function setResetPasswordToSchoolId() {
 async function confirmResetPassword() {
     const resetPassword = document.getElementById('resetPassword');
     const resetPasswordError = document.getElementById('resetPasswordError');
-    
+
     if (!resetPassword || !currentResetCoordinator) return;
-    
+
     const newPassword = resetPassword.value.trim();
-    
+
     if (!newPassword) {
         if (resetPasswordError) resetPasswordError.textContent = 'Password is required';
         return;
     }
-    
+
     // Skip length validation if password is default school_id
     const isDefaultSchoolId = newPassword === currentResetCoordinator.school_id;
-    
+
     if (!isDefaultSchoolId && newPassword.length < 6) {
         if (resetPasswordError) resetPasswordError.textContent = 'Password must be at least 6 characters';
         return;
@@ -300,9 +300,9 @@ async function confirmResetPassword() {
 function togglePasswordVisibility() {
     const passwordInput = document.getElementById('password');
     const toggleIcon = document.getElementById('passwordToggleIcon');
-    
+
     if (!passwordInput || !toggleIcon) return;
-    
+
     if (passwordInput.type === 'password') {
         passwordInput.type = 'text';
         toggleIcon.classList.remove('fa-eye');
@@ -319,9 +319,9 @@ function resetPasswordToSchoolId() {
     const password = document.getElementById('password');
     const passwordHint = document.getElementById('passwordHint');
     const passwordError = document.getElementById('passwordError');
-    
+
     if (!schoolIdInput) return;
-    
+
     const schoolId = schoolIdInput.value.trim();
     if (password) password.value = schoolId;
     if (passwordHint) passwordHint.textContent = schoolId ? 'Password reset to School ID' : '';
@@ -333,33 +333,33 @@ function resetPasswordToSchoolId() {
 function validateForm() {
     clearValidationErrors();
     let isValid = true;
-    
+
     const schoolId = document.getElementById('schoolId')?.value.trim();
     const firstname = document.getElementById('firstname')?.value.trim();
     const lastname = document.getElementById('lastname')?.value.trim();
     const email = document.getElementById('email')?.value.trim();
     const passwordField = document.getElementById('passwordField');
-    const password = passwordField?.style.display !== 'none' ? 
-                   document.getElementById('password')?.value : '';
-    
+    const password = passwordField?.style.display !== 'none' ?
+        document.getElementById('password')?.value : '';
+
     if (!schoolId) {
         const schoolIdError = document.getElementById('schoolIdError');
         if (schoolIdError) schoolIdError.textContent = 'School ID is required';
         isValid = false;
     }
-    
+
     if (!firstname) {
         const firstnameError = document.getElementById('firstnameError');
         if (firstnameError) firstnameError.textContent = 'First name is required';
         isValid = false;
     }
-    
+
     if (!lastname) {
         const lastnameError = document.getElementById('lastnameError');
         if (lastnameError) lastnameError.textContent = 'Last name is required';
         isValid = false;
     }
-    
+
     if (!email) {
         const emailError = document.getElementById('emailError');
         if (emailError) emailError.textContent = 'Email is required';
@@ -369,7 +369,7 @@ function validateForm() {
         if (emailError) emailError.textContent = 'Invalid email format';
         isValid = false;
     }
-    
+
     // Password validation only for adding new coordinators
     if (passwordField && passwordField.style.display !== 'none') {
         if (!password) {
@@ -382,7 +382,7 @@ function validateForm() {
             isValid = false;
         }
     }
-    
+
     return isValid;
 }
 
@@ -391,21 +391,21 @@ async function saveCoordinator(formData) {
         const apiFormData = new FormData();
         apiFormData.append('operation', currentEditingCoordinator ? 'update' : 'create');
         apiFormData.append('json', JSON.stringify(formData));
-        
+
         const response = await fetch(window.APP_CONFIG.API_BASE_URL + 'teachers.php', {
             method: 'POST',
             body: apiFormData
         });
-        
+
         const result = await response.json();
-        
+
         if (result.success) {
             showNotification(result.message, 'success');
             closeModal();
             loadCoordinators();
         } else {
             showNotification(result.message, 'error');
-            
+
             // Show validation errors if any
             if (result.errors) {
                 Object.keys(result.errors).forEach(field => {
@@ -426,19 +426,19 @@ async function deleteCoordinator(schoolId) {
     if (!confirm('Are you sure you want to delete this coordinator? This action cannot be undone.')) {
         return;
     }
-    
+
     try {
         const apiFormData = new FormData();
         apiFormData.append('operation', 'delete');
         apiFormData.append('json', JSON.stringify({ school_id: schoolId }));
-        
+
         const response = await fetch(window.APP_CONFIG.API_BASE_URL + 'teachers.php', {
             method: 'POST',
             body: apiFormData
         });
-        
+
         const result = await response.json();
-        
+
         if (result.success) {
             showNotification(result.message, 'success');
             loadCoordinators();
@@ -455,18 +455,18 @@ async function toggleCoordinatorStatus(schoolId, currentStatus) {
     try {
         const apiFormData = new FormData();
         apiFormData.append('operation', 'toggle_status');
-        apiFormData.append('json', JSON.stringify({ 
-            school_id: schoolId, 
-            isActive: currentStatus === 1 ? 0 : 1 
+        apiFormData.append('json', JSON.stringify({
+            school_id: schoolId,
+            isActive: currentStatus === 1 ? 0 : 1
         }));
-        
+
         const response = await fetch(window.APP_CONFIG.API_BASE_URL + 'teachers.php', {
             method: 'POST',
             body: apiFormData
         });
-        
+
         const result = await response.json();
-        
+
         if (result.success) {
             showNotification(result.message, 'success');
             loadCoordinators();
@@ -488,14 +488,14 @@ async function loadCoordinators() {
         formData.append('json', JSON.stringify({
             user_level: 'coordinator' // Add this to filter coordinators only
         }));
-        
+
         const response = await fetch(window.APP_CONFIG.API_BASE_URL + 'teachers.php', {
             method: 'POST',
             body: formData
         });
-        
+
         const result = await response.json();
-        
+
         if (result.success) {
             allCoordinators = result.data;
             filterCoordinators();
@@ -515,46 +515,46 @@ async function loadCoordinators() {
 function filterCoordinators() {
     const searchInput = document.getElementById('searchInput');
     const statusFilter = document.getElementById('statusFilter');
-    
+
     if (!searchInput || !statusFilter) return;
-    
+
     const searchTerm = searchInput.value.trim().toLowerCase();
     const statusFilterValue = statusFilter.value;
-    
+
     let filteredCoordinators = allCoordinators;
-    
+
     // Filter by search term
     if (searchTerm) {
         filteredCoordinators = filteredCoordinators.filter(coordinator => {
             const fullName = `${coordinator.firstname} ${coordinator.middlename ? coordinator.middlename + ' ' : ''}${coordinator.lastname}`.toLowerCase();
             return coordinator.school_id.toLowerCase().includes(searchTerm) ||
-                   fullName.includes(searchTerm) ||
-                   (coordinator.email && coordinator.email.toLowerCase().includes(searchTerm));
+                fullName.includes(searchTerm) ||
+                (coordinator.email && coordinator.email.toLowerCase().includes(searchTerm));
         });
     }
-    
+
     // Filter by status
     if (statusFilterValue !== '') {
         filteredCoordinators = filteredCoordinators.filter(coordinator => coordinator.isActive == statusFilterValue);
     }
-    
+
     renderCoordinatorsTable(filteredCoordinators);
 }
 
 function renderCoordinatorsTable(coordinators) {
     const tbody = document.getElementById('coordinatorsTableBody');
     const noDataMessage = document.getElementById('noDataMessage');
-    
+
     if (!tbody) return;
-    
+
     if (coordinators.length === 0) {
         tbody.innerHTML = '';
         if (noDataMessage) noDataMessage.classList.remove('hidden');
         return;
     }
-    
+
     if (noDataMessage) noDataMessage.classList.add('hidden');
-    
+
     tbody.innerHTML = coordinators.map(coordinator => `
         <tr>
             <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
@@ -572,14 +572,30 @@ function renderCoordinatorsTable(coordinators) {
                 ${coordinator.section_name || 'N/A'}
             </td>
             <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                ${coordinator.partnered_school_name || 'No partnered school assigned'}
+                <div class="flex flex-col gap-1">
+                    ${(() => {
+            if (!coordinator.partnered_school_name) return 'No partnered school assigned';
+            const schools = coordinator.partnered_school_name.split('||');
+            return schools.map(school => {
+                const [id, type, name] = school.split(':');
+                const isPublic = type === 'Public';
+                const bgColor = isPublic ? 'bg-green-50' : 'bg-blue-50';
+                const textColor = isPublic ? 'text-green-700' : 'text-blue-700';
+                const icon = isPublic ? 'fa-university' : 'fa-school';
+                return `
+                                <div class="flex items-center ${textColor} ${bgColor} px-2 py-1 rounded-md text-xs w-fit">
+                                    <i class="fas ${icon} mr-1"></i> ${type}: ${name}
+                                </div>
+                            `;
+            }).join('');
+        })()}
+                </div>
             </td>
             <td class="px-6 py-4 whitespace-nowrap">
-                <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${
-                    coordinator.isActive == 1 
-                        ? 'bg-green-100 text-green-800' 
-                        : 'bg-red-100 text-red-800'
-                }">
+                <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${coordinator.isActive == 1
+            ? 'bg-green-100 text-green-800'
+            : 'bg-red-100 text-red-800'
+        }">
                     ${coordinator.isActive == 1 ? 'Active' : 'Inactive'}
                 </span>
             </td>
@@ -615,24 +631,24 @@ async function loadSections() {
         const formData = new FormData();
         formData.append('operation', 'get_sections');
         formData.append('json', JSON.stringify({}));
-        
+
         const response = await fetch(window.APP_CONFIG.API_BASE_URL + 'teachers.php', {
             method: 'POST',
             body: formData
         });
-        
+
         const result = await response.json();
-        
+
         if (result.success) {
             const select = document.getElementById('section');
             if (select) {
                 select.innerHTML = '<option value="">Select Section</option>' +
-                    result.data.map(section => 
+                    result.data.map(section =>
                         `<option value="${section.id}">${section.section_name}</option>`
                     ).join('');
-                
+
                 // Add change event listener to show partnered school info
-                select.addEventListener('change', function() {
+                select.addEventListener('change', function () {
                     updatePartneredSchoolInfo(this.value);
                 });
             }
@@ -645,29 +661,42 @@ async function loadSections() {
 
 async function updatePartneredSchoolInfo(sectionId) {
     const infoDiv = document.getElementById('partneredSchoolInfo');
-    
+
     if (!sectionId) {
         if (infoDiv) infoDiv.innerHTML = '';
         return;
     }
-    
+
     try {
         const formData = new FormData();
         formData.append('operation', 'get_partnered_school');
         formData.append('json', JSON.stringify({ section_id: sectionId }));
-        
+
         const response = await fetch(window.APP_CONFIG.API_BASE_URL + 'teachers.php', {
             method: 'POST',
             body: formData
         });
-        
+
         const result = await response.json();
-        
-        if (result.success && result.data) {
+
+        if (result.success && result.data && result.data.name) {
+            const schools = result.data.name.split('||');
             if (infoDiv) infoDiv.innerHTML = `
-                <div class="bg-blue-50 border border-blue-200 rounded-md p-2">
-                    <i class="fas fa-school text-blue-600 mr-2"></i>
-                    <span class="text-blue-800">Partnered School: ${result.data.name}</span>
+                <div class="space-y-2">
+                    ${schools.map(school => {
+                const [id, type, name] = school.split(':');
+                const isPublic = type === 'Public';
+                const bgColor = isPublic ? 'bg-green-50' : 'bg-blue-50';
+                const borderColor = isPublic ? 'border-green-200' : 'border-blue-200';
+                const textColor = isPublic ? 'text-green-800' : 'text-blue-800';
+                const icon = isPublic ? 'fa-university' : 'fa-school';
+                return `
+                            <div class="${bgColor} border ${borderColor} rounded-md p-2">
+                                <i class="fas ${icon} ${isPublic ? 'text-green-600' : 'text-blue-600'} mr-2"></i>
+                                <span class="${textColor}">${type} School: ${name}</span>
+                            </div>
+                        `;
+            }).join('')}
                 </div>
             `;
         } else {
@@ -689,50 +718,50 @@ async function updatePartneredSchoolInfo(sectionId) {
 }
 
 // Form submission
-document.addEventListener('DOMContentLoaded', function() {
+document.addEventListener('DOMContentLoaded', function () {
     const coordinatorForm = document.getElementById('coordinatorForm');
     if (coordinatorForm) {
-        coordinatorForm.addEventListener('submit', function(e) {
+        coordinatorForm.addEventListener('submit', function (e) {
             e.preventDefault();
-            
+
             if (!validateForm()) {
                 return;
             }
-            
+
             const formData = new FormData(this);
             const data = Object.fromEntries(formData.entries());
-            
+
             // Set level_id to 3 for Coordinator
             data.level_id = 3;
-            
+
             // Convert checkbox to boolean
             data.isActive = data.isActive ? 1 : 0;
-            
+
             // Remove password if empty and editing
             if (currentEditingCoordinator && !data.password) {
                 delete data.password;
             }
-            
+
             saveCoordinator(data);
         });
     }
-    
+
     // Auto-search on input change
     const searchInput = document.getElementById('searchInput');
     const statusFilter = document.getElementById('statusFilter');
-    
+
     if (searchInput) searchInput.addEventListener('input', filterCoordinators);
     if (statusFilter) statusFilter.addEventListener('change', filterCoordinators);
-    
+
     // Initialize
     loadCoordinators();
 });
 
 // Close modal when clicking outside
-document.addEventListener('DOMContentLoaded', function() {
+document.addEventListener('DOMContentLoaded', function () {
     const coordinatorModal = document.getElementById('coordinatorModal');
     if (coordinatorModal) {
-        coordinatorModal.addEventListener('click', function(e) {
+        coordinatorModal.addEventListener('click', function (e) {
             if (e.target === this) {
                 closeModal();
             }
