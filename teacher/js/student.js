@@ -524,6 +524,8 @@ function closeCreateStudentModal() {
     if (modal) {
         modal.classList.add('hidden');
         document.getElementById('createStudentForm').reset();
+        // Reset Select2 dropdown
+        $('#section_id').val(null).trigger('change');
     }
 }
 
@@ -539,16 +541,23 @@ function loadSections() {
         .then(response => response.json())
         .then(data => {
             if (data.success && data.data) {
-                const select = document.getElementById('section_id');
-                if (select) {
-                    // Clear existing options except the first one
-                    select.innerHTML = '<option value="">Select a section</option>';
+                const select = $('#section_id'); // Use jQuery for Select2
+                if (select.length) {
+                    // Clear existing options and add new ones
+                    select.html('<option value="">Select a section</option>' +
+                        data.data.map(section =>
+                            `<option value="${section.id}">${section.section_name} - ${section.school_name || 'No School'}</option>`
+                        ).join(''));
 
-                    data.data.forEach(section => {
-                        const option = document.createElement('option');
-                        option.value = section.id;
-                        option.textContent = `${section.section_name} - ${section.school_name || 'No School'}`;
-                        select.appendChild(option);
+                    // Initialize or reinitialize Select2
+                    if (select.hasClass('select2-hidden-accessible')) {
+                        select.select2('destroy');
+                    }
+
+                    select.select2({
+                        placeholder: 'Select a section',
+                        allowClear: false,
+                        width: '100%'
                     });
                 }
             } else {
@@ -572,7 +581,7 @@ function createStudent(event) {
         lastname: formData.get('lastname'),
         middlename: formData.get('middlename'),
         email: formData.get('email'),
-        section_id: formData.get('section_id')
+        section_id: $('#section_id').val() // Use jQuery to get Select2 value
         // Password will be automatically set to School ID in the backend
     };
 

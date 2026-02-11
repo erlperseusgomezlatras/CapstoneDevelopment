@@ -903,13 +903,27 @@ class Students {
         include "connection.php";
         
         try {
-            $sql = "SELECT s.id, s.section_name, ps.name as school_name 
+            // Get sections with their associated schools
+            $sql = "SELECT s.id, s.section_name, 
+                           GROUP_CONCAT(DISTINCT ps.name ORDER BY ps.name SEPARATOR ', ') as school_names
                     FROM sections s 
-                    LEFT JOIN partnered_schools ps ON s.school_id = ps.id 
+                    LEFT JOIN section_schools ss ON s.id = ss.section_id
+                    LEFT JOIN partnered_schools ps ON ss.school_id = ps.id 
+                    GROUP BY s.id, s.section_name
                     ORDER BY s.section_name";
             $stmt = $conn->prepare($sql);
             $stmt->execute();
             $sections = $stmt->fetchAll(PDO::FETCH_ASSOC);
+            
+            // Format school names for display
+            foreach ($sections as &$section) {
+                if ($section['school_names']) {
+                    $section['school_name'] = $section['school_names'];
+                } else {
+                    $section['school_name'] = 'No schools assigned';
+                }
+                unset($section['school_names']); // Remove temporary field
+            }
             
             return json_encode([
                 'success' => true,
