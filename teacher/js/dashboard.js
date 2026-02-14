@@ -53,6 +53,7 @@ class DashboardManager {
     updateSessionDisplay(sessionData) {
         const sessionElement = document.getElementById('current-session');
         const sessionInfoElement = document.getElementById('session-info');
+        const attendanceSessionElement = document.getElementById('attendance-session-info');
         
         if (sessionData && sessionElement) {
             // Update the main session display
@@ -61,6 +62,11 @@ class DashboardManager {
             // Update the full session info if element exists
             if (sessionInfoElement) {
                 sessionInfoElement.textContent = `${sessionData.school_year} ${sessionData.semester} - Day ${sessionData.day_number}`;
+            }
+            
+            // Update the attendance session info
+            if (attendanceSessionElement) {
+                attendanceSessionElement.textContent = `${sessionData.school_year} ${sessionData.semester}`;
             }
             
             // Update the subtitle in the section overview
@@ -74,6 +80,10 @@ class DashboardManager {
             // Fallback display
             if (sessionElement) {
                 sessionElement.textContent = '2025-2026';
+            }
+            
+            if (attendanceSessionElement) {
+                attendanceSessionElement.textContent = '2025-2026';
             }
             
             const subtitleElement = document.querySelector('#section-overview').closest('.bg-white').querySelector('.text-sm.text-gray-600');
@@ -121,6 +131,11 @@ class DashboardManager {
             
             if (result.success) {
                 this.renderAttendanceLogs(result.data);
+                
+                // Update session info from attendance logs response
+                if (result.session_info) {
+                    this.updateSessionDisplay(result.session_info);
+                }
             } else {
                 console.error('Error loading attendance logs:', result.message);
             }

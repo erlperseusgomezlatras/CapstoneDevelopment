@@ -145,9 +145,39 @@ class Dashboard {
             
             $logs = $stmt->fetchAll(PDO::FETCH_ASSOC);
             
+            // Get active academic session info
+            $session_sql = "SELECT asession.academic_session_id, asession.school_year_id, asession.semester_id, 
+                                   asession.updated_at, sy.school_year, s.semester_name
+                            FROM academic_sessions asession
+                            INNER JOIN school_years sy ON asession.school_year_id = sy.school_year_id
+                            INNER JOIN semesters s ON asession.semester_id = s.semester_id
+                            WHERE asession.is_Active = 1
+                            LIMIT 1";
+            
+            $session_stmt = $conn->prepare($session_sql);
+            $session_stmt->execute();
+            $session = $session_stmt->fetch(PDO::FETCH_ASSOC);
+            
+            $session_data = null;
+            if ($session) {
+                // Calculate day number (days since session started)
+                $session_start = new DateTime($session['updated_at']);
+                $current_date = new DateTime();
+                $day_number = $current_date->diff($session_start)->days + 1; // +1 to make it 1-based
+                
+                $session_data = [
+                    'session_id' => $session['academic_session_id'],
+                    'school_year' => $session['school_year'],
+                    'semester' => $session['semester_name'],
+                    'day_number' => $day_number,
+                    'session_start_date' => $session['updated_at']
+                ];
+            }
+            
             return json_encode([
                 'success' => true,
                 'data' => $logs,
+                'session_info' => $session_data,
                 'user_level' => $user_role
             ]);
             

@@ -138,12 +138,20 @@ $current_page = 'dashboard';
                         <!-- Latest Attendance Logs (Realtime) -->
                         <div class="bg-white rounded-lg shadow">
                             <div class="px-6 py-4 border-b border-gray-200">
-                                <h3 class="text-lg font-semibold text-gray-900 flex items-center">
-                                    <i class="fas fa-clock text-green-500 mr-2"></i>
-                                    Latest Attendance Logs
-                                    <span class="ml-2 text-xs bg-green-100 text-green-800 px-2 py-1 rounded-full">Live</span>
-                                </h3>
-                                <p class="text-sm text-gray-600 mt-1">Today's attendance activities</p>
+                                <div class="flex items-center justify-between">
+                                    <div>
+                                        <h3 class="text-lg font-semibold text-gray-900 flex items-center">
+                                            <i class="fas fa-clock text-green-500 mr-2"></i>
+                                            Latest Attendance Logs
+                                            <span class="ml-2 text-xs bg-green-100 text-green-800 px-2 py-1 rounded-full">Live</span>
+                                        </h3>
+                                        <p class="text-sm text-gray-600 mt-1">Today's attendance activities</p>
+                                    </div>
+                                    <div class="text-right">
+                                        <p class="text-xs text-gray-500">Academic Session</p>
+                                        <p id="attendance-session-info" class="text-sm font-semibold text-blue-600">Loading...</p>
+                                    </div>
+                                </div>
                             </div>
                             <div class="p-6">
                                 <div id="attendance-logs" class="space-y-2">

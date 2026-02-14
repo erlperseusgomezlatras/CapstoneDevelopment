@@ -609,26 +609,9 @@ class Students {
             // Total hours as a decimal (hours + minutes/60)
             $hours_rendered = $time_diff->h + ($time_diff->days * 24) + ($time_diff->i / 60);
             
-            // Optional: enforce 8 hours checks if needed, but for now allow timeout any time if logic permits
-            // Removing the strict < 8 hours block unless explicitly requested to BLOCK it. 
-            // The previous code had a return here. Let's keep it but make it just a warning if we want to enforce full days? 
-            // The prompt didn't say to change rules, just support multiple schools. 
-            // BUT, usually practicum hours vary. If we want to keep the 8 hour warning/block:
-            /*
-            if ($hours_rendered < 8) {
-                // Calculate exact time out time (8 hours after time in)
-                $time_out_time = clone $time_in;
-                $time_out_time->add(new DateInterval('PT8H'));
-                $formatted_time_out = $time_out_time->format('g:i A');
-                
-                return json_encode([
-                    'success' => false,
-                    'message' => "You can time out at {$formatted_time_out}. Please wait until then."
-                ]);
-            }
-            */ 
-            // Actually, let's keep the existing logic: if user tries to timeout early, let's warn them or block them as per original code.
-            // Original code BLOCKED it.
+            // Cap hours at exactly 8 hours regardless of how late the timeout is
+            $hours_rendered = min($hours_rendered, 8);
+
             if ($hours_rendered < 8) {
                   $time_out_time = clone $time_in;
                 $time_out_time->add(new DateInterval('PT8H'));
