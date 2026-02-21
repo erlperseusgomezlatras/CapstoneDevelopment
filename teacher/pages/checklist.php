@@ -280,15 +280,15 @@ $current_page = 'checklist';
                     <div class="border-b border-gray-200">
                         <!-- Desktop Tabs -->
                         <nav class="hidden md:flex -mb-px">
-                            <button onclick="switchTab('criteria')" 
-                                    class="tab-button active px-6 py-3 text-sm font-medium text-green-700 hover:text-green-800 focus:outline-none focus:text-green-800">
-                                <i class="fas fa-list-check mr-2"></i>
-                                Checklist Criteria
-                            </button>
                             <button onclick="switchTab('records')" 
                                     class="tab-button px-6 py-3 text-sm font-medium text-gray-500 hover:text-gray-700 focus:outline-none focus:text-gray-700">
                                 <i class="fas fa-chart-line mr-2"></i>
                                 Records
+                            </button>
+                            <button onclick="switchTab('criteria')" 
+                                    class="tab-button active px-6 py-3 text-sm font-medium text-green-700 hover:text-green-800 focus:outline-none focus:text-green-800">
+                                <i class="fas fa-list-check mr-2"></i>
+                                Checklist Criteria
                             </button>
                             <button onclick="switchTab('categories')" 
                                     class="tab-button px-6 py-3 text-sm font-medium text-gray-500 hover:text-gray-700 focus:outline-none focus:text-gray-700">
@@ -675,7 +675,7 @@ $current_page = 'checklist';
                                 <!-- Checklist Items -->
                                 <div class="mt-6">
                                     <h4 class="text-lg font-medium text-gray-900 mb-4">Checklist Items</h4>
-                                    <div id="modalChecklistItems" class="space-y-4 max-h-96 overflow-y-auto">
+                                    <div id="modalChecklistItems" class="space-y-4">
                                         <!-- Checklist items will be loaded here -->
                                     </div>
                                 </div>

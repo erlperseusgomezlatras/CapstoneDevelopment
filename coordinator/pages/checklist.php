@@ -279,8 +279,10 @@ $coordinator_id = $userData['school_id'] ?? '';
                             <p class="text-gray-600 text-sm" id="studentDetails">Student Details</p>
                         </div>
                         <div class="text-center sm:text-right">
-                            <div class="text-sm text-gray-500">Current Week</div>
-                            <div class="text-2xl font-bold text-green-600" id="currentWeek">Week 1</div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">View Week</label>
+                            <select id="weekSelector" class="w-full sm:w-58 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent text-sm font-bold text-green-600">
+                                <!-- Options will be populated dynamically -->
+                            </select>
                         </div>
                     </div>
                 </div>

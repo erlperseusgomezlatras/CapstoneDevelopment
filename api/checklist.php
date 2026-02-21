@@ -501,6 +501,7 @@ class Checklist {
                 'data' => [
                     'student' => $student,
                     'current_week' => $currentWeek,
+                    'period_weeks' => $practicumInfo['period_weeks'],
                     'week_completed' => $completedCount > 0,
                     'coordinator_id' => $coordinatorId
                 ]
@@ -522,6 +523,7 @@ class Checklist {
             $data = json_decode($json, true);
             $studentId = $data['student_id'];
             $periodId = $data['period_id'];
+            $selectedWeek = $data['week'] ?? null;
             
             // Get all checklist items with category and type info
             $query = "SELECT c.id, c.checklist_criteria, c.points, 
@@ -550,11 +552,22 @@ class Checklist {
             $session_id = $active_session['academic_session_id'];
             
             // Get existing results for this student, period, and session
-            $query = "SELECT checklist_id, points_earned 
-                     FROM checklist_results 
-                     WHERE student_id = ? AND period_id = ? AND session_id = ?";
+            // If week is specified, filter by that week
+            $query = "SELECT cr.checklist_id, cr.points_earned 
+                     FROM checklist_results cr
+                     JOIN period p ON cr.period_id = p.id
+                     JOIN practicum_subjects ps ON p.id = ps.id
+                     WHERE cr.student_id = ? AND cr.period_id = ? AND cr.session_id = ?";
+            
+            $params = [$studentId, $periodId, $session_id];
+            
+            if ($selectedWeek) {
+                $query .= " AND FLOOR(DATEDIFF(cr.date_checked, ps.practicum_startDate) / 7) + 1 = ?";
+                $params[] = $selectedWeek;
+            }
+            
             $stmt = $conn->prepare($query);
-            $stmt->execute([$studentId, $periodId, $session_id]);
+            $stmt->execute($params);
             $existingResults = $stmt->fetchAll(PDO::FETCH_KEY_PAIR);
             
             // Merge results
@@ -562,9 +575,24 @@ class Checklist {
                 $item['points_earned'] = $existingResults[$item['id']] ?? 0;
             }
             
+            // Check if THIS specific week is completed
+            $week_completed = false;
+            if ($selectedWeek) {
+                $query_comp = "SELECT COUNT(*) as completed_count 
+                              FROM checklist_results cr
+                              JOIN period p ON cr.period_id = p.id
+                              JOIN practicum_subjects ps ON p.id = ps.id
+                              WHERE cr.student_id = ? AND cr.period_id = ? AND cr.session_id = ?
+                              AND FLOOR(DATEDIFF(cr.date_checked, ps.practicum_startDate) / 7) + 1 = ?";
+                $stmt_comp = $conn->prepare($query_comp);
+                $stmt_comp->execute([$studentId, $periodId, $session_id, $selectedWeek]);
+                $week_completed = ($stmt_comp->fetch(PDO::FETCH_ASSOC)['completed_count'] > 0);
+            }
+            
             return json_encode([
                 'success' => true,
-                'data' => $checklistItems
+                'data' => $checklistItems,
+                'week_completed' => $week_completed
             ]);
             
         } catch(PDOException $e) {
@@ -600,13 +628,29 @@ class Checklist {
             }
             
             $session_id = $active_session['academic_session_id'];
+            $selectedWeek = $data['week'] ?? null;
+            $dateToSave = date('Y-m-d');
+            
+            if ($selectedWeek) {
+                // Get practicum_startDate to ensure we save for the correct week
+                $sd_sql = "SELECT ps.practicum_startDate FROM practicum_subjects ps WHERE ps.id = ?";
+                $sd_stmt = $conn->prepare($sd_sql);
+                $sd_stmt->execute([$periodId]);
+                $startDateStr = $sd_stmt->fetchColumn();
+                
+                if ($startDateStr) {
+                    $startDate = new DateTime($startDateStr);
+                    $startDate->add(new DateInterval('P' . ($selectedWeek - 1) . 'W'));
+                    $dateToSave = $startDate->format('Y-m-d');
+                }
+            }
             
             $conn->beginTransaction();
             
             // Insert new results with session_id
             $query = "INSERT INTO checklist_results 
                      (student_id, checklist_id, period_id, session_id, points_earned, checked_by, date_checked) 
-                     VALUES (?, ?, ?, ?, ?, ?, CURDATE())";
+                     VALUES (?, ?, ?, ?, ?, ?, ?)";
             $stmt = $conn->prepare($query);
             
             foreach ($results as $result) {
@@ -616,7 +660,8 @@ class Checklist {
                     $periodId,
                     $session_id,
                     $result['points_earned'],
-                    $checkedBy
+                    $checkedBy,
+                    $dateToSave
                 ]);
             }
             
