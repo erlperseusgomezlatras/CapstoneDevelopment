@@ -19,75 +19,99 @@ $base_url = "http://localhost/CapstoneDevelopment";
         <div class="p-6">
             <div class="flex flex-col items-center">
                 <img src="<?php echo $base_url; ?>/assets/images/coc-white.png" class="w-55 h-16 mb-3" alt="PHINMA Logo">
-                <h2 class="text-xl font-bold text-white text-center">Head Teacher Portal</h2>
             </div>
-            <p class="text-sm text-gray-300 mt-2 text-center">PHINMA Education Administration</p>
+            <p class="text-sm text-gray-300 mt-2 text-center">Head Teacher Portal PHINMA Education Administration</p>
         </div>
         
         <!-- Navigation -->
         <nav class="flex-1 px-4 pb-4">
-            <ul class="space-y-2">
-                <li>
-                    <a href="<?php echo $base_url; ?>/teacher/dashboard.php" class="sidebar-item <?php echo $current_page === 'dashboard' ? 'active' : ''; ?> flex items-center px-3 py-2 text-sm font-medium rounded-md <?php echo $current_page === 'dashboard' ? 'text-white bg-white/10' : 'text-gray-300 hover:text-white hover:bg-white/10'; ?>">
-                        <i class="fas fa-home mr-3 h-4 w-4"></i>
-                        Dashboard
-                    </a>
-                </li>
-                <li>
-                    <a href="<?php echo $base_url; ?>/teacher/pages/teachers.php" class="sidebar-item <?php echo $current_page === 'teachers' ? 'active' : ''; ?> flex items-center px-3 py-2 text-sm font-medium rounded-md <?php echo $current_page === 'teachers' ? 'text-white bg-white/10' : 'text-gray-300 hover:text-white hover:bg-white/10'; ?>">
-                        <i class="fas fa-user-tie mr-3 h-4 w-4"></i>
-                        Teacher Management
-                    </a>
-                </li>
-                <li>
-                    <a href="<?php echo $base_url; ?>/teacher/pages/coordinators.php" class="sidebar-item <?php echo $current_page === 'coordinators' ? 'active' : ''; ?> flex items-center px-3 py-2 text-sm font-medium rounded-md <?php echo $current_page === 'coordinators' ? 'text-white bg-white/10' : 'text-gray-300 hover:text-white hover:bg-white/10'; ?>">
-                        <i class="fas fa-user-check mr-3 h-4 w-4"></i>
-                        Coordinator Management
-                    </a>
-                </li>
-                <li>
-                    <a href="<?php echo $base_url; ?>/teacher/pages/attendance.php" class="sidebar-item <?php echo $current_page === 'attendance' ? 'active' : ''; ?> flex items-center px-3 py-2 text-sm font-medium rounded-md <?php echo $current_page === 'attendance' ? 'text-white bg-white/10' : 'text-gray-300 hover:text-white hover:bg-white/10'; ?>">
-                        <i class="fas fa-clock mr-3 h-4 w-4"></i>
-                        Attendance Management
-                    </a>
-                </li>
-                <li>
-                    <a href="<?php echo $base_url; ?>/teacher/pages/student.php" class="sidebar-item <?php echo $current_page === 'student' ? 'active' : ''; ?> flex items-center px-3 py-2 text-sm font-medium rounded-md <?php echo $current_page === 'student' ? 'text-white bg-white/10' : 'text-gray-300 hover:text-white hover:bg-white/10'; ?>">
-                        <i class="fas fa-user-graduate mr-3 h-4 w-4"></i>
-                        Student Management
-                    </a>
-                </li>
-                <li>
-                    <a href="<?php echo $base_url; ?>/teacher/pages/journal.php" class="sidebar-item <?php echo $current_page === 'journal' ? 'active' : ''; ?> flex items-center px-3 py-2 text-sm font-medium rounded-md <?php echo $current_page === 'journal' ? 'text-white bg-white/10' : 'text-gray-300 hover:text-white hover:bg-white/10'; ?>">
-                        <i class="fas fa-book mr-3 h-4 w-4"></i>
-                        Journal Management
-                    </a>
-                </li>
-                <li>
-                    <a href="<?php echo $base_url; ?>/teacher/pages/checklist.php" class="sidebar-item <?php echo $current_page === 'checklist' ? 'active' : ''; ?> flex items-center px-3 py-2 text-sm font-medium rounded-md <?php echo $current_page === 'checklist' ? 'text-white bg-white/10' : 'text-gray-300 hover:text-white hover:bg-white/10'; ?>">
-                        <i class="fas fa-check-square mr-3 h-4 w-4"></i>
-                        Checklist Management
-                    </a>
-                </li>
-                <li>
-                    <a href="<?php echo $base_url; ?>/teacher/pages/system.php" class="sidebar-item <?php echo $current_page === 'system' ? 'active' : ''; ?> flex items-center px-3 py-2 text-sm font-medium rounded-md <?php echo $current_page === 'system' ? 'text-white bg-white/10' : 'text-gray-300 hover:text-white hover:bg-white/10'; ?>">
-                        <i class="fas fa-cogs mr-3 h-4 w-4"></i>
-                        System Configuration
-                    </a>
-                </li>
-                <li>
-                    <a href="#" class="sidebar-item <?php echo $current_page === 'security' ? 'active' : ''; ?> flex items-center px-3 py-2 text-sm font-medium rounded-md <?php echo $current_page === 'security' ? 'text-white bg-white/10' : 'text-gray-300 hover:text-white hover:bg-white/10'; ?>">
-                        <i class="fas fa-shield-alt mr-3 h-4 w-4"></i>
-                        Security & Permissions
-                    </a>
-                </li>
-                <li>
-                    <a href="#" class="sidebar-item <?php echo $current_page === 'data' ? 'active' : ''; ?> flex items-center px-3 py-2 text-sm font-medium rounded-md <?php echo $current_page === 'data' ? 'text-white bg-white/10' : 'text-gray-300 hover:text-white hover:bg-white/10'; ?>">
-                        <i class="fas fa-database mr-3 h-4 w-4"></i>
-                        Data & Backups
-                    </a>
-                </li>
-            </ul>
+            <!-- MAIN Section -->
+            <div class="mb-6">
+                <h3 class="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-2 px-3">MAIN</h3>
+                <ul class="space-y-1">
+                    <li>
+                        <a href="<?php echo $base_url; ?>/teacher/dashboard.php" class="sidebar-item <?php echo $current_page === 'dashboard' ? 'active' : ''; ?> flex items-center px-3 py-2 text-sm font-medium rounded-md <?php echo $current_page === 'dashboard' ? 'text-white bg-[#006633]' : 'text-gray-300 hover:text-white hover:bg-white/10'; ?>">
+                            <i class="fas fa-home mr-3 h-4 w-4"></i>
+                            Dashboard
+                        </a>
+                    </li>
+                     <li>
+                        <a href="<?php echo $base_url; ?>/teacher/pages/system.php" class="sidebar-item <?php echo $current_page === 'system' ? 'active' : ''; ?> flex items-center px-3 py-2 text-sm font-medium rounded-md <?php echo $current_page === 'system' ? 'text-white bg-[#006633]' : 'text-gray-300 hover:text-white hover:bg-white/10'; ?>">
+                            <i class="fas fa-cogs mr-3 h-4 w-4"></i>
+                            System Configuration
+                        </a>
+                    </li>
+                </ul>
+            </div>
+            
+            <!-- USER MANAGEMENT Section -->
+            <div class="mb-6">
+                <h3 class="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-2 px-3">USER MANAGEMENT</h3>
+                <ul class="space-y-1">
+                    <li>
+                        <a href="<?php echo $base_url; ?>/teacher/pages/teachers.php" class="sidebar-item <?php echo $current_page === 'teachers' ? 'active' : ''; ?> flex items-center px-3 py-2 text-sm font-medium rounded-md <?php echo $current_page === 'teachers' ? 'text-white bg-[#006633]' : 'text-gray-300 hover:text-white hover:bg-white/10'; ?>">
+                            <i class="fas fa-user-tie mr-3 h-4 w-4"></i>
+                            Teacher Management
+                        </a>
+                    </li>
+                    <li>
+                        <a href="<?php echo $base_url; ?>/teacher/pages/coordinators.php" class="sidebar-item <?php echo $current_page === 'coordinators' ? 'active' : ''; ?> flex items-center px-3 py-2 text-sm font-medium rounded-md <?php echo $current_page === 'coordinators' ? 'text-white bg-[#006633]' : 'text-gray-300 hover:text-white hover:bg-white/10'; ?>">
+                            <i class="fas fa-user-check mr-3 h-4 w-4"></i>
+                            Coordinator Management
+                        </a>
+                    </li>
+                    <li>
+                        <a href="<?php echo $base_url; ?>/teacher/pages/student.php" class="sidebar-item <?php echo $current_page === 'student' ? 'active' : ''; ?> flex items-center px-3 py-2 text-sm font-medium rounded-md <?php echo $current_page === 'student' ? 'text-white bg-[#006633]' : 'text-gray-300 hover:text-white hover:bg-white/10'; ?>">
+                            <i class="fas fa-user-graduate mr-3 h-4 w-4"></i>
+                            Student Management
+                        </a>
+                    </li>
+                </ul>
+            </div>
+            
+            <!-- PRACTICUM MANAGEMENT Section -->
+            <div class="mb-6">
+                <h3 class="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-2 px-3">PRACTICUM MANAGEMENT</h3>
+                <ul class="space-y-1">
+                    <li>
+                        <a href="<?php echo $base_url; ?>/teacher/pages/attendance.php" class="sidebar-item <?php echo $current_page === 'attendance' ? 'active' : ''; ?> flex items-center px-3 py-2 text-sm font-medium rounded-md <?php echo $current_page === 'attendance' ? 'text-white bg-[#006633]' : 'text-gray-300 hover:text-white hover:bg-white/10'; ?>">
+                            <i class="fas fa-clock mr-3 h-4 w-4"></i>
+                            Attendance
+                        </a>
+                    </li>
+                    <li>
+                        <a href="<?php echo $base_url; ?>/teacher/pages/journal.php" class="sidebar-item <?php echo $current_page === 'journal' ? 'active' : ''; ?> flex items-center px-3 py-2 text-sm font-medium rounded-md <?php echo $current_page === 'journal' ? 'text-white bg-[#006633]' : 'text-gray-300 hover:text-white hover:bg-white/10'; ?>">
+                            <i class="fas fa-book mr-3 h-4 w-4"></i>
+                            Journal
+                        </a>
+                    </li>
+                    <li>
+                        <a href="<?php echo $base_url; ?>/teacher/pages/checklist.php" class="sidebar-item <?php echo $current_page === 'checklist' ? 'active' : ''; ?> flex items-center px-3 py-2 text-sm font-medium rounded-md <?php echo $current_page === 'checklist' ? 'text-white bg-[#006633]' : 'text-gray-300 hover:text-white hover:bg-white/10'; ?>">
+                            <i class="fas fa-check-square mr-3 h-4 w-4"></i>
+                            Checklist
+                        </a>
+                    </li>
+                </ul>
+            </div>
+            
+            <!-- SYSTEM Section -->
+            <div class="mb-6">
+                <h3 class="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-2 px-3">SYSTEM</h3>
+                <ul class="space-y-1">
+                    <li>
+                        <a href="#" class="sidebar-item <?php echo $current_page === 'security' ? 'active' : ''; ?> flex items-center px-3 py-2 text-sm font-medium rounded-md <?php echo $current_page === 'security' ? 'text-white bg-[#006633]' : 'text-gray-300 hover:text-white hover:bg-white/10'; ?>">
+                            <i class="fas fa-shield-alt mr-3 h-4 w-4"></i>
+                            Security & Permissions
+                        </a>
+                    </li>
+                    <li>
+                        <a href="#" class="sidebar-item <?php echo $current_page === 'data' ? 'active' : ''; ?> flex items-center px-3 py-2 text-sm font-medium rounded-md <?php echo $current_page === 'data' ? 'text-white bg-[#006633]' : 'text-gray-300 hover:text-white hover:bg-white/10'; ?>">
+                            <i class="fas fa-database mr-3 h-4 w-4"></i>
+                            Data & Backups
+                        </a>
+                    </li>
+                </ul>
+            </div>
         </nav>
         
         <!-- Logout Button -->

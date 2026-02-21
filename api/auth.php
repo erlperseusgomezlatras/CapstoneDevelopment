@@ -1,5 +1,15 @@
 <?php
 include "headers.php";
+require_once "../config/config.php";
+
+if (session_status() === PHP_SESSION_NONE) {
+    session_start();
+}
+
+require_once "../vendor/autoload.php";
+use PHPMailer\PHPMailer\PHPMailer;
+use PHPMailer\PHPMailer\Exception;
+use PHPMailer\PHPMailer\SMTP;
 
 class Auth {
     
@@ -65,10 +75,8 @@ class Auth {
         }
     }
     
-    // Create new student account
+    // Create new student account - Now requires OTP
     function createStudentAccount($json) {
-        include "connection.php";
-        
         $data = json_decode($json, true);
         
         try {
@@ -86,31 +94,40 @@ class Auth {
                     'message' => 'Section is required'
                 ]);
             }
+
+            // Check if email already exists in users table
+            include "connection.php";
+            $check_sql = "SELECT school_id FROM users WHERE email = ?";
+            $stmt = $conn->prepare($check_sql);
+            $stmt->execute([$data['email']]);
+            if ($stmt->fetch()) {
+                return json_encode([
+                    'success' => false,
+                    'message' => 'Email already registered'
+                ]);
+            }
             
-            $sql = "INSERT INTO users (school_id, level_id, firstname, lastname, middlename, email, password, section_id, isApproved) 
-                    VALUES (?, 4, ?, ?, ?, ?, ?, ?, 0)";
-            $stmt = $conn->prepare($sql);
-            $hashed_password = password_hash($data['password'], PASSWORD_DEFAULT);
-            $result = $stmt->execute([
-                $data['schoolId'],
-                $data['firstname'],
-                $data['lastname'],
-                $data['middlename'] ?? null,
-                $data['email'],
-                $hashed_password,
-                $data['section_id']
-            ]);
+            // Generate 6-digit OTP
+            $otp = str_pad(rand(0, 999999), 6, '0', STR_PAD_LEFT);
             
-            if ($result) {
+            // Store registration data and OTP in session (temporary storage)
+            $_SESSION['pending_registration'] = [
+                'data' => $data,
+                'otp' => $otp,
+                'timestamp' => time()
+            ];
+            
+            // Send OTP email
+            if ($this->sendOTPEmail($data['email'], $otp)) {
                 return json_encode([
                     'success' => true,
-                    'message' => 'Account created successfully. Please wait for approval before accessing your dashboard.',
-                    'school_id' => $data['schoolId']
+                    'requires_otp' => true,
+                    'message' => 'OTP sent to your email'
                 ]);
             } else {
                 return json_encode([
                     'success' => false,
-                    'message' => 'Failed to create account'
+                    'message' => 'Failed to send OTP. Please try again.'
                 ]);
             }
             
@@ -119,6 +136,146 @@ class Auth {
                 'success' => false,
                 'message' => 'Database error: ' . $e->getMessage()
             ]);
+        }
+    }
+
+    // Verify OTP and Save to Database
+    function verifyOTP($json) {
+        $data = json_decode($json, true);
+        $inputOtp = $data['otp'] ?? '';
+        
+        if (!isset($_SESSION['pending_registration'])) {
+            return json_encode([
+                'success' => false,
+                'message' => 'Session expired. Please start over.'
+            ]);
+        }
+        
+        $pending = $_SESSION['pending_registration'];
+        
+        if ($inputOtp === $pending['otp']) {
+            // OTP is correct, save to database
+            return $this->saveUserToDatabase($pending['data']);
+        } else {
+            return json_encode([
+                'success' => false,
+                'message' => 'Invalid OTP'
+            ]);
+        }
+    }
+
+    // Resend OTP
+    function resendOTP() {
+        if (!isset($_SESSION['pending_registration'])) {
+            return json_encode([
+                'success' => false,
+                'message' => 'Session expired. Please start over.'
+            ]);
+        }
+        
+        $pending = $_SESSION['pending_registration'];
+        $otp = str_pad(rand(0, 999999), 6, '0', STR_PAD_LEFT);
+        
+        // Update OTP in session
+        $_SESSION['pending_registration']['otp'] = $otp;
+        
+        if ($this->sendOTPEmail($pending['data']['email'], $otp)) {
+            return json_encode([
+                'success' => true,
+                'message' => 'New OTP sent to your email'
+            ]);
+        } else {
+            return json_encode([
+                'success' => false,
+                'message' => 'Failed to send OTP'
+            ]);
+        }
+    }
+
+    // Helper to save user to database
+    private function saveUserToDatabase($userData) {
+        include "connection.php";
+        
+        try {
+            $sql = "INSERT INTO users (school_id, level_id, firstname, lastname, middlename, email, password, section_id, isApproved) 
+                    VALUES (?, 4, ?, ?, ?, ?, ?, ?, 0)";
+            $stmt = $conn->prepare($sql);
+            $hashed_password = password_hash($userData['password'], PASSWORD_DEFAULT);
+            $result = $stmt->execute([
+                $userData['schoolId'],
+                $userData['firstname'],
+                $userData['lastname'],
+                $userData['middlename'] ?? null,
+                $userData['email'],
+                $hashed_password,
+                $userData['section_id']
+            ]);
+            
+            if ($result) {
+                // Clear session after successful registration
+                unset($_SESSION['pending_registration']);
+                
+                return json_encode([
+                    'success' => true,
+                    'message' => 'Account created successfully. Please wait for approval.',
+                    'school_id' => $userData['schoolId']
+                ]);
+            } else {
+                return json_encode([
+                    'success' => false,
+                    'message' => 'Failed to create account in database'
+                ]);
+            }
+        } catch(PDOException $e) {
+            return json_encode([
+                'success' => false,
+                'message' => 'Database error: ' . $e->getMessage()
+            ]);
+        }
+    }
+
+    // Helper to send email using PHPMailer and SMTP
+    private function sendOTPEmail($email, $otp) {
+        $mail = new PHPMailer(true);
+
+        try {
+            // Server settings
+            // $mail->SMTPDebug = SMTP::DEBUG_SERVER;              // Enable verbose debug output
+            $mail->isSMTP();                                       // Send using SMTP
+            $mail->Host       = SMTP_HOST;                         // Set the SMTP server to send through
+            $mail->SMTPAuth   = true;                              // Enable SMTP authentication
+            $mail->Username   = SMTP_USER;                         // SMTP username
+            $mail->Password   = SMTP_PASS;                         // SMTP password
+            $mail->SMTPSecure = SMTP_SECURE === 'tls' ? PHPMailer::ENCRYPTION_STARTTLS : PHPMailer::ENCRYPTION_SMTPS;
+            $mail->Port       = SMTP_PORT;                         // TCP port to connect to
+
+            // Recipients
+            $mail->setFrom(SMTP_USER, SMTP_FROM_NAME);
+            $mail->addAddress($email);                             // Add a recipient
+
+            // Content
+            $mail->isHTML(true);                                   // Set email format to HTML
+            $mail->Subject = 'Verification Code for PHINMA PMS';
+            $mail->Body    = "
+                <div style='font-family: Arial, sans-serif; padding: 20px; color: #333;'>
+                    <h2 style='color: #058643;'>Email Verification</h2>
+                    <p>Hello,</p>
+                    <p>Your verification code for the PHINMA Practicum Management System is:</p>
+                    <div style='background-color: #f4f4f4; padding: 15px; font-size: 24px; font-weight: bold; text-align: center; border-radius: 5px; letter-spacing: 5px;'>
+                        $otp
+                    </div>
+                    <p>Please enter this code on the registration page to complete your account setup.</p>
+                    <p>If you did not request this code, please ignore this email.</p>
+                    <hr style='border: none; border-top: 1px solid #eee; margin: 20px 0;'>
+                    <p style='font-size: 12px; color: #777;'>This is an automated message. Please do not reply to this email.</p>
+                </div>";
+            $mail->AltBody = "Your verification code is: $otp";
+
+            $mail->send();
+            return true;
+        } catch (Exception $e) {
+            error_log("Message could not be sent. Mailer Error: {$mail->ErrorInfo}");
+            return false;
         }
     }
     
@@ -239,6 +396,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             break;
         case 'create_account':
             echo $auth->createStudentAccount($json);
+            break;
+        case 'verify_otp':
+            echo $auth->verifyOTP($json);
+            break;
+        case 'resend_otp':
+            echo $auth->resendOTP();
             break;
         case 'login':
             echo $auth->login($json);

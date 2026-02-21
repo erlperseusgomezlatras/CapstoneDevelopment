@@ -18,4 +18,12 @@ define('DB_HOST', 'localhost');
 define('DB_NAME', 'capstone_db');
 define('DB_USER', 'root');
 define('DB_PASS', '');
+
+define('SMTP_HOST', 'smtp.gmail.com');
+define('SMTP_PORT', 587);
+define('SMTP_USER', 'ralphjanpelino@gmail.com');
+define('SMTP_PASS', 'zgqc rzjp wwir zdke');
+define('SMTP_SECURE', 'tls');
+define('SMTP_FROM', 'noreply@gmail.com');
+define('SMTP_FROM_NAME', 'PHINMA | Practicum Management System');
 ?>

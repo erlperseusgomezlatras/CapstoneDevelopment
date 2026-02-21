@@ -285,6 +285,33 @@ function generateCaptcha() {
                         Back to Login
                     </button>
                 </div>
+
+                <!-- OTP STEP -->
+                <div id="otpStep" class="form-step" style="display: none;">
+                    <div class="welcome-message">
+                        <p>Verify Your Email</p>
+                        <p class="email-display">We've sent a 6-digit code to <span id="otpEmailDisplay"></span></p>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="otpCode">One-Time Password (OTP)</label>
+                        <input type="text" id="otpCode" name="otpCode" maxlength="6" required placeholder="000000" style="text-align: center; font-size: 1.5rem; letter-spacing: 0.5rem;">
+                    </div>
+
+                    <button type="button" id="verifyOtpBtn" class="btn-login active">
+                        VERIFY & CREATE ACCOUNT
+                    </button>
+
+                    <div style="text-align: center; margin-top: 1rem;">
+                        <button type="button" id="resendOtpBtn" class="btn-link" style="background: none; border: none; color: #058643; cursor: pointer; text-decoration: underline;">
+                            Resend Code
+                        </button>
+                    </div>
+
+                    <button type="button" id="backToRegBtn" class="btn-back">
+                        Back
+                    </button>
+                </div>
             </form>
 
             <a href="#" class="forgot">Forgot Password</a>
@@ -318,11 +345,13 @@ const emailStep = document.getElementById('emailStep');
 const passwordStep = document.getElementById('passwordStep');
 const registrationStep = document.getElementById('registrationStep');
 const pendingStep = document.getElementById('pendingStep');
+const otpStep = document.getElementById('otpStep');
 
 // Form elements
 const emailInput = document.getElementById('email');
 const passwordInput = document.getElementById('password');
 const regPasswordInput = document.getElementById('regPassword');
+const otpCodeInput = document.getElementById('otpCode');
 const firstnameInput = document.getElementById('firstname');
 const lastnameInput = document.getElementById('lastname');
 const middlenameInput = document.getElementById('middlename');
@@ -336,9 +365,12 @@ const refreshCaptchaBtn = document.getElementById('refreshCaptcha');
 const verifyEmailBtn = document.getElementById('verifyEmailBtn');
 const loginBtn = document.getElementById('loginBtn');
 const createAccountBtn = document.getElementById('createAccountBtn');
+const verifyOtpBtn = document.getElementById('verifyOtpBtn');
+const resendOtpBtn = document.getElementById('resendOtpBtn');
 const backToEmailBtn = document.getElementById('backToEmailBtn');
 const backToEmailRegBtn = document.getElementById('backToEmailRegBtn');
 const backToLoginBtn = document.getElementById('backToLoginBtn');
+const backToRegBtn = document.getElementById('backToRegBtn');
 
 // Password toggle
 const togglePassword = document.getElementById('togglePassword');
@@ -359,6 +391,7 @@ function hideAllSteps() {
     passwordStep.style.display = 'none';
     registrationStep.style.display = 'none';
     pendingStep.style.display = 'none';
+    otpStep.style.display = 'none';
 }
 
 // Show specific step
@@ -379,6 +412,10 @@ function showStep(step) {
             break;
         case 'pending':
             pendingStep.style.display = 'block';
+            break;
+        case 'otp':
+            otpStep.style.display = 'block';
+            document.getElementById('otpEmailDisplay').textContent = formData.email;
             break;
     }
 }
@@ -628,7 +665,11 @@ async function createAccount() {
         const result = await response.json();
         
         if (result.success) {
-            showStep('pending');
+            if (result.requires_otp) {
+                showStep('otp');
+            } else {
+                showStep('pending');
+            }
         } else {
             showError(result.message);
         }
@@ -638,6 +679,80 @@ async function createAccount() {
     } finally {
         createAccountBtn.disabled = false;
         createAccountBtn.textContent = 'CREATE ACCOUNT';
+    }
+}
+
+// Verify OTP
+async function verifyOtp() {
+    const otp = otpCodeInput.value.trim();
+    
+    if (otp.length !== 6) {
+        showError('Please enter a valid 6-digit OTP');
+        return;
+    }
+    
+    verifyOtpBtn.disabled = true;
+    verifyOtpBtn.textContent = 'Verifying...';
+    
+    try {
+        const response = await fetch(`${API_URL}/auth.php`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+                action: 'verify_otp',
+                otp: otp
+            })
+        });
+        
+        const result = await response.json();
+        
+        if (result.success) {
+            showStep('pending');
+        } else {
+            showError(result.message);
+        }
+    } catch (err) {
+        console.error('OTP verification error:', err);
+        showError('Network error. Please try again.');
+    } finally {
+        verifyOtpBtn.disabled = false;
+        verifyOtpBtn.textContent = 'VERIFY & CREATE ACCOUNT';
+    }
+}
+
+// Resend OTP
+async function resendOtp() {
+    resendOtpBtn.disabled = true;
+    resendOtpBtn.textContent = 'Sending...';
+    
+    try {
+        const response = await fetch(`${API_URL}/auth.php`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+                action: 'resend_otp'
+            })
+        });
+        
+        const result = await response.json();
+        
+        if (result.success) {
+            showError('A new OTP has been sent to your email');
+        } else {
+            showError(result.message);
+        }
+    } catch (err) {
+        console.error('Resend OTP error:', err);
+        showError('Network error. Please try again.');
+    } finally {
+        setTimeout(() => {
+            resendOtpBtn.disabled = false;
+            resendOtpBtn.textContent = 'Resend Code';
+        }, 5000); // Prevent spamming
     }
 }
 
@@ -723,9 +838,12 @@ function togglePasswordVisibility(inputId, iconId) {
 verifyEmailBtn.addEventListener('click', verifyEmail);
 loginBtn.addEventListener('click', login);
 createAccountBtn.addEventListener('click', createAccount);
+verifyOtpBtn.addEventListener('click', verifyOtp);
+resendOtpBtn.addEventListener('click', resendOtp);
 backToEmailBtn.addEventListener('click', resetForm);
 backToEmailRegBtn.addEventListener('click', resetForm);
 backToLoginBtn.addEventListener('click', resetForm);
+backToRegBtn.addEventListener('click', () => showStep('registration'));
 
 togglePassword.addEventListener('click', () => togglePasswordVisibility('password', 'eyeIcon'));
 toggleRegPassword.addEventListener('click', () => togglePasswordVisibility('regPassword', 'eyeRegIcon'));
@@ -734,6 +852,9 @@ refreshCaptchaBtn.addEventListener('click', refreshCaptcha);
 // Form validation listeners
 emailInput.addEventListener('input', checkEmailFormValidity);
 captchaInput.addEventListener('input', checkEmailFormValidity);
+otpCodeInput.addEventListener('input', (e) => {
+    e.target.value = e.target.value.replace(/[^0-9]/g, '');
+});
 
 // Enter key support
 emailInput.addEventListener('keypress', (e) => {

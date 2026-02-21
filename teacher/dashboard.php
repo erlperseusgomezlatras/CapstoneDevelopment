@@ -61,9 +61,8 @@ $current_page = 'dashboard';
             background-color: rgba(255, 255, 255, 0.05);
         }
         .sidebar-item.active {
-            background-color: rgba(255, 255, 255, 0.1);
+            background-color: #006633;
             color: rgb(255, 255, 255);
-            border-left: 4px solid rgb(255, 255, 255);
         }
     </style>
 </head>

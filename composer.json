@@ -1,0 +1,12 @@
+{
+    "name": "rlph/capstone-development",
+    "authors": [
+        {
+            "name": "Chillingsss",
+            "email": "ralphjangallegos@gmail.com"
+        }
+    ],
+    "require": {
+        "phpmailer/phpmailer": "^7.0"
+    }
+}
