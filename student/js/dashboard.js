@@ -7,7 +7,7 @@ document.addEventListener('DOMContentLoaded', function () {
 
     // Check URL hash for tab persistence
     const currentHash = window.location.hash.replace('#', '');
-    const validTabs = ['attendance', 'journal', 'activity-checklist'];
+    const validTabs = ['attendance', 'journal', 'activity-checklist', 'profile'];
 
     if (currentHash && validTabs.includes(currentHash)) {
         switchTab(currentHash);
@@ -59,6 +59,8 @@ function switchTab(tabName) {
     // Load tab-specific content
     if (tabName === 'journal') {
         loadJournalComponent();
+    } else if (tabName === 'profile') {
+        loadProfileComponent();
     }
 }
 
@@ -93,6 +95,42 @@ function loadJournalComponent() {
                     <i class="fas fa-exclamation-triangle text-6xl text-red-300 mb-4"></i>
                     <h3 class="text-xl font-semibold text-gray-700 mb-2">Error Loading Journal</h3>
                     <p class="text-gray-500">Unable to load the journal component. Please try again.</p>
+                </div>
+            `;
+        });
+}
+
+// Load profile component
+function loadProfileComponent() {
+    const profileContent = document.getElementById('profileContent');
+    if (!profileContent) return;
+
+    // Show loading state
+    profileContent.innerHTML = `
+        <div class="bg-white rounded-lg shadow p-8 text-center">
+            <div class="spinner mx-auto mb-4"></div>
+            <p class="text-gray-600">Loading profile...</p>
+        </div>
+    `;
+
+    // Load the profile component
+    fetch('components/profile.php')
+        .then(response => response.text())
+        .then(html => {
+            profileContent.innerHTML = html;
+
+            // Initialize profile functionality if the script is loaded
+            if (typeof initProfile === 'function') {
+                initProfile();
+            }
+        })
+        .catch(error => {
+            console.error('Error loading profile component:', error);
+            profileContent.innerHTML = `
+                <div class="bg-white rounded-lg shadow p-8 text-center">
+                    <i class="fas fa-exclamation-triangle text-6xl text-red-300 mb-4"></i>
+                    <h3 class="text-xl font-semibold text-gray-700 mb-2">Error Loading Profile</h3>
+                    <p class="text-gray-500">Unable to load the profile component. Please try again.</p>
                 </div>
             `;
         });
@@ -151,30 +189,39 @@ function confirmLogout() {
     performLogout();
 }
 
-// Original logout function (renamed)
-function performLogout() {
-    fetch(window.APP_CONFIG.API_BASE_URL + 'auth.php', {
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-            action: 'logout'
-        })
-    })
-        .then(response => response.json())
-        .then(result => {
-            if (result.success) {
-                // Redirect to login page
-                window.location.href = '../login.php';
-            } else {
-                showErrorToast('Logout failed: ' + result.message);
-            }
-        })
-        .catch(error => {
-            console.error('Logout error:', error);
-            showErrorToast('An error occurred during logout. Please try again.');
+// Logout implementation
+async function performLogout() {
+    try {
+        const response = await fetch(window.APP_CONFIG.API_BASE_URL + 'auth.php', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+                action: 'logout'
+            })
         });
+
+        const text = await response.text();
+        let result;
+
+        try {
+            result = JSON.parse(text);
+        } catch (e) {
+            console.error('Raw logout response:', text);
+            throw new Error('Invalid server response');
+        }
+
+        if (result.success) {
+            // Redirect to login page
+            window.location.href = '../login.php';
+        } else {
+            showErrorToast('Logout failed: ' + (result.message || 'Unknown error'));
+        }
+    } catch (error) {
+        console.error('Logout error:', error);
+        showErrorToast('An error occurred during logout: ' + error.message);
+    }
 }
 
 // Error toast function

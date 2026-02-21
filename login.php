@@ -42,6 +42,7 @@ function generateCaptcha() {
     <title>PHINMA | Practicum Management System</title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <link rel="stylesheet" href="assets/css/login.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <script src="assets/js/config.js"></script>
     
     <!-- jQuery (required for Select2) -->
@@ -113,6 +114,52 @@ function generateCaptcha() {
         
         .select2-container {
             width: 100% !important;
+        }
+
+        /* Password Requirements Styling */
+        .password-requirements {
+            background: #f9fafb;
+            border: 1px solid #e5e7eb;
+            border-radius: 0.75rem;
+            padding: 1rem;
+            margin-top: 1rem;
+            margin-bottom: 1.5rem;
+        }
+
+        .requirement-item {
+            display: flex;
+            align-items: center;
+            font-size: 0.75rem;
+            font-weight: 600;
+            margin-bottom: 0.5rem;
+            transition: all 0.3s ease;
+        }
+
+        .requirement-item:last-child {
+            margin-bottom: 0;
+        }
+
+        .requirement-item i {
+            margin-right: 0.625rem;
+            font-size: 0.875rem;
+        }
+
+        .requirement-met {
+            color: #058643;
+        }
+
+        .requirement-unmet {
+            color: #ef4444;
+        }
+
+        .requirement-title {
+            font-size: 0.7rem;
+            font-weight: 800;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            color: #6b7280;
+            margin-bottom: 0.75rem;
+            display: block;
         }
     </style>
 </head>
@@ -254,6 +301,52 @@ function generateCaptcha() {
                         </div>
                     </div>
 
+                    <div class="form-group">
+                        <label for="confirmPassword">Confirm Password *</label>
+                        <div class="password-input-wrapper">
+                            <input type="password" id="confirmPassword" name="confirmPassword" required placeholder="Retype your password">
+                            <button type="button" id="toggleConfirmPassword" class="toggle-password">
+                                <svg id="eyeConfirmIcon" class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path>
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"></path>
+                                </svg>
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Password Requirements List -->
+                    <div class="password-requirements">
+                        <span class="requirement-title">Password must contain:</span>
+                        <div id="reg-req-length" class="requirement-item requirement-unmet">
+                            <i class="fas fa-times-circle" id="reg-icon-length"></i>
+                            <span>At least 8 characters</span>
+                        </div>
+                        <div id="reg-req-upper" class="requirement-item requirement-unmet">
+                            <i class="fas fa-times-circle" id="reg-icon-upper"></i>
+                            <span>At least 1 uppercase letter</span>
+                        </div>
+                        <div id="reg-req-lower" class="requirement-item requirement-unmet">
+                            <i class="fas fa-times-circle" id="reg-icon-lower"></i>
+                            <span>At least 1 lowercase letter</span>
+                        </div>
+                        <div id="reg-req-number" class="requirement-item requirement-unmet">
+                            <i class="fas fa-times-circle" id="reg-icon-number"></i>
+                            <span>At least 1 number</span>
+                        </div>
+                        <div id="reg-req-special" class="requirement-item requirement-unmet">
+                            <i class="fas fa-times-circle" id="reg-icon-special"></i>
+                            <span>At least 1 special character</span>
+                        </div>
+                        <div id="reg-req-space" class="requirement-item requirement-met">
+                            <i class="fas fa-check-circle" id="reg-icon-space"></i>
+                            <span>No spaces allowed</span>
+                        </div>
+                        <div id="reg-req-match" class="requirement-item requirement-unmet">
+                            <i class="fas fa-times-circle" id="reg-icon-match"></i>
+                            <span>Passwords must match</span>
+                        </div>
+                    </div>
+
                     <button type="button" id="createAccountBtn" class="btn-login active">
                         CREATE ACCOUNT
                     </button>
@@ -351,6 +444,7 @@ const otpStep = document.getElementById('otpStep');
 const emailInput = document.getElementById('email');
 const passwordInput = document.getElementById('password');
 const regPasswordInput = document.getElementById('regPassword');
+const confirmPasswordInput = document.getElementById('confirmPassword');
 const otpCodeInput = document.getElementById('otpCode');
 const firstnameInput = document.getElementById('firstname');
 const lastnameInput = document.getElementById('lastname');
@@ -375,6 +469,10 @@ const backToRegBtn = document.getElementById('backToRegBtn');
 // Password toggle
 const togglePassword = document.getElementById('togglePassword');
 const toggleRegPassword = document.getElementById('toggleRegPassword');
+const toggleConfirmPassword = document.getElementById('toggleConfirmPassword');
+
+// Global validation state
+let isRegPasswordComplexEnough = false;
 
 // Show error message
 function showError(message) {
@@ -633,11 +731,22 @@ async function createAccount() {
     const firstname = firstnameInput.value.trim();
     const lastname = lastnameInput.value.trim();
     const password = regPasswordInput.value.trim();
+    const confirmPassword = confirmPasswordInput.value.trim();
     const sectionSelect = document.getElementById('section');
     const section = sectionSelect ? $(sectionSelect).val() : '';
     
     if (!firstname || !lastname || !schoolIdInput.value.trim() || !password || !section) {
         showError('Please fill in all required fields including section');
+        return;
+    }
+
+    if (!isRegPasswordComplexEnough) {
+        showError('Please satisfy all password requirements');
+        return;
+    }
+
+    if (password !== confirmPassword) {
+        showError('Passwords do not match');
         return;
     }
     
@@ -847,7 +956,48 @@ backToRegBtn.addEventListener('click', () => showStep('registration'));
 
 togglePassword.addEventListener('click', () => togglePasswordVisibility('password', 'eyeIcon'));
 toggleRegPassword.addEventListener('click', () => togglePasswordVisibility('regPassword', 'eyeRegIcon'));
+toggleConfirmPassword.addEventListener('click', () => togglePasswordVisibility('confirmPassword', 'eyeConfirmIcon'));
 refreshCaptchaBtn.addEventListener('click', refreshCaptcha);
+
+// Password validation logic
+function validateRegistrationPassword() {
+    const val = regPasswordInput.value;
+    const confirmVal = confirmPasswordInput.value;
+    
+    // Validation rules
+    const rules = {
+        length: val.length >= 8,
+        upper: /[A-Z]/.test(val),
+        lower: /[a-z]/.test(val),
+        number: /[0-9]/.test(val),
+        special: /[^A-Za-z0-9\s]/.test(val),
+        space: val.length > 0 ? !/\s/.test(val) : true,
+        match: val.length > 0 && val === confirmVal
+    };
+
+    let allMet = true;
+    
+    // Update UI for each rule
+    for (const [key, met] of Object.entries(rules)) {
+        const el = document.getElementById(`reg-req-${key}`);
+        const icon = document.getElementById(`reg-icon-${key}`);
+        if (!el || !icon) continue;
+
+        if (met) {
+            el.classList.replace('requirement-unmet', 'requirement-met');
+            icon.classList.replace('fa-times-circle', 'fa-check-circle');
+        } else {
+            el.classList.replace('requirement-met', 'requirement-unmet');
+            icon.classList.replace('fa-check-circle', 'fa-times-circle');
+            if (key !== 'match') allMet = false;
+        }
+    }
+    
+    isRegPasswordComplexEnough = allMet && rules.length;
+}
+
+regPasswordInput.addEventListener('input', validateRegistrationPassword);
+confirmPasswordInput.addEventListener('input', validateRegistrationPassword);
 
 // Form validation listeners
 emailInput.addEventListener('input', checkEmailFormValidity);

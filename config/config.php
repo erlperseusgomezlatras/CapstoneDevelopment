@@ -21,9 +21,9 @@ define('DB_PASS', '');
 
 define('SMTP_HOST', 'smtp.gmail.com');
 define('SMTP_PORT', 587);
-define('SMTP_USER', 'ralphjanpelino@gmail.com');
-define('SMTP_PASS', 'zgqc rzjp wwir zdke');
+define('SMTP_USER', 'erl.perseus@gmail.com');
+define('SMTP_PASS', 'ohee luju wird aaeq');
 define('SMTP_SECURE', 'tls');
-define('SMTP_FROM', 'noreply@gmail.com');
+define('SMTP_FROM', 'erl.perseus@gmail.com');
 define('SMTP_FROM_NAME', 'PHINMA | Practicum Management System');
 ?>

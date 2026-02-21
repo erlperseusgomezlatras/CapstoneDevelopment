@@ -341,8 +341,7 @@ class Auth {
     
     // Logout user
     function logout($json) {
-        // Clear session and cookies
-        session_start();
+        // session_start() already called at top of file
         session_destroy();
         
         // Clear cookies

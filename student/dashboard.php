@@ -99,6 +99,11 @@ $student_school_id = $userData['school_id'] ?? '';
                             <i class="fas fa-tasks mr-2"></i>
                             Activity Checklist
                         </button>
+                        <button onclick="switchTab('profile')" 
+                                class="tab-button px-6 py-3 text-sm font-medium text-gray-500 hover:text-gray-700 focus:outline-none focus:text-gray-700">
+                            <i class="fas fa-user mr-2"></i>
+                            Profile
+                        </button>
                     </nav>
                 </div>
             </div>
@@ -133,6 +138,16 @@ $student_school_id = $userData['school_id'] ?? '';
                     <p class="text-gray-500">This feature is coming soon...</p>
                 </div>
             </div>
+
+            <!-- Profile Tab Content -->
+            <div id="profile" class="tab-content">
+                <div id="profileContent">
+                    <div class="bg-white rounded-lg shadow p-8 text-center">
+                        <div class="spinner mx-auto mb-4"></div>
+                        <p class="text-gray-600">Loading profile...</p>
+                    </div>
+                </div>
+            </div>
         </main>
         
         <!-- Mobile Floating Navigation -->
@@ -148,6 +163,10 @@ $student_school_id = $userData['school_id'] ?? '';
             <a href="#" onclick="switchTab('activity-checklist'); return false;" class="mobile-nav-item" id="nav-activity-checklist">
                 <i class="fas fa-tasks"></i>
                 <span>Tasks</span>
+            </a>
+            <a href="#" onclick="switchTab('profile'); return false;" class="mobile-nav-item" id="nav-profile">
+                <i class="fas fa-user"></i>
+                <span>Profile</span>
             </a>
         </nav>
     </div>
@@ -165,6 +184,7 @@ $student_school_id = $userData['school_id'] ?? '';
     <script src="https://unpkg.com/maplibre-gl@3.6.2/dist/maplibre-gl.js"></script>
     <script src="js/attendance.js"></script>
     <script src="js/journal.js"></script>
+    <script src="js/profile.js"></script>
     <script src="js/dashboard.js"></script>
 </body>
 </html>
