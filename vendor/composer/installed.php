@@ -3,7 +3,7 @@
         'name' => 'rlph/capstone-development',
         'pretty_version' => 'dev-main',
         'version' => 'dev-main',
-        'reference' => '1ca0ff4b0933030e15c466359de6ed7a7f96e71a',
+        'reference' => 'f58975f4876cc13695c9890109cd3bbd01d27cfc',
         'type' => 'library',
         'install_path' => __DIR__ . '/../../',
         'aliases' => array(),
@@ -22,7 +22,7 @@
         'rlph/capstone-development' => array(
             'pretty_version' => 'dev-main',
             'version' => 'dev-main',
-            'reference' => '1ca0ff4b0933030e15c466359de6ed7a7f96e71a',
+            'reference' => 'f58975f4876cc13695c9890109cd3bbd01d27cfc',
             'type' => 'library',
             'install_path' => __DIR__ . '/../../',
             'aliases' => array(),
